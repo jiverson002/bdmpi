@@ -1,0 +1,24 @@
+
+We will like to announce the availability of the Big Data Message Passing 
+Interface (BDMPI). BDMPI is a message passing library and associated 
+runtime system for developing high-performance out-of-core distributed 
+computing applications. BDMPI is designed for problems whose aggregate 
+memory requirements exceed the amount of memory that is available on 
+the underlying computing cluster. 
+
+BDMPI is based on the Message Passing Interface (MPI) and allows existing 
+MPI-based applications to compile unchanged and efficiently run in an 
+out-of-core fashion. In addition, BDMPI provides a small number of new
+APIs that are tuned for its memory and execution model, which lead to 
+further performance improvements.
+
+Information about BDMPI and instructions on how to download it and use 
+it is available at:
+
+    http://www.cs.umn.edu/~karypis/bdmpi
+
+
+
+
+
+

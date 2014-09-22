@@ -1,0 +1,22 @@
+/*! 
+\if html
+
+<!-- ***************************************************************************** -->
+\mainpage \bdmpi Documentation
+<!-- ***************************************************************************** -->
+
+ - \subpage intro 
+ - \subpage setup 
+ - \subpage compiling 
+ - \subpage running
+ - \subpage api 
+ - \subpage troubleshooting
+ - \subpage guidelines 
+ - \subpage contact
+ - \subpage license 
+ - \subpage citelist 
+
+\endif
+*/
+
+

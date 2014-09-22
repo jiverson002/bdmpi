@@ -1,0 +1,12 @@
+
+This is the source distribution of BDMPI.
+
+Instructions on how to build, install, and use BDMPI can be found at
+the ./doc/refman.pdf and ./doc/html/index.html.
+
+A paper describing BDMPI can be found at ./doc/bdmpi.pdf.
+
+The directory ./test contains some simple programs that test BDMPI's API.
+
+George Karypis
+karypis@cs.umn.edu

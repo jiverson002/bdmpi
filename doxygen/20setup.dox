@@ -1,0 +1,101 @@
+/*!
+\page setup Setting up \bdmpi
+
+\tableofcontents
+
+<!-- ============================================================================= -->
+\section requirements System requirements 
+
+\bdmpi has been developed to run on Linux systems. It can potentially run on
+non-Linux systems as long as they support POSIX inter-processor communication
+constructs. However, it has not been tested on anything else other than Linux.
+Besides the OS, the following software packages are required in order to build 
+and use \bdmpi:
+
+1. GCC 4.x or higher ([http://gnu.gcc.org](http://gnu.gcc.org)).
+2. CMake 2.8 or higher ([http://www.cmake.org](http://www.cmake.org)).
+3. MPICH 3.0.4 or higher ([http://www.mpich.org](http://www.mpich.org)). 
+4. Perl 5 or higher ([http://www.perl.org](http://www.perl.org)).
+
+All of the above packages are available for most Linux distributions as installable
+packages. Note that \bdmpi has not been tested with OpenMPI, though in principle, it
+should work with it.
+
+In terms of hardware, the systems on which \bdmpi is running should have enough local
+storage. Note that even though \bdmpi can use a network attached file system for
+temporary storage, its performance may degrade.
+
+
+<!-- ============================================================================= -->
+---
+\section config System configuration 
+
+In order to execute \bdmpi programs on a single workstation or a cluster of
+workstations, the underlying system must be configured to execute MPI jobs. Before
+trying to run any \bdmpi programs follow the instructions in MPICH's documentation on
+how to setup the system for running MPI jobs. This usually involves enabling
+password-less ssh remote process execution and setting up a shared file system.
+
+In addition, the following system configuration parameters need to be modified (the
+names of the files discussed are valid for at least the Ubuntu 12.04.4 LTS
+distribution):
+
+1. Increase the \c nofile, \c msgqueue, and \c memlock process limits in the 
+<tt>/etc/security/limits.conf</tt> file. Specifically, you should add the following 
+limits:
+\verbatim
+*       soft    nofile          1000000
+*       hard    nofile          1000000
+*       soft    msgqueue        unlimited
+*       hard    msgqueue        unlimited
+*       soft    memlock         1048576
+*       hard    memlock         1048576
+\endverbatim
+Note that the limit for the \c memlock parameter can be adjusted up or down based 
+on the available memory in your system. However, you should probably leave at 
+least 1GB of non-lockable memory.
+
+2. Increase the number of default POSIX message queues. This is done by modifying the
+<tt>/etc/sysctl.conf</tt> file to add/modify the following lines:
+\verbatim
+msg_default     512
+msg_max         1024
+msgsize_default 256
+msgsize_max     512
+queues_max      1024
+\endverbatim
+Besides directly editing the <tt>/etc/sysctl.conf</tt> file, the above changes can 
+also be done by executing the following commands:
+\verbatim
+sudo sysctl fs.mqueue.msg_default=512
+sudo sysctl fs.mqueue.msg_max=1024
+sudo sysctl fs.mqueue.msgsize_default=256
+sudo sysctl fs.mqueue.msgsize_max=512
+sudo sysctl fs.mqueue.queues_max=1024
+\endverbatim
+Note that if your system is already configured with higher values for any of the
+above parameters, you should not change them.
+
+3. Increase the size of the swap file as it will be used for storing the data of the
+slave processes that are blocked. The size of the swap file depends on the size of
+the jobs that will be run, the extent to which you allow \bdmpi to use its own \ref
+sbmalloc "storage backed memory allocation", and the extent to which your program
+explicitly manages the size of its memory resident data (e.g., by relying on explicit
+out-of-core execution). Further details about these three cases are provided in 
+\ref bdmpimodels.
+
+
+
+
+<!-- ============================================================================= -->
+---
+\section install Building and installing \bdmpi
+
+\bdmpi is distributed as a source package, which needs to be compiled and installed
+on the systems that it will run. \bdmpi's uses \c CMake to generate the various
+system-specific \c Makefiles for building it. Instructions on how to use \c cmake are
+provided in the \t BUILD.txt file, which is included verbatim here:
+
+\verbinclude BUILD.txt
+
+*/

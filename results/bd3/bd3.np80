@@ -1,0 +1,8 @@
+nlocal: 100000000
+1366775414 Starting.
+1366777903 Done with splitter bcast.
+1366778390 Done with rcounts alltoall.
+1366779219 Done with data alltoall.
+1366782374 min/max nrecv: 99927070 100211795
+1366783166 Done done!
+Time: 7752

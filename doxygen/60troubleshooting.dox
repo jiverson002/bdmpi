@@ -1,0 +1,70 @@
+/*!
+\page troubleshooting Troubleshooting \bdmpi Programs 
+\tableofcontents
+
+
+<!-- ----------------------------------------------------------------------------- -->
+\section tb_debug Developing and debugging \bdmpi programs
+
+\bdmpi is still at early development stages and as such its implementation does not
+contain robust parameter checking and/or error reporting. For this reason, while
+developing a \bdmpi program it may be easier to start with focusing on the \mpi
+aspect of the program and relying on MPICH's robust error checking and reporting
+capabilities. Once you have an \mpi program that runs correctly, it can then be
+converted to a \bdmpi program by simply compiling it using `bdmpicc` or `bdmpic++`
+and potentially optimized using any of the additional API's provided by \bdmpi.
+
+
+<!-- ----------------------------------------------------------------------------- -->
+---
+\section tb_sbmalloc Issues related to sbmalloc
+
+We are aware of two cases in which sbmalloc's memory subsystem will lead to incorrect
+program execution. 
+
+The first has to do with \mpi/\bdmpi programs that are multi-threaded (e.g., they
+rely on OpenMP or Pthreads to parallelize the single node computations). In such
+programs, the memory that was allocated by sbmalloc and is accessed concurrently by
+multiple threads (e.g., within an OpenMP parallel region) needs to be pre-loaded
+prior to entering the parallel region. This is something that needs to be done by the
+application. See the API in \ref bdmpisbmalloc on how to do that and specifically the
+\c BDMPI_load() and \c BDMPI_loadall() functions.
+
+The second has to do with the functions from the standard library that block signals.
+Examples of such functions are the file I/O functions, such as \c read()/write() and
+\c fread()/fwrite(). If these functions are used to read/write data to/from memory
+that has been allocated by sbmalloc, the memory needs to have the appropriate access
+permissions (read or write). \bdmpi provides wrappers for the above four functions
+that perform such permission changes automatically. However, there may be other
+functions in the standard library that block signals for which \bdmpi does not
+provide wrappers. If you encounter such functions do the following:
+ - Send us a note so that we can provide wrappers for them.
+ - Use \c BDMPI_load() and \c BDMPI_loadall() to obtain read permissions.
+ - Use \c memset() to zero-fill the associated memory to obtain write permissions.
+
+
+<!-- ----------------------------------------------------------------------------- -->
+---
+\section tb_cleanup Cleaning up after a failed execution
+<!-- ----------------------------------------------------------------------------- -->
+
+When a \bdmpi program exits unsuccessfully (either due to a program error or an issue 
+with \bdmpi itself), there may be a number of files that needs to be removed
+manually. These files include the following:
+
+ - Temporary files that \bdmpi uses and are located in the working directory specified 
+   by the \c -wdir option of \c bdmprun (\ref bdmprun).
+ - POSIX message queues that are located at \c /dev/mqueue/.
+ - POSIX shared memory regions that are located at \c /dev/shm/.
+
+Accessing the message queues will require to create/mount the directory. The commands
+for that are:
+\verbatim
+sudo mkdir /dev/mqueue
+sudo mount -t mqueue none /dev/mqueue
+\endverbatim
+Information related to that can be obtained by looking at the manpage of mq_overview
+(i.e., \c "man mq_overview").
+
+
+*/

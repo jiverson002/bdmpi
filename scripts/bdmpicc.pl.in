@@ -1,0 +1,12 @@
+#!@PERL_EXECUTABLE@ -w
+
+die "bdmpicc: fatal error: no input files.\n" unless @ARGV > 0;
+
+$PREFIX = "@CMAKE_INSTALL_PREFIX@";
+$CC     = "@CMAKE_C_COMPILER@";
+
+$args = join(' ', @ARGV);
+$cmd = "$CC -pthread $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lrt -lm -ldl";
+print "bdmpicc: $cmd\n";
+`$cmd`;
+

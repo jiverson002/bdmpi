@@ -1,0 +1,55 @@
+------------------------------------------------------------------------------
+Building BDMPI requires CMake 2.8, found at http://www.cmake.org/, as
+well as GNU make. Assumming CMake and GNU make are installed, two
+commands should suffice to build BDMPI:
+
+     $ make config
+     $ make
+
+
+Configuration
+-------------
+BDMPI is primarily configured by passing options to make config. For
+example:
+
+     $ make config cc=gcc-4.2
+
+would configure BDMPI to be built using GCC 4.2.
+
+Common configuration options are:
+  cc=[compiler]   - The C compiler to use [default is determined by CMake]
+  prefix=[PATH]   - Set the installation prefix [/usr/local/ by default]
+
+Advanced debugging related options:
+  gdb=1       - Build with support for GDB [off by default]
+  debug=1     - Enable debugging support [off by default]
+  assert=1    - Enable asserts [off by default]
+
+
+
+Installation
+------------
+To install BDMPI, run
+
+    $ make install
+
+The default installation prefix is /usr/local. To pick an installation 
+prefix for BDMPI pass prefix=[path] to make config. For example,
+
+    $ make config prefix=~/local
+
+will cause BDMPI to be installed in ~/local when make install is run.
+
+
+Other make commands
+-------------------
+   $ make uninstall 
+          Removes all files installed by 'make install'.
+   
+   $ make clean 
+          Removes all object files but retains the configuration options.
+   
+   $ make distclean 
+          Performs clean and completely removes the build directory.
+
+------------------------------------------------------------------------------

@@ -1,0 +1,86 @@
+/*!
+\page guidelines Guidelines for Developing Efficient \bdmpi Programs 
+\tableofcontents
+
+In this section we provide some guidelines for developing parallel \mpi programs that
+leverage \bdmpi's execution and memory model in order to achieve good out-of-core
+execution. 
+
+
+<!-- ----------------------------------------------------------------------------- -->
+\section g_collective Use collective communication operations
+
+\bdmpi's implementation of \mpi's collective communication operations has been
+optimized so that a process becomes runnable only when all the data that it requires
+is locally available. As a result, when it is scheduled for execution it will proceed
+to get any data that it may require and resume execution without needing to block for
+the same collective operation. This approach minimizes the time spent in
+saving/restoring to/from disk the active parts of the processes' address space,
+resulting in fast out-of-core execution. For this reason, the application should try
+to structure its communication patterns so that it uses the collective communication
+operations.
+
+
+<!-- ----------------------------------------------------------------------------- -->
+\section g_group Group blocking communication operations together
+
+When a running processes is blocked due to a blocking \mpi operation, the part of the
+address space that it accessed since the last time it was scheduled will most likely
+be unmapped from physical memory. When the process' blocking condition is lifted
+(e.g., received the data that it was waiting for) and is scheduled for execution, it
+will load the parts of the address space associated with the computations that it
+will perform until the next time it blocks. Note that even if a process requires to
+access the same parts of the address space as in the previous step, because of the
+earlier unmapping, they still need to be remapped from disk to physical memory.
+
+The cost of these successive unmapping/remapping operations from/to the physical
+memory can potentially be reduced by restructuring the computations so that if an
+application needs to perform multiple blocking communication operations, it performs
+them one-after-the-other with little computations between them. Of course, such
+restructuring may not always be possible, but if it can be done, it will lead to
+considerable performance improvements.
+
+
+<!-- ----------------------------------------------------------------------------- -->
+\section g_scratch Freeing scratch memory
+
+<!---
+Many programs typically pre-allocate all the memory that they need and free them at
+the end of the computations. This is true for the memory designed to store input data
+(i.e., write once, read many), the memory that is designed to store the current state
+of the results been computed (i.e., write/read many), and the memory that is used to
+store temporary results, which are often over-written in iterative computations
+(i.e., scratch memory). The persistent allocation of such scratch memory (i.e.,
+allocation that remains active throughout the execution of a program) is a source of
+unnecessary disk I/O when a process is blocked and resumed. 
+--->
+
+If a process, after returning from a blocking communication operation, proceeds to
+overwrite some of the memory that it allocated previously without first reading from
+it, then the cost associated with saving them to disk and restoring them from disk is
+entirely wasted. In such cases, it is better to free that memory prior to performing
+a blocking communication operation and re-allocating when returning from it.
+Alternatively, if the allocation is handled by the sbmalloc subsystem (\ref
+sbmalloc), an application can use the \c BDMPI_sbdiscard() function (\ref
+bdmpisbmalloc) to inform the sbmalloc subsystem that the memory associated with the
+provided allocation does not need to be saved and restored during the next
+block/resume cycle.
+
+
+<!-- ----------------------------------------------------------------------------- -->
+\section g_mblocks Structure memory allocations in terms of active blocks
+
+As discussed in \ref sbmalloc, when the application accesses an address from the
+memory area that was allocated by the sbmalloc subsystem, \bdmpi loads in physical
+memory the entire allocation that contains that address (i.e., all the memory that
+was allocated as part of the \c malloc() call that allocated the memory containing
+that address). Given this, the application should structure computations and memory
+allocations so that it is accessing most of the loaded data prior to performing a
+blocking operation. This will often involve breaking the memory allocations into
+smaller segments that include just the elements that will be accesses and potentially
+restructuring the computations so that they exhibit a segment-based spatial locality
+(i.e., if they access some data in an allocated segment, then they will most likely
+access all/most of the data in that segment).
+
+
+*/

@@ -1,0 +1,251 @@
+/*!
+\page api API Documentation 
+
+\tableofcontents
+
+
+\bdmpi programs are message-passing distributed memory parallel programs written
+using a subset of \mpi's API. As such, \bdmpi program development is nearly identical
+to developing \mpi-based parallel programs. There are many online resources providing
+guidelines and documentation for developing \mpi-based programs, all of which apply
+for \bdmpi as well.
+
+Though it is beyond the scope of this documentation to provide a tutorial on how to
+develop \mpi programs, the following is a list of items that anybody using \bdmpi
+should be aware off:
+
+- \bdmpi supports programs written in C and C++. 
+  - Our own testing was done using C-based \bdmpi programs, and as such 
+    the C++ support has not been tested.
+    
+- All \bdmpi programs must include the `mpi.h` or `bdmpi.h` header file and must 
+  call `MPI_Init()` and `MPI_Finalize()` before and after finishing with their work.
+  - Ideally, `MPI_Init()` and `MPI_Finalize()` should be the first and last functions 
+    called in the `main()`, respectively.
+
+- All \bdmpi programs should exit from their `main()` function by returning
+  `EXIT_SUCCESS`.
+  
+
+
+<!-- ********************************************************************** -->
+___ 
+\section mpiapi \mpi functions supported by \bdmpi
+<!-- ********************************************************************** -->
+
+\bdmpi implements a subset of the \mpi specification that includes functions for
+querying and creating communicators and for performing point-to-point and collective
+communications. For each of these functions, \bdmpi provides a variant that starts
+with the `MPI_` prefix and a variant that starts with the `BDMPI_` prefix. The
+calling sequence of the first variant is identical to the \mpi specification whereas
+the calling sequence of the second variant has been modified to make it 64-bit
+compliant (e.g., replaced most of the sizes that \mpi assumed that were `int` to
+either `size_t` or `ssize_t`).
+
+Since the calling sequence of these functions is the same as that specified in \mpi's
+specification (available at [http://www.mpi-forum.org](http://www.mpi-forum.org)) it
+is not included here.
+
+- \subpage mpiapilist. 
+
+
+#### Differences with the \mpi specification
+
+- \bdmpi's error checking and error reporting are significantly less robust than what
+the standard requires.
+
+- In all collective operations, the source and destination buffers of the 
+  operations are allowed to overlap (or be identical). In such cases, the operations 
+  will complete correctly and the new data will overwrite the old data.
+
+<!---
+- \bdmpi supports the following list of predefined 
+  [communicators](\ref communicators),
+  [datatypes](\ref datatypes), and 
+  [reduction operations](\ref reductions).
+--->
+
+
+<!-- ********************************************************************** -->
+___ 
+\section bdmpiapi \bdmpi-specific functions
+<!-- ********************************************************************** -->
+
+\bdmpi provides a small set of additional functions that an application can use to
+improve its out-of-core execution performance and get information about how the
+different \mpi slave processes are distributed among the nodes. Since these functions
+are not part of the \mpi specification, their names only start with the `BDMPI_`
+prefix.
+
+These functions are organized in three main groups that are described in the
+following subsections.
+
+
+<!-- ********************************************************************** -->
+\subsection bdmpicomm Communicator-related functions
+<!-- ********************************************************************** -->
+
+Since \bdmpi organizes the \mpi processes into groups of slave processes, each
+running on a different node, it is sometimes beneficial for the application to know
+how many slaves within a communicator are running on the same node and the total
+number of nodes that is involved. To achieve this, \bdmpi provides a set of functions
+that can be used to *interrogate* each communicator in order to obtain information
+that relates to the number of slaves per node, the rank of a process among the other
+processes in its own node, the number of nodes, and their ranks. 
+
+- \ref bdmpicommlist. 
+
+In addition, \bdmpi defines some additional predefined communicators that are used to
+describe the processes of each node. These are described in \ref communicators.
+
+
+
+<!-- ********************************************************************** -->
+\subsection bdmpimutex Intra-slave synchronization 
+<!-- ********************************************************************** -->
+
+On a system with a quad core processor it may be reasonable to allow 3-4 slaves to
+run concurrently. However, if that system's I/O subsystem consisted of only a single
+disk, then in order to prevent I/O contention, it may be beneficial to limit the
+number of slaves that perform I/O. To achieve such a synchronization, \bdmpi provides
+a set of functions that can be used to implement mutex-like synchronization among the
+processes running on the same slave node. The number of slave processes that can be
+at a critical section concurrently is controlled by the \c -nc option of \c bdmprun
+(\ref bdmprun).
+
+- \ref bdmpimutexlist.
+
+
+<!-- ********************************************************************** -->
+\subsection bdmpisbmalloc Storage-backed memory allocations 
+<!-- ********************************************************************** -->
+
+\bdmpi exposes various functions that relate to its sbmalloc subsystem (\ref
+sbmalloc). An application can use these functions to explicitly allocate
+sbmalloc-handled memory and to also force loading/saving of memory regions that were
+previously allocated by sbmalloc (see the discussion in \ref tb_sbmalloc).
+
+- \ref bdmpisbmalloclist
+
+
+
+
+<!-- ********************************************************************** -->
+___ 
+\section communicators Predefined communicators 
+<!-- ********************************************************************** -->
+
+The following are the communicators that are predefined in \bdmpi. Note that 
+both the ones with the \c MPI_ and the \c BDMPI_ prefix are defined.
+
+\mpi Name         | \bdmpi Name          | Description
+:-----------------|:---------------------|:---------------------------------
+\c MPI_COMM_WORLD | \c BDMPI_COMM_WORLD  | Contains all processes
+\c MPI_COMM_SELF  | \c BDMPI_COMM_SELF   | Contains only the calling process
+\c MPI_COMM_NULL  | \c BDMPI_COMM_NULL   | A null group 
+N/A               | \c BDMPI_COMM_NODE   | Contains all processes in a node
+N/A               | \c BDMPI_COMM_CWORLD | Contains all processes in cyclic order
+
+
+The last two communicators are \bdmpi specific. \c BDMPI_COMM_NODE is used to
+describe the group of slave processes that were spawned by the same master process
+(i.e., \bdmprun). Unless multiple instances of \bdmprun was started on a single node,
+these processes will be the ones running on a node for the program. 
+
+The ranks of the processes in the \c MPI_COMM/WORLD/BDMPI_COMM_WORLD communicator are
+ordered in increasing order based on the rank of the hosts specified in \c mpiexec's 
+\c hostfile and the number of slaves spawned by \bdmprun. For example, the execution 
+of the \c helloworld program (see \ref running):
+
+\verbatim
+mpiexec -hostfile ~/machines -np 3 bdmprun -ns 4 build/Linux-x86_64/test/helloworld
+\endverbatim
+
+with the hostfile:
+
+~~~~~~~~~~~~~~~~
+bd1-umh:1
+bd2-umh:1
+bd3-umh:1
+bd4-umh:1
+~~~~~~~~~~~~~~~~
+
+will create an \c MPI_COMM_WORLD/BDMPI_COMM_WORLD communicator in which the processes
+with ranks 0--3 are the slave processes on \c bd1-umh, ranks 4--7 are the slave
+processes on \c bd2-umh, and ranks 8--11 are the slave processes on \c bd3-umh. The
+\c BDMPI_COMM_CWORLD communicator also includes all processes but assignes ranks in a
+cyclic fashion based on the hosts specified in \c mpiexec's hostfile. For example,
+the ranks of the four slaves on \c bd1-umh for the above \c helloworld execution will
+be 0, 3, 6, and 9; on \c bd2-umh will be 1, 4, 7, and 10; and on \c bd3-umh will be
+2, 5, 8, and 11.
+
+
+<!-- ********************************************************************** -->
+___ 
+\section datatypes Supported datatypes 
+<!-- ********************************************************************** -->
+
+The following are the datatypes that are predefined in \bdmpi. 
+Note that both the ones with the \c MPI_ and the \c BDMPI_ prefix are defined.
+
+\mpi Name                | \bdmpi Name                 | C equivalent 
+:------------------------|:----------------------------|:---------------------------------
+\c MPI_CHAR              | \c BDMPI_CHAR               | <tt>char</tt>
+\c MPI_SIGNED_CHAR       | \c BDMPI_SIGNED_CHAR        | <tt>signed char</tt>
+\c MPI_UNSIGNED_CHAR     | \c BDMPI_UNSIGNED_CHAR      | <tt>unsigned char</tt>
+\c MPI_BYTE              | \c BDMPI_BYTE               | <tt>unsigned char</tt>
+\c MPI_WCHAR             | \c BDMPI_WCHAR              | <tt>wchar_t</tt>
+\c MPI_SHORT             | \c BDMPI_SHORT              | <tt>short</tt>
+\c MPI_UNSIGNED_SHORT    | \c BDMPI_UNSIGNED_SHORT     | <tt>unsigned short</tt>
+\c MPI_INT               | \c BDMPI_INT                | <tt>int</tt>
+\c MPI_UNSIGNED          | \c BDMPI_UNSIGNED           | <tt>unsigned int</tt>
+\c MPI_LONG              | \c BDMPI_LONG               | <tt>long</tt>
+\c MPI_UNSIGNED_LONG     | \c BDMPI_UNSIGNED_LONG      | <tt>unsigned long</tt>
+\c MPI_LONG_LONG_INT     | \c BDMPI_LONG_LONG_INT      | <tt>long long int</tt>
+\c MPI_UNSIGNED_LONG_LONG| \c BDMPI_UNSIGNED_LONG_LONG | <tt>unsigned long long int</tt>
+\c MPI_INT8_T            | \c BDMPI_INT8_T             | <tt>int8_t</tt>
+\c MPI_UINT8_T           | \c BDMPI_UINT8_T            | <tt>uint8_t</tt>
+\c MPI_INT16_T           | \c BDMPI_INT16_T            | <tt>int16_t</tt>
+\c MPI_UINT16_T          | \c BDMPI_UINT16_T           | <tt>uint16_t</tt>
+\c MPI_INT32_T           | \c BDMPI_INT32_T            | <tt>int32_t</tt>
+\c MPI_UINT32_T          | \c BDMPI_UINT32_T           | <tt>uint32_t</tt>
+\c MPI_INT64_T           | \c BDMPI_INT64_T            | <tt>int64_t</tt>
+\c MPI_UINT64_T          | \c BDMPI_UINT64_T           | <tt>uint64_t</tt>
+\c MPI_SIZE_T            | \c BDMPI_SIZE_T             | <tt>size_t</tt>
+\c MPI_SSIZE_T           | \c BDMPI_SSIZE_T            | <tt>ssize_t</tt>
+\c MPI_FLOAT             | \c BDMPI_FLOAT              | <tt>float</tt>
+\c MPI_DOUBLE            | \c BDMPI_DOUBLE             | <tt>double</tt>
+\c MPI_FLOAT_INT         | \c BDMPI_FLOAT_INT          | <tt>struct {float, int}</tt>
+\c MPI_DOUBLE_INT        | \c BDMPI_DOUBLE_INT         | <tt>struct {double, int}</tt>
+\c MPI_LONG_INT          | \c BDMPI_LONG_INT           | <tt>struct {long, int}</tt>
+\c MPI_SHORT_INT         | \c BDMPI_SHORT_INT          | <tt>struct {short, int}</tt>
+\c MPI_2INT              | \c BDMPI_2INT               | <tt>struct {int, int}</tt>
+
+
+
+
+<!-- ********************************************************************** -->
+___ 
+\section reductions Supported reduction operations
+<!-- ********************************************************************** -->
+
+The following are the reduction operations that are supported by \bdmpi. 
+Note that both the ones with the \c MPI_ and the \c BDMPI_ prefix are defined.
+
+\mpi Name      | \bdmpi Name        | Description
+:--------------|:-------------------|:---------------------------------
+\c MPI_OP_NULL | \c BDMPI_OP_NULL   | null 
+\c MPI_MAX     | \c BDMPI_MAX       | max reduction 
+\c MPI_MIN     | \c BDMPI_MIN       | min reduction 
+\c MPI_SUM     | \c BDMPI_SUM       | sum reduction 
+\c MPI_PROD    | \c BDMPI_PROD      | prod reduction 
+\c MPI_LAND    | \c BDMPI_LAND      | logical and reduction 
+\c MPI_BAND    | \c BDMPI_BAND      | boolean and reduction
+\c MPI_LOR     | \c BDMPI_LOR       | logical or reduction
+\c MPI_BOR     | \c BDMPI_BOR       | boolean or reduction 
+\c MPI_LXOR    | \c BDMPI_LXOR      | logical xor reduction 
+\c MPI_BXOR    | \c BDMPI_BXOR      | boolean xor reduction
+\c MPI_MAXLOC  | \c BDMPI_MAXLOC    | max value and location reduction 
+\c MPI_MINLOC  | \c BDMPI_MINLOC    | min value and location reduction  
+
+*/

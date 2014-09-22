@@ -1,0 +1,5 @@
+msg_default     512
+msg_max         1024
+msgsize_default 256
+msgsize_max     512
+queues_max      1024

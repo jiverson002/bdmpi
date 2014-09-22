@@ -1,0 +1,2 @@
+- Deal with MPI_UNDEFINED
+- Optimize wait all

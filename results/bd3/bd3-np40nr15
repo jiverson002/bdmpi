@@ -1,0 +1,26 @@
+exeargv[0] = ./build/Linux-x86_64/test/samplesort
+exeargv[1] = 100000000
+nlocal: 100000000
+1366767485 Starting.
+1366767646 Done with splitter bcast.
+1366767677 Done with rcounts alltoall.
+1366768150 Done with data alltoall.
+1366768186 min/max nrecv: 99936761 100152832
+1366768291 Done done!
+Cleaning up on master
+------------------------------------------------
+DB: /tmp/bdmp/24911.msgdb
+   InsertTmr:      0.000
+   DeleteTmr:      0.000
+      GetTmr:      0.000
+  ExtractTmr:      0.000
+------------------------------------------------
+------------------------------------------------
+Master timings
+    TotalTmr:    990.473
+    routeTmr:    477.451
+      p2pTmr:    476.544
+      colTmr:      0.026
+  barrierTmr:      0.157
+     commTmr:      0.723
+------------------------------------------------

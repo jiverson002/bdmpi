@@ -1,0 +1,24 @@
+/*!
+\page compiling Compiling \bdmpi Programs 
+
+
+\bdmpi provides two helper programs \c bdmpicc and \c bdmpic++ for compiling and
+linking \bdmpi programs written in \c C and \c C++, respectively. These programs are
+simple Perl scripts that setup the appropriate include paths for header files and
+libraries based on the installation path that you specified when building \bdmpi
+(i.e., specified via the \c prefix option in CMake) and then call either \c gcc or \c
+g++. All source files of a \bdmpi program should be compiled with these programs. 
+
+If for some reason you cannot use them, make sure that your include paths contain 
+\verbatim
+  -IPREFIX/include/bdmpi
+\endverbatim
+and for linking you include 
+\verbatim
+  -LPREFIX/lib/bdmpi -lbdmpi -lGKlib -lrt -lm -ldl
+\endverbatim
+In both cases, \c PREFIX is the directory that you specified in the \c prefix option
+when you built \bdmpi (\ref setup).
+
+
+*/
