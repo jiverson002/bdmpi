@@ -15,7 +15,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
           BDMPI_Status *status)
 {
   int flag=0, response;
-  bdmsg_t msg, rmsg;
+  bdmsg_t msg, rmsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Probe: Receiving from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));

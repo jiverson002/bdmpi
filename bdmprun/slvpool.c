@@ -358,6 +358,9 @@ void slvpool_service_xcomms(mjob_t *job)
 void slvpool_wakeup_some(mjob_t *job)
 {
   int i, itogo, togo, msg=1;
+  bdmsg_t gomsg;
+
+  gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
 
   BD_GET_LOCK(job->schedule_lock);
 
@@ -379,7 +382,7 @@ void slvpool_wakeup_some(mjob_t *job)
     /* send that slave a go message */
     M_IFSET(BDMPI_DBG_IPCM, 
         bdprintf("[MSTR%04d] Telling slave [%d:%d] to go [msg:%d]\n", job->mynode, togo, (int)job->spids[togo], msg));
-    if (bdmq_send(job->goMQs[togo], &msg, sizeof(int)) == -1)
+    if (-1 == bdmq_send(job->goMQs[togo], &gomsg, sizeof(bdmsg_t)))
       bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
   }
 

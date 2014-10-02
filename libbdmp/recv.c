@@ -15,7 +15,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int source, int tag, BDMPI_Comm comm, BDMPI_Status *status)
 {
   int mype, flag=0, response;
-  bdmsg_t msg, rmsg;
+  bdmsg_t msg, rmsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Recv: Receiving from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));

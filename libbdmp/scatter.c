@@ -18,7 +18,7 @@ int bdmp_Scatterv_node(sjob_t *job,
 {
   size_t size, sdtsize, rdtsize;
   int npes, mype, p, response, sleeping=1;
-  bdmsg_t msg, rmsg;
+  bdmsg_t msg, rmsg, gomsg;
 
 
   S_IFSET(BDMPI_DBG_IPCS, 

@@ -15,7 +15,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Reduce: entering: root: %d, comm: %p [goMQlen: %d]\n", 
@@ -174,7 +174,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
           BDMPI_Request *r_request)
 {
   int mype, response;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
   bdrequest_t *request = *r_request;
 
   S_IFSET(BDMPI_DBG_IPCS, 
@@ -252,7 +252,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Allreduce: entering: comm: %p [goMQlen: %d]\n", 
