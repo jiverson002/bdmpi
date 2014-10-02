@@ -200,6 +200,12 @@ typedef enum {
   BDMPI_MSGTYPE_COMMSPLIT    =92, /*!< a comm_split operation */
 
   BDMPI_MSGTYPE_CID          =100, /*!< a to master-node request for next mpi_commid */
+
+  BDMPI_MSGTYPE_MEMRQST      =200, /*!< a memory request operation */
+
+  BDMPI_MSGTYPE_PROCEED      =210,  /*!< slave should proceed with execution */
+  BDMPI_MSGTYPE_MEMFREE      =211,  /*!< slave should free its memory */
+
   BDMPI_MSGTYPE_NOOP         =999  /*!< a dummy message type */
 } bdmsgtype_et;
 

@@ -14,7 +14,7 @@
 int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 {
   int response;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Barrier: entering: comm: %p [goMQlen: %d]\n", comm, 
@@ -39,8 +39,9 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 
   /* go to sleep... */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

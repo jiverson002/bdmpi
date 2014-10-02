@@ -74,8 +74,9 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* go to sleep until everybody has called the reduce */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
@@ -209,8 +210,9 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   /*if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();*/
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
@@ -297,8 +299,9 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* go to sleep until everybody has called the reduce */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

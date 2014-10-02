@@ -86,7 +86,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
 {
   size_t i, len, chunk, size, dtsize;
   int mype, response, sleeping=1;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
 
   S_IFSET(BDMPI_DBG_IPCS, 
@@ -140,8 +140,9 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
 
   /* go to sleep until everybody has called the reduce */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

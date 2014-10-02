@@ -54,8 +54,9 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 
     /* go to sleep... */
     for (;;) {
-      bdmq_recv(job->goMQ, &response, sizeof(int));
-      if (1 == response)
+      if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+        bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+      if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
         break;
     }
   }

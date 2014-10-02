@@ -103,8 +103,9 @@ int bdmp_Scatterv_node(sjob_t *job,
 
   /* go to sleep until everybody has called the collective */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

@@ -15,7 +15,7 @@
 int bdmp_Finalize(sjob_t *job)
 {
   int i, response;
-  bdmsg_t donemsg;
+  bdmsg_t donemsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
@@ -34,12 +34,13 @@ int bdmp_Finalize(sjob_t *job)
 
   /* wait for a go response from the master */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", response));
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", gomsg.msgtype));
 
   /* close the global SMR */
   bdsm_close(job->globalSM);

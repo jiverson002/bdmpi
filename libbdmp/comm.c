@@ -124,7 +124,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 {
   size_t i;
   int response;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_dup: entering: comm: %p\n", comm));
 
@@ -146,8 +146,9 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 
   /* go to sleep... */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
@@ -169,7 +170,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 {
   int response;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_dup: entering: comm: %p\n", *comm));
 
@@ -191,8 +192,9 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 
   /* go to sleep... */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
@@ -211,7 +213,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
           BDMPI_Comm *newcomm)
 {
   int response;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_split: entering: comm: %p\n", comm));
 
@@ -237,8 +239,9 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
 
   /* go to sleep... */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

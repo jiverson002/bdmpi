@@ -55,6 +55,8 @@ typedef __int64 int64_t;
 #define BDMPI_ANY_SOURCE         ((int)-1)
 #define BDMPI_ANY_TAG            ((int)-1)
 
+#define BDMPI_PROC_NULL          ((int)-2)
+
 
 /* Return codes  */
 #define BDMPI_SUCCESS        ((int)1001)  /*!< Returned normally */
@@ -197,8 +199,6 @@ typedef struct {
 typedef bdrequest_t * BDMPI_Request;
 
 #define BDMPI_REQUEST_NULL NULL
-
-#define BDMPI_PROC_NULL (-1)
 
 
 /*------------------------------------------------------------------------

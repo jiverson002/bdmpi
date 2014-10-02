@@ -19,7 +19,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
   int npes, mype, sleeping=1;
   int i, p, response;
   size_t sdtsize, rdtsize;
-  bdmsg_t msg, rmsg;
+  bdmsg_t msg, rmsg, gomsg;
   ssize_t myfnum=-1;
 
   S_IFSET(BDMPI_DBG_IPCS, 
@@ -101,8 +101,9 @@ int bdmp_Alltoallv_node(sjob_t *job,
 
   /* go to sleep until everybody has called the collective */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 
@@ -235,7 +236,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 {
   size_t sdtsize, rdtsize, size;
   int i, p, mype, npes, tag, response;
-  bdmsg_t msg, rmsg, *rmsgs;
+  bdmsg_t msg, rmsg, gomsg, *rmsgs;
   BDMPI_Status status;
 
   S_IFSET(BDMPI_DBG_IPCS, 
@@ -319,10 +320,15 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
       if (response == 1)
         break;
 
-      /* go to sleep... */
       /*if (job->jdesc->nr < job->jdesc->ns)
         sb_saveall();*/
-      bdmq_recv(job->goMQ, &response, sizeof(int));
+      /* go to sleep... */
+      for (;;) {
+        if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+          bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+        if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+          break;
+      }
     }
 
     /* get the missing message info from the master */

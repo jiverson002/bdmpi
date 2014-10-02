@@ -15,7 +15,7 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int root, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
-  bdmsg_t msg;
+  bdmsg_t msg, gomsg;
 
   if (bdmq_length(job->goMQ) != 0)
     bdprintf("BDMPI_Bcast: goMQ length is != 0.");
@@ -72,8 +72,9 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
   /* go to sleep until everybody has called the bcast */
   for (;;) {
-    bdmq_recv(job->goMQ, &response, sizeof(int));
-    if (1 == response)
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
   }
 

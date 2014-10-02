@@ -18,10 +18,10 @@
 /*************************************************************************/
 int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 {
-  int i, gomsg;
+  int i;
   pid_t mpid;
   sjob_t *job;
-  bdmsg_t donemsg;
+  bdmsg_t donemsg, gomsg;
 
   mallopt(M_TRIM_THRESHOLD, 64*4096);
   mallopt(M_MMAP_THRESHOLD, 64*4096);
@@ -143,10 +143,14 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
-  if (bdmq_recv(job->goMQ, &gomsg, sizeof(int)) == -1) 
+  if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
     bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: %d\n", gomsg));
-  if (gomsg == 0)
+  if (BDMPI_MSGTYPE_PROCEED != gomsg.msgtype)
+    errexit("Received bad go message\n");
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: %d\n", gomsg.msgtype));
+
+  /* TODO NEED TO AJUST THIS FOR NEW GO MSG */
+  if (gomsg.msgtype == 0)
     exit(EXIT_SUCCESS);
 
   /* create additional standard communicators */
