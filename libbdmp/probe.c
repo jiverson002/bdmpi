@@ -5,19 +5,20 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs a blocking probe operation */
 /*************************************************************************/
-int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm, 
+int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
           BDMPI_Status *status)
 {
   int flag=0, response;
   bdmsg_t msg, rmsg, gomsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Probe: Receiving from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -41,11 +42,11 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   for (;;) {
     /* notify the master that you want to receive a message */
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* get the master's response  */
     bdmq_recv(job->c2sMQ, &response, sizeof(int));
 
-    if (response == 1) 
+    if (response == 1)
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
@@ -58,6 +59,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
         bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
       if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
         break;
+      slv_route(job, &gomsg);
     }
   }
 
@@ -67,9 +69,12 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   if (status != BDMPI_STATUS_IGNORE) {
     status->BDMPI_SOURCE = rmsg.source;
     status->BDMPI_TAG    = rmsg.tag;
+    status->BDMPI_ERROR  = BDMPI_SUCCESS;
+    status->MPI_SOURCE   = status->BDMPI_SOURCE;
+    status->MPI_TAG      = status->BDMPI_TAG;
+    status->MPI_ERROR    = status->BDMPI_ERROR;
     status->count        = rmsg.count;
     status->datatype     = rmsg.datatype;
-    status->BDMPI_ERROR  = BDMPI_SUCCESS;
   }
 
   return BDMPI_SUCCESS;
@@ -79,12 +84,12 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 /*************************************************************************/
 /* Performs a non-blocking probe operation */
 /*************************************************************************/
-int bdmp_Iprobe(sjob_t *job, int source, int tag, BDMPI_Comm comm, 
+int bdmp_Iprobe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
           int *flag, BDMPI_Status *status)
 {
   bdmsg_t msg, rmsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Iprobe: Probing from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -104,7 +109,7 @@ int bdmp_Iprobe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 
   /* notify the master that you want to receive a message */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
   /* get the master's response  */
   bdmq_recv(job->c2sMQ, flag, sizeof(int));
 
@@ -114,9 +119,12 @@ int bdmp_Iprobe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
     if (status != BDMPI_STATUS_IGNORE) {
       status->BDMPI_SOURCE = rmsg.source;
       status->BDMPI_TAG    = rmsg.tag;
-      status->count       = rmsg.count;
-      status->datatype    = rmsg.datatype;
       status->BDMPI_ERROR  = BDMPI_SUCCESS;
+      status->MPI_SOURCE   = status->BDMPI_SOURCE;
+      status->MPI_TAG      = status->BDMPI_TAG;
+      status->MPI_ERROR    = status->BDMPI_ERROR;
+      status->count        = rmsg.count;
+      status->datatype     = rmsg.datatype;
     }
   }
 

@@ -5,19 +5,20 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs a blocking recv operation */
 /*************************************************************************/
-int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype, 
+int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int source, int tag, BDMPI_Comm comm, BDMPI_Status *status)
 {
   int mype, flag=0, response;
   bdmsg_t msg, rmsg, gomsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Recv: Receiving from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -58,13 +59,13 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   for (;;) {
     /* notify the master that you want to receive a message */
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* get the master's response  */
     bdmq_recv(job->c2sMQ, &response, sizeof(int));
 
     S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Recv: Response from server: %d\n", response));
 
-    if (response == 1) 
+    if (response == 1)
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
@@ -77,6 +78,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
         bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
       if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
         break;
+      slv_route(job, &gomsg);
     }
   }
 
@@ -84,21 +86,24 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
 
   /* check that we have enough buffer space */
-  if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype)) 
+  if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype))
     errexit("BDMPI_Recv: Received message is greater than provided buffer: recv: %zu; buffer: %zu\n",
         bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(count, datatype));
 
   /* copy the data */
-  if (rmsg.fnum == -1) 
+  if (rmsg.fnum == -1)
     xfer_in_scb(job->scb, buf, rmsg.count, rmsg.datatype);
-  else 
+  else
     xfer_in_disk(rmsg.fnum, buf, rmsg.count, rmsg.datatype, 1);
 
   if (status != BDMPI_STATUS_IGNORE) {
     status->BDMPI_SOURCE = rmsg.source;
     status->BDMPI_TAG    = rmsg.tag;
-    status->count        = rmsg.count;
     status->BDMPI_ERROR  = BDMPI_SUCCESS;
+    status->MPI_SOURCE   = status->BDMPI_SOURCE;
+    status->MPI_TAG      = status->BDMPI_TAG;
+    status->MPI_ERROR    = status->BDMPI_ERROR;
+    status->count        = rmsg.count;
   }
 
   return BDMPI_SUCCESS;
@@ -108,14 +113,14 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 /*************************************************************************/
 /* Performs a non-blocking recv operation */
 /*************************************************************************/
-int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype, 
+int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int source, int tag, BDMPI_Comm comm, BDMPI_Request *r_request)
 {
   int mype, response;
   bdmsg_t msg, rmsg;
   bdrequest_t *request;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Irecv: Receiving from %d [goMQlen: %d]\n", source, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -153,7 +158,7 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
   /* notify the master that you want to receive a message */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
   /* get the master's response  */
   bdmq_recv(job->c2sMQ, &response, sizeof(int));
 
@@ -164,12 +169,12 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
 
     /* check that we have enough buffer space */
-    if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype)) 
+    if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype))
       errexit("BDMPI_Irecv: Received message is greater than provided buffer: recv: %zu; buffer: %zu\n",
           bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(count, datatype));
 
     /* copy the data */
-    if (rmsg.fnum == -1) 
+    if (rmsg.fnum == -1)
       xfer_in_scb(job->scb, buf, rmsg.count, rmsg.datatype);
     else
       xfer_in_disk(rmsg.fnum, buf, rmsg.count, rmsg.datatype, 1);
@@ -178,6 +183,9 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     request->status.BDMPI_SOURCE = rmsg.source;
     request->status.BDMPI_TAG    = rmsg.tag;
     request->status.BDMPI_ERROR  = BDMPI_SUCCESS;
+    request->status.MPI_SOURCE   = request->status.BDMPI_SOURCE;
+    request->status.MPI_TAG      = request->status.BDMPI_TAG;
+    request->status.MPI_ERROR    = request->status.BDMPI_ERROR;
     request->status.count        = rmsg.count;
     request->status.datatype     = rmsg.datatype;
   }
@@ -187,12 +195,11 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     request->status.comm         = comm;
     request->status.BDMPI_SOURCE = source;
     request->status.BDMPI_TAG    = tag;
+    request->status.MPI_SOURCE   = request->status.BDMPI_SOURCE;
+    request->status.MPI_TAG      = request->status.BDMPI_TAG;
     request->status.count        = count;
     request->status.datatype     = datatype;
   }
 
   return BDMPI_SUCCESS;
 }
-
-
-

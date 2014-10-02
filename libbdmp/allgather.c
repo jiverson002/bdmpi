@@ -5,24 +5,24 @@
 \author George
 */
 
-#include "bdmplib.h"
 
+#include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs BDMPI_Allgatherv() */
 /*************************************************************************/
-int bdmp_Allgatherv(sjob_t *job, 
+int bdmp_Allgatherv(sjob_t *job,
           void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-          void *recvbuf, size_t *recvcounts,  size_t *displs, 
+          void *recvbuf, size_t *recvcounts,  size_t *displs,
           BDMPI_Datatype recvtype, BDMPI_Comm comm)
 {
   int p, response, sleeping=1;
   bdmsg_t msg, rmsg, gomsg;
   size_t rdtsize;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Allgather: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Allgather: entering: comm: %p [goMQlen: %d]\n",
           comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -86,23 +86,24 @@ int bdmp_Allgatherv(sjob_t *job,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* notify the master that you want to receive the allgathered data */
   msg.msgtype  = BDMPI_MSGTYPE_ALLGATHERF;
   msg.datatype = recvtype;
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
   for (p=0; p<comm->size; p++) {
     /* get size info of the received message */
-    xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE); 
+    xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
 
     if (bdmp_msize(rmsg.count, rmsg.datatype) != bdmp_msize(recvcounts[p], recvtype))
       errexit("BDMPI_Allgatherv: Send/Recv [%d => %d] buffers are of different sizes: %zu %zu\n",
           p, comm->rank, bdmp_msize(sendcount, sendtype), bdmp_msize(recvcounts[p], recvtype));
 
     /* get the data */
-    if (rmsg.fnum == -1) 
+    if (rmsg.fnum == -1)
       xfer_in_scb(job->scb, (char *)recvbuf+displs[p]*rdtsize, rmsg.count, rmsg.datatype);
     else
       xfer_in_disk(rmsg.fnum, (char *)recvbuf+displs[p]*rdtsize, rmsg.count, rmsg.datatype, 0);
@@ -115,4 +116,3 @@ int bdmp_Allgatherv(sjob_t *job,
 
   return BDMPI_SUCCESS;
 }
-

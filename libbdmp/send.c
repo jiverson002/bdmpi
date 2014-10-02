@@ -8,19 +8,20 @@
  *
  */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs a blocking send operation */
 /*************************************************************************/
-int bdmp_Send(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype, 
+int bdmp_Send(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int dest, int tag, BDMPI_Comm comm)
 {
   bdmsg_t msg;
   int mype, response;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Send: sending to %d [%zu] [goMQlen: %d]\n", dest, count,
         bdmq_length(job->goMQ)));
 
@@ -74,7 +75,7 @@ int bdmp_Send(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 /*************************************************************************/
 /* Performs a non-blocking send operation */
 /*************************************************************************/
-int bdmp_Isend(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype, 
+int bdmp_Isend(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int dest, int tag, BDMPI_Comm comm, BDMPI_Request *r_request)
 {
   bdrequest_t *request;
@@ -93,11 +94,12 @@ int bdmp_Isend(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   request->status.BDMPI_SOURCE = comm->rank;
   request->status.BDMPI_TAG    = tag;
   request->status.BDMPI_ERROR  = request->state;
+  request->status.MPI_SOURCE   = request->status.BDMPI_SOURCE;
+  request->status.MPI_TAG      = request->status.BDMPI_TAG;
+  request->status.MPI_ERROR    = request->status.BDMPI_ERROR;
   request->status.comm         = comm;
   request->status.count        = count;
   request->status.datatype     = datatype;
 
   return BDMPI_SUCCESS;
 }
-
-

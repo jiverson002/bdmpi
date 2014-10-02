@@ -5,8 +5,8 @@
 \author George
 */
 
-#include "bdmplib.h"
 
+#include "bdmplib.h"
 
 
 /*************************************************************************/
@@ -38,6 +38,7 @@ int bdmp_Finalize(sjob_t *job)
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", gomsg.msgtype));
@@ -63,4 +64,3 @@ int bdmp_Finalize(sjob_t *job)
 
   return BDMPI_SUCCESS;
 }
-

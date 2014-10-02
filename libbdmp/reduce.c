@@ -5,20 +5,21 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /*! Performs BDMPI_Reduce() */
 /*************************************************************************/
-int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
   bdmsg_t msg, gomsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Reduce: entering: root: %d, comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Reduce: entering: root: %d, comm: %p [goMQlen: %d]\n",
         root, comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -56,7 +57,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* the root gets the copid message */
-  if (mype == root) 
+  if (mype == root)
     bdmq_recv(job->c2sMQ, &msg.copid, sizeof(int));
 
 
@@ -78,6 +79,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* the root sends a REDUCE_RECV request and get the data */
@@ -85,7 +87,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     /* notify the master that you want to receive the reduced data */
     msg.msgtype = BDMPI_MSGTYPE_REDUCEF;
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* copy the data from the master */
     xfer_in_scb(job->scb, recvbuf, count, datatype);
   }
@@ -99,16 +101,16 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 /*************************************************************************/
 /*! Performs BDMPI_Reduce() */
 /*************************************************************************/
-int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
-          BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm, 
+int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
+          BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
           BDMPI_Request *r_request)
 {
   int mype, response;
   bdmsg_t msg;
   bdrequest_t *request;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Reduce_init: entering: root: %d, comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Reduce_init: entering: root: %d, comm: %p [goMQlen: %d]\n",
         root, comm, bdmq_length(job->goMQ)));
 
   *r_request = BDMPI_REQUEST_NULL;
@@ -169,7 +171,7 @@ int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 /*************************************************************************/
 /*! Performs BDMPI_Reduce() */
 /*************************************************************************/
-int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count, 
+int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
           BDMPI_Request *r_request)
 {
@@ -177,8 +179,8 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   bdmsg_t msg, gomsg;
   bdrequest_t *request = *r_request;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Reduce_fine: entering: root: %d, comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Reduce_fine: entering: root: %d, comm: %p [goMQlen: %d]\n",
         root, comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -214,6 +216,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* the root sends a REDUCE_RECV request and get the data */
@@ -231,7 +234,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
 
     /* notify the master that you want to receive the reduced data */
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* copy the data from the master */
     xfer_in_scb(job->scb, recvbuf, count, datatype);
   }
@@ -248,14 +251,14 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
 /*************************************************************************/
 /*! Performs BDMPI_Allreduce() */
 /*************************************************************************/
-int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
   bdmsg_t msg, gomsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Allreduce: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Allreduce: entering: comm: %p [goMQlen: %d]\n",
         comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -303,6 +306,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
@@ -310,7 +314,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* notify the master that you want to receive the reduced data */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
   /* copy the data from the master */
   xfer_in_scb(job->scb, recvbuf, count, datatype);
 
@@ -321,4 +325,3 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   return BDMPI_SUCCESS;
 }
-

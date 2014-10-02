@@ -5,15 +5,16 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs BDMPI_Alltoallv() directly */
 /*************************************************************************/
-int bdmp_Alltoallv_node(sjob_t *job, 
-          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, 
+int bdmp_Alltoallv_node(sjob_t *job,
+          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype,
           BDMPI_Comm comm)
 {
   int npes, mype, sleeping=1;
@@ -22,8 +23,8 @@ int bdmp_Alltoallv_node(sjob_t *job,
   bdmsg_t msg, rmsg, gomsg;
   ssize_t myfnum=-1;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Alltoallv_node: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Alltoallv_node: entering: comm: %p [goMQlen: %d]\n",
           comm, bdmq_length(job->goMQ)));
 
   /* error checking */
@@ -105,6 +106,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
 
@@ -115,30 +117,30 @@ int bdmp_Alltoallv_node(sjob_t *job,
   /* all will send a ALLGATHERF request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLTOALLF;
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
   /* get the data */
   for (i=0; i<npes-1; i++) {
-    //printf("%d slv-recv1 %2d.%2d\n", (int)time(0), mype, (int)i); 
+    //printf("%d slv-recv1 %2d.%2d\n", (int)time(0), mype, (int)i);
 
     /* get msg info from master */
     xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
     p = rmsg.myrank;
 
     if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(recvcounts[p], recvtype))
-      errexit("[%d]BDMPI_Alltoallv: Amount of data to be received from %d is more than specified: %zu %zu\n", 
+      errexit("[%d]BDMPI_Alltoallv: Amount of data to be received from %d is more than specified: %zu %zu\n",
           mype, p, bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(recvcounts[p], recvtype));
 
-    //printf("%d slv-recv2 %2d.%2d\n", (int)time(0), mype, (int)i); 
+    //printf("%d slv-recv2 %2d.%2d\n", (int)time(0), mype, (int)i);
     if (rmsg.fnum == -1)
       xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype);
     else
       xfer_in_disk(rmsg.fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype, 1);
-    //printf("%d slv-recv3 %2d.%2d\n", (int)time(0), mype, (int)i); 
+    //printf("%d slv-recv3 %2d.%2d\n", (int)time(0), mype, (int)i);
   }
 
   /* copy the local data */
-  if (myfnum == -1) 
-    memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf+sdispls[mype]*sdtsize, 
+  if (myfnum == -1)
+    memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf+sdispls[mype]*sdtsize,
         sendcounts[mype]*sdtsize);
   else
     xfer_in_disk(myfnum, (char *)recvbuf+rdispls[mype]*rdtsize, sendcounts[mype], sendtype, 1);
@@ -153,17 +155,17 @@ int bdmp_Alltoallv_node(sjob_t *job,
 /*************************************************************************/
 /* Performs BDMPI_Alltoallv() via a sequence of send/recv operations */
 /*************************************************************************/
-int bdmp_Alltoallv_p2p0(sjob_t *job, 
-          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, 
+int bdmp_Alltoallv_p2p0(sjob_t *job,
+          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype,
           BDMPI_Comm comm)
 {
   size_t sdtsize, rdtsize, size;
   int i, p, mype, npes;
   BDMPI_Status status;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Alltoallv_p2p: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Alltoallv_p2p: entering: comm: %p [goMQlen: %d]\n",
           comm, bdmq_length(job->goMQ)));
 
   /* error checking */
@@ -187,7 +189,7 @@ int bdmp_Alltoallv_p2p0(sjob_t *job,
   sdtsize = bdmp_sizeof(sendtype);
   for (i=1; i<npes; i++) {
     p = (mype+i)%npes;
-    bdmp_Send(job, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p], 
+    bdmp_Send(job, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p],
           sendtype, p, BDMPL_ALLTOALL_TAG, comm);
   }
 
@@ -198,7 +200,7 @@ int bdmp_Alltoallv_p2p0(sjob_t *job,
   rdtsize = bdmp_sizeof(recvtype);
   for (i=1; i<npes; i++) {
     p = (mype+i)%npes;
-    bdmp_Recv(job, (char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p], 
+    bdmp_Recv(job, (char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p],
           recvtype, p, BDMPL_ALLTOALL_TAG, comm, BDMPI_STATUS_IGNORE);
   }
 #endif
@@ -209,7 +211,7 @@ int bdmp_Alltoallv_p2p0(sjob_t *job,
     bdmp_Probe(job, BDMPI_ANY_SOURCE, BDMPL_ALLTOALL_TAG, comm, &status);
 
     p = status.BDMPI_SOURCE;
-    bdmp_Recv(job, (char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p], 
+    bdmp_Recv(job, (char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p],
           recvtype, p, BDMPL_ALLTOALL_TAG, comm, BDMPI_STATUS_IGNORE);
   }
 
@@ -229,9 +231,9 @@ int bdmp_Alltoallv_p2p0(sjob_t *job,
 /*************************************************************************/
 /* Performs BDMPI_Alltoallv() via a sequence of send/recv operations */
 /*************************************************************************/
-int bdmp_Alltoallv_p2p(sjob_t *job, 
-          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, 
+int bdmp_Alltoallv_p2p(sjob_t *job,
+          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype,
           BDMPI_Comm comm)
 {
   size_t sdtsize, rdtsize, size;
@@ -239,8 +241,8 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   bdmsg_t msg, rmsg, gomsg, *rmsgs;
   BDMPI_Status status;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Alltoallv_p2p: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Alltoallv_p2p: entering: comm: %p [goMQlen: %d]\n",
           comm, bdmq_length(job->goMQ)));
 
   /* error checking */
@@ -272,7 +274,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   /* send your data to everybody else */
   for (i=1; i<npes; i++) {
     p = (mype+i)%npes;
-    bdmp_Send(job, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p], sendtype, p, 
+    bdmp_Send(job, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p], sendtype, p,
         tag, comm);
   }
 
@@ -281,15 +283,15 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   rmsgs[mype].source   = mype;
   rmsgs[mype].count    = sendcounts[mype];
   rmsgs[mype].datatype = sendtype;
-  if (sendcounts[mype]*sdtsize > job->smallmsg) { 
+  if (sendcounts[mype]*sdtsize > job->smallmsg) {
     rmsgs[mype].fnum = xfer_getfnum();
-    xfer_out_disk(rmsgs[mype].fnum, (char *)sendbuf+sdispls[mype]*sdtsize, 
+    xfer_out_disk(rmsgs[mype].fnum, (char *)sendbuf+sdispls[mype]*sdtsize,
         sendcounts[mype], sendtype);
   }
 
 
   /* sbdiscard the incoming buffers */
-  /*for (p=0; p<npes; p++) 
+  /*for (p=0; p<npes; p++)
     sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);*/
 
   /* save your address space before blocking */
@@ -328,6 +330,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
           bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
         if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
           break;
+        slv_route(job, &gomsg);
       }
     }
 
@@ -349,7 +352,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   /* once everything has been received, copy the data from the disk in memory */
   for (p=0; p<npes; p++) {
     if (rmsgs[p].fnum != -1)
-      xfer_in_disk(rmsgs[p].fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsgs[p].count, 
+      xfer_in_disk(rmsgs[p].fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsgs[p].count,
           rmsgs[p].datatype, 1);
   }
 
@@ -364,4 +367,3 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
   return BDMPI_SUCCESS;
 }
-

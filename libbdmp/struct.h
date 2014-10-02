@@ -1,7 +1,7 @@
 /*
  * struct.h
  *
- * This file contains data structures 
+ * This file contains data structures
  *
  * Started 3/31/13
  * George
@@ -14,7 +14,7 @@
 
 
 /*************************************************************************/
-/*! This data structure stores all information associated with a bdmp 
+/*! This data structure stores all information associated with a bdmp
     execution state and environment */
 /*************************************************************************/
 typedef struct {
@@ -42,7 +42,7 @@ typedef struct {
   bdlock_t *criticalMX; /*!< Mutex for critical sections */
 
   /* various other job-related constructs */
-  bdjdesc_t *jdesc;     /*!< The job description to be allocated in the global 
+  bdjdesc_t *jdesc;     /*!< The job description to be allocated in the global
                              shared memory */
   pid_t *spids;         /*!< The pids of the slave processes. This will
                              be allocated in the global SMR. */
@@ -54,4 +54,4 @@ typedef struct {
 } sjob_t;
 
 
-#endif 
+#endif

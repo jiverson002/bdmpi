@@ -5,6 +5,7 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
@@ -16,8 +17,8 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   int response;
   bdmsg_t msg, gomsg;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Barrier: entering: comm: %p [goMQlen: %d]\n", comm, 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Barrier: entering: comm: %p [goMQlen: %d]\n", comm,
           bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -43,10 +44,10 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Barrier: exiting: comm: %p\n", comm));
 
   return BDMPI_SUCCESS;
 }
-

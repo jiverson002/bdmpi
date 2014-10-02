@@ -10,6 +10,7 @@
 
 #define BDMPLIB_INIT_C
 
+
 #include "bdmplib.h"
 
 
@@ -35,7 +36,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* open the global SMR */
   job->globalSM = bdsm_open(BDMPI_GLOBALSMSIZE, "global", mpid);
 
-  /* lock and then right away unlock the global SMR in order to 
+  /* lock and then right away unlock the global SMR in order to
      ensure that the master has finished setting it up. */
   bdsm_lock(job->globalSM);
   bdsm_unlock(job->globalSM);
@@ -48,12 +49,12 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 
   job->spids = (pid_t *)bdsm_malloc(job->globalSM, sizeof(pid_t)*job->jdesc->ns, "job->spids");
 
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: ns: %d, mpids: %d:%d\n", 
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: ns: %d, mpids: %d:%d\n",
         job->jdesc->ns, (int)job->jdesc->mpid, (int)mpid));
 
   /* do some sanity checks */
   if (mpid != job->jdesc->mpid) {
-    bdprintf("The master pid and the parent pid did not match! %d %d\n", 
+    bdprintf("The master pid and the parent pid did not match! %d %d\n",
         (int)mpid, (int)job->jdesc->mpid);
     exit(EXIT_SUCCESS);
   }
@@ -72,7 +73,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     exit(EXIT_SUCCESS);
   }
 
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: np: %d, ns: %d, rank: %d, lrank: %d\n", 
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: np: %d, ns: %d, rank: %d, lrank: %d\n",
         job->jdesc->np, job->jdesc->ns, job->rank, job->lrank));
 
   /* open the message queues that the master has created */
@@ -135,18 +136,21 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   donemsg.msgtype = BDMPI_MSGTYPE_INIT;
   donemsg.myrank  = job->rank;
 
-  if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1) 
+  if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
 
   /* wait for a message from the master to go */
-  S_IFSET(BDMPI_DBG_IPCS, 
+  S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
-  if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-    bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-  if (BDMPI_MSGTYPE_PROCEED != gomsg.msgtype)
-    errexit("Received bad go message\n");
+  for (;;) {
+    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+      break;
+    slv_route(job, &gomsg);
+  }
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: %d\n", gomsg.msgtype));
 
   /* TODO NEED TO AJUST THIS FOR NEW GO MSG */
@@ -162,9 +166,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* init the sbmalloc subsystem */
   char sbdir[2*BDMPI_WDIR_LEN];
   snprintf(sbdir, 2*BDMPI_WDIR_LEN, "%s/%d-", job->jdesc->wdir, job->mypid);
-  if (sb_init(sbdir, job->jdesc->sbsize, 4) == 0) 
+  if (sb_init(sbdir, job->jdesc->sbsize, 4) == 0)
     bdprintf("Failed on sb_init()\n");
 
   return BDMPI_SUCCESS;
 }
-

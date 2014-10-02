@@ -5,6 +5,7 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
@@ -12,8 +13,8 @@
 /* Performs BDMPI_Scatterv() when the communicator is within a single node */
 /*************************************************************************/
 int bdmp_Scatterv_node(sjob_t *job,
-          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype, int root, 
+          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm)
 {
   size_t size, sdtsize, rdtsize;
@@ -21,8 +22,8 @@ int bdmp_Scatterv_node(sjob_t *job,
   bdmsg_t msg, rmsg, gomsg;
 
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Scatterv_node: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Scatterv_node: entering: comm: %p [goMQlen: %d]\n",
         comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -66,7 +67,7 @@ int bdmp_Scatterv_node(sjob_t *job,
   /* start sending data to the master or writing them to the disk */
   if (mype == root) {
     for (p=0; p<npes; p++) {
-      if (p == mype) { 
+      if (p == mype) {
         if (sendcounts[p]*sdtsize > recvcount*rdtsize)
           errexit("BDMPI_Scatterv: Amount sent is greater than size of recv buffer.\n");
         memcpy((char *)recvbuf, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p]*sdtsize);
@@ -107,6 +108,7 @@ int bdmp_Scatterv_node(sjob_t *job,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
 
@@ -118,18 +120,18 @@ int bdmp_Scatterv_node(sjob_t *job,
     /* all but the root will send a SCATTERF request and get the data */
     msg.msgtype = BDMPI_MSGTYPE_SCATTERF;
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-    
+
     /* get information about from-memory data */
     xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
-  
+
     if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(recvcount, recvtype))
-      errexit("[%d]BDMPI_Scatterv: Amount of data to be received from %d is more than specified: %zu %zu\n", 
+      errexit("[%d]BDMPI_Scatterv: Amount of data to be received from %d is more than specified: %zu %zu\n",
           mype, root, bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(recvcount, recvtype));
-  
+
     /* get the data */
-    if (rmsg.fnum == -1) 
+    if (rmsg.fnum == -1)
       xfer_in_scb(job->scb, recvbuf, rmsg.count, rmsg.datatype);
-    else 
+    else
       xfer_in_disk(rmsg.fnum, recvbuf, rmsg.count, rmsg.datatype, 1);
   }
 
@@ -144,15 +146,15 @@ int bdmp_Scatterv_node(sjob_t *job,
 /* Performs BDMPI_Scatterv() via a sequence of send/recv operations */
 /*************************************************************************/
 int bdmp_Scatterv_p2p(sjob_t *job,
-          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype, int root, 
+          void *sendbuf, size_t *sendcounts, size_t *sdispls, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm)
 {
   size_t k, sdtsize, rdtsize, size;
   int mype, npes, tag;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Scatterv_p2p: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Scatterv_p2p: entering: comm: %p [goMQlen: %d]\n",
         comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -186,7 +188,7 @@ int bdmp_Scatterv_p2p(sjob_t *job,
   if (mype == root) {
     for (k=0; k<npes; k++) {
       if (k != mype)
-        bdmp_Send(job, (char *)sendbuf+sdispls[k]*sdtsize, sendcounts[k], sendtype, 
+        bdmp_Send(job, (char *)sendbuf+sdispls[k]*sdtsize, sendcounts[k], sendtype,
             k, tag, comm);
     }
 
@@ -199,11 +201,10 @@ int bdmp_Scatterv_p2p(sjob_t *job,
   bdmp_Barrier(job, comm);
 
   /* everybody receives data from the root */
-  if (mype != root) 
-    bdmp_Recv(job, (char *)recvbuf, recvcount, recvtype, root, tag, comm, 
+  if (mype != root)
+    bdmp_Recv(job, (char *)recvbuf, recvcount, recvtype, root, tag, comm,
         BDMPI_STATUS_IGNORE);
 
 
   return BDMPI_SUCCESS;
 }
-

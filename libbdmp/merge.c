@@ -81,7 +81,7 @@
 /*! Performs BDMPI_Merge() */
 /*************************************************************************/
 int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
-          void *recvbuf, int *recvids, size_t *r_recvcount, 
+          void *recvbuf, int *recvids, size_t *r_recvcount,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   size_t i, len, chunk, size, dtsize;
@@ -89,8 +89,8 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
   bdmsg_t msg, gomsg;
 
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Merge: entering: root: %d, comm: %o [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Merge: entering: root: %d, comm: %o [goMQlen: %d]\n",
         root, comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -124,7 +124,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* the root gets the copid message */
-  if (mype == root) 
+  if (mype == root)
     bdmq_recv(job->c2sMQ, &msg.copid, sizeof(int));
 
 
@@ -144,6 +144,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* the root sends a REDUCE_RECV request and get the data */
@@ -152,7 +153,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
     msg.msgtype = BDMPI_MSGTYPE_MERGEF;
     msg.count   = *r_recvcount;
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* copy the data from the master */
     xfer_in_scb(job->scb, r_recvcount, 1, BDMPI_SIZE_T);
     xfer_in_scb(job->scb, recvbuf, *r_recvcount, datatype);
@@ -163,4 +164,3 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
 
   return BDMPI_SUCCESS;
 }
-

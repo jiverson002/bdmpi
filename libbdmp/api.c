@@ -1,9 +1,10 @@
 /*!
 \file
-\brief Public \bdmpi APIs 
+\brief Public \bdmpi APIs
 \date Started 4/3/2013
 \author George
 */
+
 
 #include "bdmplib.h"
 
@@ -24,11 +25,10 @@
 static sjob_t *job=NULL;      /*!< Holds information about the slave job */
 
 
+/*!
+\defgroup mpiapilist List of implemented \mpi functions
 
-/*! 
-\defgroup mpiapilist List of implemented \mpi functions 
-
-This is the set of \mpi functions that are currently implemented in \bdmpi. 
+This is the set of \mpi functions that are currently implemented in \bdmpi.
 
 For each of these functions, \bdmpi provides a variant that starts with the `MPI_`
 prefix and a variant that starts with the `BDMPI_` prefix. The calling sequence of
@@ -82,28 +82,28 @@ int BDMPI_Comm_split(BDMPI_Comm comm, int color, int key, BDMPI_Comm *newcomm)
   return bdmp_Comm_split(job, comm, color, key, newcomm);
 }
 
-int BDMPI_Send(void *buf, size_t count, BDMPI_Datatype datatype, int dest, 
+int BDMPI_Send(void *buf, size_t count, BDMPI_Datatype datatype, int dest,
          int tag, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
   return bdmp_Send(job, buf, count, datatype, dest, tag, comm);
 }
 
-int BDMPI_Isend(void *buf, size_t count, BDMPI_Datatype datatype, int dest, 
+int BDMPI_Isend(void *buf, size_t count, BDMPI_Datatype datatype, int dest,
          int tag, BDMPI_Comm comm, BDMPI_Request *request)
 {
   EXITIFNOTINIT(job);
   return bdmp_Isend(job, buf, count, datatype, dest, tag, comm, request);
 }
 
-int BDMPI_Recv(void *buf, size_t count, BDMPI_Datatype datatype, int source, 
+int BDMPI_Recv(void *buf, size_t count, BDMPI_Datatype datatype, int source,
          int tag, BDMPI_Comm comm, BDMPI_Status *status)
 {
   EXITIFNOTINIT(job);
   return bdmp_Recv(job, buf, count, datatype, source, tag, comm, status);
 }
 
-int BDMPI_Irecv(void *buf, size_t count, BDMPI_Datatype datatype, int source, 
+int BDMPI_Irecv(void *buf, size_t count, BDMPI_Datatype datatype, int source,
          int tag, BDMPI_Comm comm, BDMPI_Request *request)
 {
   EXITIFNOTINIT(job);
@@ -116,16 +116,16 @@ int BDMPI_Probe(int source, int tag, BDMPI_Comm comm, BDMPI_Status *status)
   return bdmp_Probe(job, source, tag, comm, status);
 }
 
-int BDMPI_Iprobe(int source, int tag, BDMPI_Comm comm, int *flag, 
+int BDMPI_Iprobe(int source, int tag, BDMPI_Comm comm, int *flag,
          BDMPI_Status *status)
 {
   EXITIFNOTINIT(job);
   return bdmp_Iprobe(job, source, tag, comm, flag, status);
 }
 
-int BDMPI_Sendrecv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, 
-         int dest, int sendtag, void *recvbuf, size_t recvcount, 
-         BDMPI_Datatype recvtype, int source, int recvtag, BDMPI_Comm comm, 
+int BDMPI_Sendrecv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
+         int dest, int sendtag, void *recvbuf, size_t recvcount,
+         BDMPI_Datatype recvtype, int source, int recvtag, BDMPI_Comm comm,
          BDMPI_Status *status)
 {
   int ierror;
@@ -173,7 +173,7 @@ int BDMPI_Barrier(BDMPI_Comm comm)
   return bdmp_Barrier(job, comm);
 }
 
-int BDMPI_Bcast(void *buf, size_t count, BDMPI_Datatype datatype, int root, 
+int BDMPI_Bcast(void *buf, size_t count, BDMPI_Datatype datatype, int root,
          BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -182,7 +182,7 @@ int BDMPI_Bcast(void *buf, size_t count, BDMPI_Datatype datatype, int root,
 }
 
 int BDMPI_Allgather(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-         void *recvbuf, size_t recvcount,  BDMPI_Datatype recvtype, 
+         void *recvbuf, size_t recvcount,  BDMPI_Datatype recvtype,
          BDMPI_Comm comm)
 {
   size_t p, recvcounts[comm->size], displs[comm->size];
@@ -193,21 +193,21 @@ int BDMPI_Allgather(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
     displs[p]     = p*recvcount;
   }
 
-  return BDMPI_Allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, 
+  return BDMPI_Allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,
               displs, recvtype, comm);
 }
 
 int BDMPI_Allgatherv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-         void *recvbuf, size_t *recvcounts, size_t *displs, 
+         void *recvbuf, size_t *recvcounts, size_t *displs,
          BDMPI_Datatype recvtype, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
-  return bdmp_Allgatherv(job, sendbuf, sendcount, sendtype, 
+  return bdmp_Allgatherv(job, sendbuf, sendcount, sendtype,
               recvbuf, recvcounts, displs, recvtype, comm);
 }
 
-int BDMPI_Reduce(void *sendbuf, void *recvbuf, size_t count, 
+int BDMPI_Reduce(void *sendbuf, void *recvbuf, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -215,7 +215,7 @@ int BDMPI_Reduce(void *sendbuf, void *recvbuf, size_t count,
   return bdmp_Reduce(job, sendbuf, recvbuf, count, datatype, op, root, comm);
 }
 
-int BDMPI_Allreduce(void *sendbuf, void *recvbuf, size_t count, 
+int BDMPI_Allreduce(void *sendbuf, void *recvbuf, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -241,12 +241,12 @@ int BDMPI_Gather(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
 }
 
 int BDMPI_Gatherv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-         void *recvbuf, size_t *recvcounts, size_t *rdispls, 
+         void *recvbuf, size_t *recvcounts, size_t *rdispls,
          BDMPI_Datatype recvtype, int root, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
-  if (comm->nsize == 1) 
+  if (comm->nsize == 1)
     return bdmp_Gatherv_node(job, sendbuf, sendcount, sendtype, recvbuf,
                  recvcounts, rdispls, recvtype, root, comm);
   else
@@ -273,13 +273,13 @@ int BDMPI_Scatter(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
 
 }
 
-int BDMPI_Scatterv(void *sendbuf, size_t *sendcounts, size_t *sdispls, 
-         BDMPI_Datatype sendtype, void *recvbuf, size_t recvcount, 
+int BDMPI_Scatterv(void *sendbuf, size_t *sendcounts, size_t *sdispls,
+         BDMPI_Datatype sendtype, void *recvbuf, size_t recvcount,
          BDMPI_Datatype recvtype, int root, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
-  if (comm->nsize == 1) 
+  if (comm->nsize == 1)
     return bdmp_Scatterv_node(job, sendbuf, sendcounts, sdispls, sendtype,
                  recvbuf, recvcount, recvtype, root, comm);
   else
@@ -307,13 +307,13 @@ int BDMPI_Alltoall(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
 
 }
 
-int BDMPI_Alltoallv(void *sendbuf, size_t *sendcounts, size_t *sdispls, 
-         BDMPI_Datatype sendtype, void *recvbuf, size_t *recvcounts, 
+int BDMPI_Alltoallv(void *sendbuf, size_t *sendcounts, size_t *sdispls,
+         BDMPI_Datatype sendtype, void *recvbuf, size_t *recvcounts,
          size_t *rdispls, BDMPI_Datatype recvtype, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
-  if (comm->nsize == 1) 
+  if (comm->nsize == 1)
     return bdmp_Alltoallv_node(job, sendbuf, sendcounts, sdispls, sendtype,
                  recvbuf, recvcounts, rdispls, recvtype, comm);
   else
@@ -321,7 +321,7 @@ int BDMPI_Alltoallv(void *sendbuf, size_t *sendcounts, size_t *sdispls,
                  recvbuf, recvcounts, rdispls, recvtype, comm);
 }
 
-int BDMPI_Scan(void *sendbuf, void *recvbuf, size_t count, 
+int BDMPI_Scan(void *sendbuf, void *recvbuf, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -329,7 +329,7 @@ int BDMPI_Scan(void *sendbuf, void *recvbuf, size_t count,
   return bdmp_Scan(job, sendbuf, recvbuf, count, datatype, op, comm);
 }
 
-int BDMPI_Exscan(void *sendbuf, void *recvbuf, size_t count, 
+int BDMPI_Exscan(void *sendbuf, void *recvbuf, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -382,25 +382,25 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
   return BDMPI_Comm_split(comm, color, key, newcomm);
 }
 
-int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest,
          int tag, MPI_Comm comm)
 {
   return BDMPI_Send(buf, count, datatype, dest, tag, comm);
 }
 
-int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest,
          int tag, MPI_Comm comm, MPI_Request *request)
 {
   return BDMPI_Isend(buf, count, datatype, dest, tag, comm, request);
 }
 
-int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, 
+int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
          int tag, MPI_Comm comm, MPI_Status *status)
 {
   return BDMPI_Recv(buf, count, datatype, source, tag, comm, status);
 }
 
-int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, 
+int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
          int tag, MPI_Comm comm, MPI_Request *request)
 {
   return BDMPI_Irecv(buf, count, datatype, source, tag, comm, request);
@@ -411,15 +411,15 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
   return BDMPI_Probe(source, tag, comm, status);
 }
 
-int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag, 
+int MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
          MPI_Status *status)
 {
   return BDMPI_Iprobe(source, tag, comm, flag, status);
 }
 
-int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, 
-         int dest, int sendtag, void *recvbuf, int recvcount, 
-         MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, 
+int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+         int dest, int sendtag, void *recvbuf, int recvcount,
+         MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
          MPI_Status *status)
 {
   return BDMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag,
@@ -457,23 +457,23 @@ int MPI_Barrier(MPI_Comm comm)
   return BDMPI_Barrier(comm);
 }
 
-int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, 
+int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
          MPI_Comm comm)
 {
   return BDMPI_Bcast(buf, count, datatype, root, comm);
 }
 
 int MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
-         void *recvbuf, int recvcount,  MPI_Datatype recvtype, 
+         void *recvbuf, int recvcount,  MPI_Datatype recvtype,
          MPI_Comm comm)
 {
 
-  return BDMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, 
+  return BDMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount,
               recvtype, comm);
 }
 
 int MPI_Allgatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
-         void *recvbuf, int *recvcounts,  int *displs, MPI_Datatype recvtype, 
+         void *recvbuf, int *recvcounts,  int *displs, MPI_Datatype recvtype,
          MPI_Comm comm)
 {
   int i;
@@ -484,17 +484,17 @@ int MPI_Allgatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
     _displs[i]     = displs[i];
   }
 
-  return BDMPI_Allgatherv(sendbuf, sendcount, sendtype, recvbuf, _recvcounts, 
+  return BDMPI_Allgatherv(sendbuf, sendcount, sendtype, recvbuf, _recvcounts,
               _displs, recvtype, comm);
 }
 
-int MPI_Reduce(void *sendbuf, void *recvbuf, int count, 
+int MPI_Reduce(void *sendbuf, void *recvbuf, int count,
          MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
 {
   return BDMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
 }
 
-int MPI_Allreduce(void *sendbuf, void *recvbuf, int count, 
+int MPI_Allreduce(void *sendbuf, void *recvbuf, int count,
          MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
   return BDMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
@@ -509,7 +509,7 @@ int MPI_Gather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
 }
 
 int MPI_Gatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
-         void *recvbuf, int *recvcounts, int *rdispls, 
+         void *recvbuf, int *recvcounts, int *rdispls,
          MPI_Datatype recvtype, int root, MPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -522,7 +522,7 @@ int MPI_Gatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
     _rdispls[i]    = rdispls[i];
   }
 
-  return BDMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, _recvcounts, 
+  return BDMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, _recvcounts,
               _rdispls, recvtype, root, comm);
 
 }
@@ -535,8 +535,8 @@ int MPI_Scatter(void *sendbuf, int sendcount, MPI_Datatype sendtype,
               root, comm);
 }
 
-int MPI_Scatterv(void *sendbuf, int *sendcounts, int *sdispls, 
-         MPI_Datatype sendtype, void *recvbuf, int recvcount, 
+int MPI_Scatterv(void *sendbuf, int *sendcounts, int *sdispls,
+         MPI_Datatype sendtype, void *recvbuf, int recvcount,
          MPI_Datatype recvtype, int root, MPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -557,12 +557,12 @@ int MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
          void *recvbuf, int recvcount, MPI_Datatype recvtype,
          MPI_Comm comm)
 {
-  return BDMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, 
+  return BDMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount,
               recvtype, comm);
 }
 
-int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls, 
-         MPI_Datatype sendtype, void *recvbuf, int *recvcounts, 
+int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls,
+         MPI_Datatype sendtype, void *recvbuf, int *recvcounts,
          int *rdispls, MPI_Datatype recvtype, MPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -583,13 +583,13 @@ int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls,
 
 }
 
-int MPI_Scan(void *sendbuf, void *recvbuf, int count, 
+int MPI_Scan(void *sendbuf, void *recvbuf, int count,
          MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
   return BDMPI_Scan(sendbuf, recvbuf, count, datatype, op, comm);
 }
 
-int MPI_Exscan(void *sendbuf, void *recvbuf, int count, 
+int MPI_Exscan(void *sendbuf, void *recvbuf, int count,
          MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
   return BDMPI_Exscan(sendbuf, recvbuf, count, datatype, op, comm);
@@ -608,9 +608,9 @@ double MPI_Wtime(void)
 /* BDMPI specific APIs */
 /*************************************************************************/
 
-/*! 
+/*!
 \if html
-\defgroup bdmpiapi List of \bdmpi specific functions 
+\defgroup bdmpiapi List of \bdmpi specific functions
 @{
 \endif
 */
@@ -631,7 +631,7 @@ slave processes spawned by that `bdmprun` instance.
 
 
 /*************************************************************************/
-/*! 
+/*!
 
 It is used to get the local size of a communicator. The *local size* is the number of
 ranks of the supplied communicator that are assigned to the same node as the calling
@@ -642,7 +642,7 @@ different nodes, then the local size of all the processes in the first node will
 \param[in] comm is the communicator being interrogated.
 
 \param[out] lsize returns the local size of the calling process in \p comm.
-       
+
 */
 /*************************************************************************/
 int BDMPI_Comm_lsize(BDMPI_Comm comm, int *lsize)
@@ -652,7 +652,7 @@ int BDMPI_Comm_lsize(BDMPI_Comm comm, int *lsize)
 
 
 /*************************************************************************/
-/*! 
+/*!
 
 It is used to get the local rank of the calling process within the supplied
 communicator. The *local rank* of process is the number of lower-ranked processes
@@ -663,7 +663,7 @@ ranks of these four ranks are 0, 1, 2, and 3, respectively.
 \param[in] comm is the communicator being interrogated.
 
 \param[out] lrank returns the intra-node rank of the calling process in the \p comm.
-       
+
 */
 /*************************************************************************/
 int BDMPI_Comm_lrank(BDMPI_Comm comm, int *lrank)
@@ -674,16 +674,16 @@ int BDMPI_Comm_lrank(BDMPI_Comm comm, int *lrank)
 
 
 /*************************************************************************/
-/*! 
+/*!
 
 It is used to get the number of nodes used by the processes of the supplied
 communicator.
 
 \param[in] comm is the communicator being interrogated.
 
-\param[out] nsize returns the number of nodes used by the union of the 
+\param[out] nsize returns the number of nodes used by the union of the
 ranks in \p comm.
-       
+
 */
 /*************************************************************************/
 int BDMPI_Comm_nsize(BDMPI_Comm comm, int *nsize)
@@ -693,16 +693,16 @@ int BDMPI_Comm_nsize(BDMPI_Comm comm, int *nsize)
 
 
 /*************************************************************************/
-/*! 
+/*!
 
-It is used to get the rank of the node on which the calling process is assigned. 
+It is used to get the rank of the node on which the calling process is assigned.
 
 \param[in] comm is the communicator being interrogated.
 
-\param[out] nrank returns the rank of the node in \p comm of the calling process. 
-Note that all the slaves that are assigned to the same node in \p comm will return 
+\param[out] nrank returns the rank of the node in \p comm of the calling process.
+Note that all the slaves that are assigned to the same node in \p comm will return
 the same node rank.
-       
+
 */
 /*************************************************************************/
 int BDMPI_Comm_nrank(BDMPI_Comm comm, int *nrank)
@@ -713,19 +713,19 @@ int BDMPI_Comm_nrank(BDMPI_Comm comm, int *nrank)
 
 
 /*************************************************************************/
-/*! 
+/*!
 
 It is used to get the rank of the process on the same node that has a local rank of
 0. This is referred to as *root rank*. For example, if a communicator has 10
 processes that are distributed among three nodes as follows: {0, 1, 2, 3}, {4, 5},
 and {6, 7, 8, 9}; then, the root rank for all processes in the first node will
 be 0, the root rank for all processes in the second node will be 4, whereas
-for the third node will be 6. 
+for the third node will be 6.
 
 \param[in] comm is the communicator being interrogated.
 
 \param[out] rrank returns the root rank of calling process in \p comm.
-       
+
 */
 /*************************************************************************/
 int BDMPI_Comm_rrank(BDMPI_Comm comm, int *rrank)
@@ -737,16 +737,16 @@ int BDMPI_Comm_rrank(BDMPI_Comm comm, int *rrank)
 /*! @} */
 
 
-/*! \defgroup bdmpimutexlist Functions for critical sections 
+/*! \defgroup bdmpimutexlist Functions for critical sections
 
 These functions and the `-nr` option of \bdmprun are used to implement a generalized
 mutex-like synchronization protocol involving the slave processes that were spawned
 by the same master process. For the rest of this discussion we will refer to the set
-of slaves spawned by the same master process as *related slaves*. 
+of slaves spawned by the same master process as *related slaves*.
 
 In the context of \bdmpi, a *critical section* is a part of the code that can be
 executed by fewer slaves than the number of related slaves that can be concurrently
-running (i.e., as controlled by the `-nr` option of \bdmprun). 
+running (i.e., as controlled by the `-nr` option of \bdmprun).
 
 \bdmpi uses POSIX semaphores to implement critical sections.
 
@@ -754,8 +754,8 @@ running (i.e., as controlled by the `-nr` option of \bdmprun).
 */
 
 /**************************************************************************/
-/*! 
-  
+/*!
+
 BDMPI_Entercritical() is used to indicate the start of the critical section. If the
 number of related slaves that are already executing in their critical sections is
 equal to \c -nr, then the calling process blocks until one of the other processes
@@ -778,10 +778,10 @@ int BDMPI_Entercritical(void)
 
 
 /**************************************************************************/
-/*! 
-  
+/*!
+
 BDMPI_Entercritical() is used to indicate that the calling process is exiting its
-critical section. 
+critical section.
 
 */
 /**************************************************************************/
@@ -795,7 +795,7 @@ int BDMPI_Exitcritical(void)
 
 /*! @} */
 
-/*! \defgroup bdmpisbmalloclist Functions for storage-backed memory allocation 
+/*! \defgroup bdmpisbmalloclist Functions for storage-backed memory allocation
 
 This set of functions provides access to \bdmpi's *storage-backed memory allocation*
 subsystem, which is designed to bypass the system's swap file and achieve faster I/O
@@ -805,10 +805,10 @@ performance during loading/saving of a process' address space.
 */
 
 /**************************************************************************/
-/*! 
+/*!
 
 Provides the same functionality as \p malloc().
-  
+
 */
 /**************************************************************************/
 void *BDMPI_sbmalloc(size_t size)
@@ -817,9 +817,9 @@ void *BDMPI_sbmalloc(size_t size)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
-Provides the same functionality as \p realloc(). The \p oldptr must be a 
+Provides the same functionality as \p realloc(). The \p oldptr must be a
 pointer previously returned by either BDMPI_sbmalloc() or BDMPI_sbrealloc().
 
 */
@@ -830,7 +830,7 @@ void *BDMPI_sbrealloc(void *oldptr, size_t size)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 Implementation of \p free(). The \p ptr should be a pointer previously returned by
 either BDMPI_sbmalloc() or BDMPI_sbrealloc().
@@ -843,7 +843,7 @@ void BDMPI_sbfree(void *ptr)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 It is used to make the memory associated with a previous BDMPI_sbmalloc() or
 BDMPI_sbrealloc() allocation available for accessing. If the allocation has been
@@ -858,7 +858,7 @@ programs whose processes rely on pthreads or OpenMP), any memory that has been
 allocated with either BDMPI_sbmalloc() or BDMPI_sbrealloc() and is accessed
 concurrently by multiple threads needs to be loaded prior to entering the
 multi-threaded region (e.g., parallel region in OpenMP).
-  
+
 */
 /**************************************************************************/
 void BDMPI_sbload(void *ptr)
@@ -867,7 +867,7 @@ void BDMPI_sbload(void *ptr)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 It is used to make all the memory associated with any previous BDMPI_sbmalloc() or
 BDMPI_sbrealloc() allocations available for accessing. If these allocations have been
@@ -881,7 +881,7 @@ void BDMPI_sbloadall(void)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 It is used to remove from active memory the memory pages associated with a
 BDMPI_sbmalloc() or BDMPI_sbrealloc() allocation. If any of the pages have been
@@ -902,14 +902,14 @@ void BDMPI_sbunload(void *ptr)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 It is used to remove from active memory the memory pages that were previously
-allocated by any BDMPI_sbmalloc() or BDMPI_sbrealloc() calls. 
+allocated by any BDMPI_sbmalloc() or BDMPI_sbrealloc() calls.
 
 Note that when the number of slaves that are allowed to be running (as specified by
 the `-nr` parameter of \bdmprun) is equal to the number of slaves (the `-ns`
-parameter of \bdmprun), this function does nothing. 
+parameter of \bdmprun), this function does nothing.
 
 */
 /**************************************************************************/
@@ -920,7 +920,7 @@ void BDMPI_sbunloadall(void)
 }
 
 /**************************************************************************/
-/*! 
+/*!
 
 It is used to remove from active memory the memory pages associated with a
 BDMPI_sbmalloc() or BDMPI_sbrealloc() allocation and to also discard any
@@ -931,10 +931,10 @@ to discard sbmalloc'ed allocations corresponding to *scratch* memory prior to
 entering a blocking call.
 
 \param[in] ptr is a pointer to a memory location previously allocated by
-BDMPI_sbmalloc() or BDMPI_sbrealloc(). 
+BDMPI_sbmalloc() or BDMPI_sbrealloc().
 
-\param[in] size specifies the number of bytes starting at \p ptr that will 
-be discarded. If size is -1, then the entire allocation associated with ptr 
+\param[in] size specifies the number of bytes starting at \p ptr that will
+be discarded. If size is -1, then the entire allocation associated with ptr
 is discarded.
 
 */
@@ -971,7 +971,7 @@ int MPI_Print_vm_info(char *hdr)
 
 /**************************************************************************/
 /*! BDMPI's custom-wrappers over the mlock/munlock functions. The wrapper
-    functions ensure that the locking operations are controlled by an 
+    functions ensure that the locking operations are controlled by an
     inter-process mutex. */
 /**************************************************************************/
 int BDMPI_mlock(const void *addr, size_t len)
@@ -1009,20 +1009,20 @@ int BDMPI_munlockall(void)
 
 /*************************************************************************/
 /*************************************************************************/
-int BDMPI_Reduce_init(void *sendbuf, void *recvbuf, size_t count, 
+int BDMPI_Reduce_init(void *sendbuf, void *recvbuf, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
          BDMPI_Request *request)
 {
   EXITIFNOTINIT(job);
 
-  return bdmp_Reduce_init(job, sendbuf, recvbuf, count, datatype, op, root, 
+  return bdmp_Reduce_init(job, sendbuf, recvbuf, count, datatype, op, root,
                comm, request);
 }
 
 
 /*************************************************************************/
 /*************************************************************************/
-int BDMPI_Reduce_fine(void *recvbuf, size_t count, BDMPI_Datatype datatype, 
+int BDMPI_Reduce_fine(void *recvbuf, size_t count, BDMPI_Datatype datatype,
          BDMPI_Op op, int root, BDMPI_Comm comm, BDMPI_Request *request)
 {
   EXITIFNOTINIT(job);
@@ -1033,13 +1033,12 @@ int BDMPI_Reduce_fine(void *recvbuf, size_t count, BDMPI_Datatype datatype,
 
 /*************************************************************************/
 /*************************************************************************/
-int BDMPI_Merge(void *sendbuf, int *sendids, size_t sendcount, 
+int BDMPI_Merge(void *sendbuf, int *sendids, size_t sendcount,
                void *recvbuf, int *recvids, size_t *r_recvcount,
                BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
-  return bdmp_Merge(job, sendbuf, sendids, sendcount, recvbuf, recvids, 
+  return bdmp_Merge(job, sendbuf, sendids, sendcount, recvbuf, recvids,
               r_recvcount, datatype, op, root, comm);
 }
-

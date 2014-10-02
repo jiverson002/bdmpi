@@ -1,15 +1,15 @@
 /*
  * comm.c
  *
- * Implements the various functions that deal with communicators. 
+ * Implements the various functions that deal with communicators.
  *
  * Started 4/4/2013
  * George
  *
  */
 
-#include "bdmplib.h"
 
+#include "bdmplib.h"
 
 
 /*************************************************************************/
@@ -150,6 +150,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* allocate the new communicator */
@@ -196,6 +197,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* remove the info associated with the old communicator */
@@ -209,7 +211,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 /*************************************************************************/
 /* Splits a communicator */
 /*************************************************************************/
-int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key, 
+int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
           BDMPI_Comm *newcomm)
 {
   int response;
@@ -243,6 +245,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
   /* create the new communicator */
@@ -255,4 +258,3 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
 
   return BDMPI_SUCCESS;
 }
-

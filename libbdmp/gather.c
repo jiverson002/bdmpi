@@ -5,14 +5,15 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /*! Performs BDMPI_Gatherv() when the communicator involves a single node */
 /*************************************************************************/
-int bdmp_Gatherv_node(sjob_t *job, 
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf, 
+int bdmp_Gatherv_node(sjob_t *job,
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf,
           size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm)
 {
@@ -21,8 +22,8 @@ int bdmp_Gatherv_node(sjob_t *job,
   bdmsg_t msg, rmsg, gomsg;
   ssize_t myfnum=-1;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Gatherv_node: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Gatherv_node: entering: comm: %p [goMQlen: %d]\n",
           comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -100,6 +101,7 @@ int bdmp_Gatherv_node(sjob_t *job,
       bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
     if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
       break;
+    slv_route(job, &gomsg);
   }
 
 
@@ -110,17 +112,17 @@ int bdmp_Gatherv_node(sjob_t *job,
     /* the root will send a GATHERF request and get the data */
     msg.msgtype = BDMPI_MSGTYPE_GATHERF;
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* get the data */
     for (i=0; i<npes-1; i++) {
       xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
       p = rmsg.myrank;
 
       if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(recvcounts[p], recvtype))
-        errexit("[%d]BDMPI_Gatherv: Amount of data to be received from %d is more than specified: %zu %zu\n", 
+        errexit("[%d]BDMPI_Gatherv: Amount of data to be received from %d is more than specified: %zu %zu\n",
             mype, p, bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(recvcounts[p], recvtype));
 
-      if (rmsg.fnum == -1) 
+      if (rmsg.fnum == -1)
         xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype);
       else
         xfer_in_disk(rmsg.fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype, 1);
@@ -143,16 +145,16 @@ int bdmp_Gatherv_node(sjob_t *job,
 /*************************************************************************/
 /* Performs BDMPI_Gatherv() via a sequence of send/recv operations */
 /*************************************************************************/
-int bdmp_Gatherv_p2p0(sjob_t *job, 
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf, 
+int bdmp_Gatherv_p2p0(sjob_t *job,
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf,
           size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm)
 {
   size_t k, sdtsize, rdtsize, size;
   int mype, npes;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Gatherv_p2p: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Gatherv_p2p: entering: comm: %p [goMQlen: %d]\n",
         comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -176,14 +178,14 @@ int bdmp_Gatherv_p2p0(sjob_t *job,
   rdtsize = bdmp_sizeof(recvtype);
 
   /* the non-root sends data to the root */
-  if (mype != root) 
+  if (mype != root)
     bdmp_Send(job, (char *)sendbuf, sendcount, sendtype, root, BDMPL_GATHER_TAG, comm);
 
   /* the root receives data from everybody */
   if (mype == root) {
     for (k=0; k<npes; k++) {
       if (k != mype)
-        bdmp_Recv(job, (char *)recvbuf+rdispls[k]*rdtsize, recvcounts[k], 
+        bdmp_Recv(job, (char *)recvbuf+rdispls[k]*rdtsize, recvcounts[k],
             recvtype, k, BDMPL_GATHER_TAG, comm, BDMPI_STATUS_IGNORE);
     }
 
@@ -202,8 +204,8 @@ int bdmp_Gatherv_p2p0(sjob_t *job,
 /*************************************************************************/
 /* Performs BDMPI_Gatherv() via a sequence of send/recv operations */
 /*************************************************************************/
-int bdmp_Gatherv_p2p(sjob_t *job, 
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf, 
+int bdmp_Gatherv_p2p(sjob_t *job,
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf,
           size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm)
 {
@@ -211,8 +213,8 @@ int bdmp_Gatherv_p2p(sjob_t *job,
   int mype, npes, tag, response;
   bdmsg_t msg, rmsg, gomsg, *rmsgs;
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Gatherv_p2p: entering: comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Gatherv_p2p: entering: comm: %p [goMQlen: %d]\n",
         comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -238,7 +240,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
   rdtsize = bdmp_sizeof(recvtype);
 
   /* the non-root sends data to the root */
-  if (mype != root) 
+  if (mype != root)
     bdmp_Send(job, (char *)sendbuf, sendcount, sendtype, root, tag, comm);
 
   /* save the data in case you go to sleep */
@@ -299,6 +301,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
             bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
           if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
             break;
+          slv_route(job, &gomsg);
         }
       }
 
@@ -314,7 +317,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
       /* copy the in-memory data for now and defer disk for later */
       if (rmsgs[p].fnum == -1)
-        xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsgs[p].count, 
+        xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsgs[p].count,
             rmsgs[p].datatype);
     }
 
@@ -339,4 +342,3 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
   return BDMPI_SUCCESS;
 }
-

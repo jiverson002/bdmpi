@@ -142,4 +142,7 @@ void sb_saveall();
 void sb_load(void *buf);
 void sb_loadall();
 void sb_discard(void *ptr, ssize_t size);
+
+/* route.c */
+void slv_route(sjob_t * const job, bdmsg_t const * const gomsg);
 #endif 

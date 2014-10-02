@@ -5,13 +5,14 @@
 \author George/Shaden
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /*! Performs BDMPI_Scan() */
 /*************************************************************************/
-int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
         BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   int i, k, npes, mype, d, partner, mask, tag, ierror=BDMPI_SUCCESS;
@@ -30,7 +31,7 @@ int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   npes = comm->size;
   mype = comm->rank;
-  
+
   tag = (++comm->copid)*BDMPL_COPID_MULT + BDMPL_ISCAN_TAG;
 
   msize = bdmp_msize(count, datatype);
@@ -48,9 +49,9 @@ int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   for (mask=1, i=0; i<d; i++, mask=(mask<<1)) {
     partner = mype ^ mask;
     if (partner < npes) {
-      if ((ierror = BDMPI_Sendrecv(abuf, msize, BDMPI_BYTE, partner, 
-                        tag, tbuf, msize, BDMPI_BYTE, partner, tag, 
-                        comm, BDMPI_STATUS_IGNORE)) != BDMPI_SUCCESS) 
+      if ((ierror = BDMPI_Sendrecv(abuf, msize, BDMPI_BYTE, partner,
+                        tag, tbuf, msize, BDMPI_BYTE, partner, tag,
+                        comm, BDMPI_STATUS_IGNORE)) != BDMPI_SUCCESS)
         break; /* Sendrecv failed, jump out of loop */
 
       scan_op(abuf, tbuf, recvbuf, (partner < mype), count, datatype, op);
@@ -66,7 +67,7 @@ int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 /*************************************************************************/
 /*! Performs BDMPI_Exscan() */
 /*************************************************************************/
-int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
         BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
   int i, k, npes, mype, d, partner, mask, tag, ierror=BDMPI_SUCCESS;
@@ -85,7 +86,7 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   npes = comm->size;
   mype = comm->rank;
-  
+
   tag = (++comm->copid)*BDMPL_COPID_MULT + BDMPL_ESCAN_TAG;
 
   msize = bdmp_msize(count, datatype);
@@ -104,9 +105,9 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   for (mask=1, i=0; i<d; i++, mask=(mask<<1)) {
     partner = mype ^ mask;
     if (partner < npes) {
-      if ((ierror = BDMPI_Sendrecv(abuf, msize, BDMPI_BYTE, partner, 
-                        tag, tbuf, msize, BDMPI_BYTE, partner, tag, 
-                        comm, BDMPI_STATUS_IGNORE)) != BDMPI_SUCCESS) 
+      if ((ierror = BDMPI_Sendrecv(abuf, msize, BDMPI_BYTE, partner,
+                        tag, tbuf, msize, BDMPI_BYTE, partner, tag,
+                        comm, BDMPI_STATUS_IGNORE)) != BDMPI_SUCCESS)
         break; /* Sendrecv failed, jump out of loop */
 
       scan_op(abuf, tbuf, recvbuf, (partner < mype), count, datatype, op);
@@ -117,5 +118,3 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   return ierror;
 }
-
-
