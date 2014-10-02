@@ -28,8 +28,8 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 
   /* save the state in case you go to sleep */
   bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
-  if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   msg.msgtype  = BDMPI_MSGTYPE_PROBE;
   msg.mcomm    = comm->mcomm;
@@ -49,11 +49,15 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+    /*if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();*/
 
     /* go to sleep... */
-    bdmq_recv(job->goMQ, &response, sizeof(int));
+    for (;;) {
+      bdmq_recv(job->goMQ, &response, sizeof(int));
+      if (1 == response)
+        break;
+    }
   }
 
   /* get the missing message info from the master */

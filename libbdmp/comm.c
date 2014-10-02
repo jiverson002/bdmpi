@@ -138,14 +138,18 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
   msg.myrank  = comm->rank;
 
   /* prepare to go to sleep */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   /* notify the master that you entering a barrier */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   /* allocate the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
@@ -175,8 +179,8 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   }
 
   /* prepare to go to sleep */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   msg.msgtype = BDMPI_MSGTYPE_COMMFREE;
   msg.mcomm   = (*comm)->mcomm;
@@ -186,7 +190,11 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   /* remove the info associated with the old communicator */
   gk_free((void **)comm, LTERM);
@@ -213,8 +221,8 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   }
 
   /* prepare to go to sleep */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   *newcomm = BDMPI_COMM_NULL;
 
@@ -228,7 +236,11 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   /* create the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");

@@ -76,12 +76,16 @@ int bdmp_Allgatherv(sjob_t *job,
   }
 
   /* prepare to go to sleep */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the allgather */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   /* notify the master that you want to receive the allgathered data */
   msg.msgtype  = BDMPI_MSGTYPE_ALLGATHERF;

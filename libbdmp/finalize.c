@@ -33,8 +33,11 @@ int bdmp_Finalize(sjob_t *job)
   sb_finalize();
 
   /* wait for a go response from the master */
-  if (bdmq_recv(job->goMQ, &response, sizeof(int)) == -1)
-    bdprintf("Failed on trying to recv a response message: %s.\n", strerror(errno));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", response));
 

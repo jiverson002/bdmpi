@@ -31,14 +31,18 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   msg.myrank  = comm->rank;
 
   /* save the address space before blocking */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   /* notify the master that you entering a barrier */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Barrier: exiting: comm: %p\n", comm));
 

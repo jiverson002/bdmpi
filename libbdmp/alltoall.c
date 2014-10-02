@@ -94,13 +94,17 @@ int bdmp_Alltoallv_node(sjob_t *job,
   }
 
   /* prepare to go to sleep */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
 
   /* go to sleep until everybody has called the collective */
-  bdmq_recv(job->goMQ, &response, sizeof(int));
+  for (;;) {
+    bdmq_recv(job->goMQ, &response, sizeof(int));
+    if (1 == response)
+      break;
+  }
 
 
   /*=====================================================================*/
@@ -284,12 +288,12 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
 
   /* sbdiscard the incoming buffers */
-  for (p=0; p<npes; p++) 
-    sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
+  /*for (p=0; p<npes; p++) 
+    sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);*/
 
   /* save your address space before blocking */
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
+  /*if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();*/
 
   /* receive data from everybody else */
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -316,8 +320,8 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
         break;
 
       /* go to sleep... */
-      if (job->jdesc->nr < job->jdesc->ns)
-        sb_saveall();
+      /*if (job->jdesc->nr < job->jdesc->ns)
+        sb_saveall();*/
       bdmq_recv(job->goMQ, &response, sizeof(int));
     }
 

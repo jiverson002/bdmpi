@@ -39,12 +39,12 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   mype = comm->rank;
 
   /* save the state in case you go to sleep */
-  bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
+  /*bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
     sb_discard(buf, bdmp_msize(count, datatype));
     if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
-  }
+  }*/
 
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
   msg.mcomm    = comm->mcomm;
@@ -68,11 +68,15 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+    /*if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();*/
 
     /* go to sleep... */
-    bdmq_recv(job->goMQ, &response, sizeof(int));
+    for (;;) {
+      bdmq_recv(job->goMQ, &response, sizeof(int));
+      if (1 == response)
+        break;
+    }
   }
 
   /* get the missing message info from the master */
