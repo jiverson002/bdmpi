@@ -25,6 +25,7 @@ typedef struct {
   size_t minsize;        /* the minimum allocation in pages handled by sbmalloc */
   size_t npages;         /* the number of pages that defines the unit block */
   char *fstem;           /* the file stem where the data is stored */
+  sjob_t *job;           /* the slave job information */
   sbchunk_t *head;       /* the first sbchunk */
   pthread_mutex_t mtx;   /* the mutex guarding it */
   pthread_mutexattr_t mtx_attr;  /* attributes for all mutexes */
@@ -294,7 +295,7 @@ int munlockall(void)
 /*************************************************************************/
 /*! Initializes the sbmalloc subsystem */
 /*************************************************************************/
-int sb_init(char *fstem, size_t minsize, size_t npages)
+int sb_init(char *fstem, sjob_t * const job, size_t minsize, size_t npages)
 {
   if (sbinfo != NULL) {
     perror("sb_init: sbinfo != NULL");
@@ -345,6 +346,8 @@ int sb_init(char *fstem, size_t minsize, size_t npages)
   GKASSERT(pthread_mutexattr_init(&(sbinfo->mtx_attr)) == 0);
   GKASSERT(pthread_mutexattr_settype(&(sbinfo->mtx_attr), PTHREAD_MUTEX_RECURSIVE) == 0);
   GKASSERT(pthread_mutex_init(&(sbinfo->mtx), &(sbinfo->mtx_attr)) == 0);
+
+  sbinfo->job = job;
 
   return 1;
 
@@ -408,6 +411,30 @@ void *sb_malloc(size_t nbytes)
 
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
+
+
+  /*------------------------------------------------------------------------*/
+#if 0
+  /* determine the allocation size */
+  count = sbchunk->npages*sbinfo->pagesize;
+
+  /* notify the master that you want to allocate memory */
+  msg.myrank = sbinfo->job->rank;
+  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.source = sbinfo->job->rank;
+  msg.count = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  for (;;) {
+    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+
+    if (BDMPI_GORESP_PROCEED == gomsg.tag)
+      break;
+    slv_route(sbinfo->job, sbinfo->job->rank, &gomsg);
+  }
+#endif
+  /*------------------------------------------------------------------------*/
+
 
   /* allocate the flag array for the pages */
   sbchunk->pflags = (uint8_t *)libc_calloc(sbchunk->npages+1, sizeof(uint8_t));
@@ -500,6 +527,29 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->pflags[new_npages] = 0;  /* this is for the +1 reset */
   }
   else {
+    /*----------------------------------------------------------------------*/
+#if 0
+    /* determine the allocation size */
+    count = new_npages*sbinfo->pagesize;
+
+    /* notify the master that you want to allocate memory */
+    msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+    msg.source = sbinfo->job->rank;
+    msg.count = count;
+    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+    for (;;) {
+      if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+        bdprintf("Failed on trying to recv a go message: %s.\n",
+          strerror(errno));
+
+      if (BDMPI_GORESP_PROCEED == gomsg.tag)
+        break;
+      slv_route(sbinfo->job, sbinfo->job->rank, &gomsg);
+    }
+#endif
+    /*----------------------------------------------------------------------*/
+
+
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_calloc(new_npages+1, sizeof(uint8_t))) == NULL) {
       perror("sb_realloc: failed to malloc new_pflags");

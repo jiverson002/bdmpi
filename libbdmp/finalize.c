@@ -30,6 +30,7 @@ int bdmp_Finalize(sjob_t *job)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
   /* turn off sbmalloc */
+  /* TODO: slave should subtract any memory it has from job->memrss */
   sb_finalize();
 
   /* wait for a go response from the master */
