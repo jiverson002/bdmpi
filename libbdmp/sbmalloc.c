@@ -415,14 +415,10 @@ void *sb_malloc(size_t nbytes)
 
   /*------------------------------------------------------------------------*/
 #if 0
-  /* determine the allocation size */
-  count = sbchunk->npages*sbinfo->pagesize;
-
   /* notify the master that you want to allocate memory */
-  msg.myrank = sbinfo->job->rank;
   msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
-  msg.source = sbinfo->job->rank;
-  msg.count = count;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = sbchunk->npages*sbinfo->pagesize;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
   for (;;) {
     if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
@@ -529,13 +525,10 @@ void *sb_realloc(void *oldptr, size_t nbytes)
   else {
     /*----------------------------------------------------------------------*/
 #if 0
-    /* determine the allocation size */
-    count = new_npages*sbinfo->pagesize;
-
     /* notify the master that you want to allocate memory */
     msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
-    msg.source = sbinfo->job->rank;
-    msg.count = count;
+    msg.source  = sbinfo->job->rank;
+    msg.count   = sbchunk->npages*sbinfo->pagesize;
     bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
     for (;;) {
       if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
@@ -639,6 +632,16 @@ void sb_free(void *buf)
     printf("Got a free for an unhandled memory location: %zx\n", addr);
     exit(EXIT_FAILURE);
   }
+
+  /*----------------------------------------------------------------------*/
+#if 0
+  /* notify the master that you want to allocate memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = ptr->npages*sbinfo->pagesize;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+#endif
+  /*----------------------------------------------------------------------*/
 
   /* update the link-list */
   if (pptr == NULL)
