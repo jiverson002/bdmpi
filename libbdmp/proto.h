@@ -1,5 +1,5 @@
 /*
- * proto.h 
+ * proto.h
  *
  * This file contains function prototypes
  *
@@ -29,7 +29,7 @@ int bdmp_Comm_nrank(sjob_t *job, BDMPI_Comm comm, int *nrank);
 int bdmp_Comm_rrank(sjob_t *job, BDMPI_Comm comm, int *rrank);
 int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm);
 int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm);
-int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key, 
+int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
           BDMPI_Comm *newcomm);
 
 /* send.c */
@@ -57,7 +57,7 @@ int bdmp_Test(sjob_t *job, BDMPI_Request *request, int *flag, BDMPI_Status *stat
 int bdmp_Wait(sjob_t *job, BDMPI_Request *request, BDMPI_Status *status);
 
 /* getcount.c */
-int bdmp_Get_count(sjob_t *job, BDMPI_Status *status, BDMPI_Datatype datatype, 
+int bdmp_Get_count(sjob_t *job, BDMPI_Status *status, BDMPI_Datatype datatype,
           size_t *count);
 
 /* barrier.c */
@@ -68,18 +68,18 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int root, BDMPI_Comm comm);
 
 /* allgather.c */
-int bdmp_Allgatherv(sjob_t *job, 
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, 
-          void *recvbuf, size_t *recvcounts, size_t *displs, 
+int bdmp_Allgatherv(sjob_t *job,
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
+          void *recvbuf, size_t *recvcounts, size_t *displs,
           BDMPI_Datatype recvtype, BDMPI_Comm comm);
 
 /* reduce.c */
-int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm);
-int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count, 
+int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
           BDMPI_Request *request);
-int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count, 
+int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
           BDMPI_Request *request);
 int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
@@ -113,11 +113,11 @@ int bdmp_Scatterv_p2p(sjob_t *job,
 
 /* gather.c */
 int bdmp_Gatherv_node(sjob_t *job,
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf, 
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf,
           size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm);
 int bdmp_Gatherv_p2p(sjob_t *job,
-          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf, 
+          void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, void *recvbuf,
           size_t *recvcounts, size_t *rdispls, BDMPI_Datatype recvtype, int root,
           BDMPI_Comm comm);
 
@@ -145,4 +145,5 @@ void sb_discard(void *ptr, ssize_t size);
 
 /* route.c */
 void slv_route(sjob_t * const job, bdmsg_t const * const gomsg);
-#endif 
+
+#endif

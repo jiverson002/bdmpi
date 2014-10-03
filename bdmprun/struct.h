@@ -1,7 +1,7 @@
 /*
  * struct.h
  *
- * This file contains data structures 
+ * This file contains data structures
  *
  * Started 3/31/13
  * George
@@ -54,9 +54,9 @@ typedef struct {
   int copid;            /*!< The next available collective operation ID */
   int *sranks;          /*!< The ranks of the slave processes within the node */
 
-  /* Inter<=>Intra maps; 
-     grank: the BDMP rank of a process. 
-     lrank: the rank of a process within the slaves controlled by the master. 
+  /* Inter<=>Intra maps;
+     grank: the BDMP rank of a process.
+     lrank: the rank of a process within the slaves controlled by the master.
   */
   int gsize;            /*!< the total number of BDMP ranks */
   int *slvdist;         /*!< The distribution of the slaves */
@@ -72,7 +72,7 @@ typedef struct {
 
 
 /*************************************************************************/
-/*! This data structure stores all information associated with a bdmp 
+/*! This data structure stores all information associated with a bdmp
     execution state and environment */
 /*************************************************************************/
 typedef struct {
@@ -84,12 +84,15 @@ typedef struct {
   size_t imsize;        /*!< The maximum size of a message for in-memory buffering */
   size_t mmsize;        /*!< The maximum buffer size of inter-node p2p communication */
   size_t sbsize;        /*!< The minimum size for sbmalloc() */
-  int lockmem;          /*!< Specifies if the master will be locking its bcast/reduce 
+  int lockmem;          /*!< Specifies if the master will be locking its bcast/reduce
                              buffers */
   int dbglvl;           /*!< The dbglvl of the execution */
   char *iwdir;          /*!< The workding directory for storing various files (input) */
   char *exefile;        /*!< The name of the executable to be run */
   char **exeargv;       /*!< The command-line arguments of the executable */
+
+  size_t memrss;        /*!< Current resident set size for slaves on node */
+  size_t memmax;        /*!< Maximum amount of memory available on system */
 
   /* process IDs */
   pid_t mpid;           /*!< The pid of the master */
@@ -113,13 +116,13 @@ typedef struct {
   bdlock_t *criticalMX; /*!< Mutex for critical sections */
 
   /* headers for the various pending messages */
-  header_t **psends;          /*!< The per slave link-list of message headers for 
+  header_t **psends;          /*!< The per slave link-list of message headers for
                                    pending sends */
   pthread_mutex_t **plocks;   /*!< The locks for the above link-lists */
 
 
   /* various other job-related constructs */
-  bdjdesc_t *jdesc;     /*!< The job description to be allocated in the global 
+  bdjdesc_t *jdesc;     /*!< The job description to be allocated in the global
                              shared memory */
   pid_t *spids;         /*!< The pids of the slave processes. This will
                              be allocated in the global SMR. */
@@ -128,9 +131,9 @@ typedef struct {
   int nalive, *alivelist, *alivemap;          /*!< The slave processes still existing */
   int nrunnable, *runnablelist, *runnablemap; /*!< The runnable slaves */
   int nrunning, *runninglist, *runningmap;    /*!< The slaves that are currently running */
-  int nmblocked, *mblockedlist, *mblockedmap; /*!< The slaves that are currently blocked 
+  int nmblocked, *mblockedlist, *mblockedmap; /*!< The slaves that are currently blocked
                                                    waiting for messages */
-  int ncblocked, *cblockedlist, *cblockedmap; /*!< The slaves that are currently blocked 
+  int ncblocked, *cblockedlist, *cblockedmap; /*!< The slaves that are currently blocked
                                                    due to collective operation */
   int *blockedts;                             /*!< Timestamp of when it was blocked */
 
@@ -168,6 +171,7 @@ typedef struct {
   /* pthread info */
   pthread_mutex_t *schedule_lock; /*!< Used for manipulating the scheduling structures */
   pthread_mutex_t *comm_lock;     /*!< Used for manipulating the communicator structures */
+  pthread_mutex_t *memory_lock;     /*!< Used for manipulating the memory structures */
 } mjob_t;
 
 
@@ -190,4 +194,4 @@ typedef struct {
   void *buf;
 } mergeinfo_t;
 
-#endif 
+#endif

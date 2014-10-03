@@ -46,6 +46,16 @@ __thread size_t last_addr=0;
 #define SBCHUNK_ONDISK  8
 
 
+/* enable master notification of memory operations */
+#define SBNOTIFY_FREE     1
+#define SBNOTIFY_SAVE     2
+#define SBNOTIFY_FINALIZE 3
+#define SBNOTIFY_ALLOC    4
+#define SBNOTIFY_LOAD     5
+/*#define SBNOTIFY          SBNOTIFY_FINALIZE*/
+#define SBNOTIFY          SBNOTIFY_ALLOC
+
+
 /* hooks to build-in function */
 static void *(*libc_malloc)(size_t) = NULL;
 static void *(*libc_calloc)(size_t, size_t) = NULL;
@@ -64,10 +74,10 @@ static int (*libc_munlockall)(void) = NULL;
 /* private prototypes */
 sbchunk_t *_sb_find(void *ptr);
 static void _sb_handler(int sig, siginfo_t *si, void *unused);
-void _sb_chunkload(sbchunk_t *sbchunk);
-void _sb_chunksave(sbchunk_t *sbchunk);
-void _sb_chunkfree(sbchunk_t *sbchunk);
-void _sb_chunkfreeall();
+size_t _sb_chunkload(sbchunk_t *sbchunk);
+size_t _sb_chunksave(sbchunk_t *sbchunk);
+size_t _sb_chunkfree(sbchunk_t *sbchunk);
+size_t _sb_chunkfreeall();
 
 #ifdef XXX
 /* macros */
@@ -367,6 +377,9 @@ ERROR_EXIT:
 /*************************************************************************/
 int sb_finalize()
 {
+  size_t count=0;
+  bdmsg_t msg;
+
   if (sbinfo == NULL) {
     perror("sbfinalize: sbinfo -= NULL");
     exit(EXIT_FAILURE);
@@ -380,7 +393,18 @@ int sb_finalize()
   GKASSERT(pthread_mutex_destroy(&(sbinfo->mtx)) == 0);
   GKASSERT(pthread_mutexattr_destroy(&(sbinfo->mtx_attr)) == 0);
 
-  _sb_chunkfreeall();
+  count = _sb_chunkfreeall();
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_FINALIZE
+  /* notify the master that you are releasing memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+#endif
+  /*----------------------------------------------------------------------*/
+
   libc_free(sbinfo->fstem);
   libc_free(sbinfo);
   sbinfo = NULL;
@@ -395,6 +419,7 @@ int sb_finalize()
 void *sb_malloc(size_t nbytes)
 {
   sbchunk_t *sbchunk;
+  bdmsg_t msg, gomsg;
 
   //printf("sb_malloc: allocating %zu bytes\n", nbytes);
 
@@ -411,26 +436,6 @@ void *sb_malloc(size_t nbytes)
 
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
-
-
-  /*------------------------------------------------------------------------*/
-#if 0
-  /* notify the master that you want to allocate memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
-  msg.source  = sbinfo->job->rank;
-  msg.count   = sbchunk->npages*sbinfo->pagesize;
-  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  for (;;) {
-    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-
-    if (BDMPI_GORESP_PROCEED == gomsg.tag)
-      break;
-    slv_route(sbinfo->job, sbinfo->job->rank, &gomsg);
-  }
-#endif
-  /*------------------------------------------------------------------------*/
-
 
   /* allocate the flag array for the pages */
   sbchunk->pflags = (uint8_t *)libc_calloc(sbchunk->npages+1, sizeof(uint8_t));
@@ -478,6 +483,24 @@ void *sb_malloc(size_t nbytes)
   sbinfo->head  = sbchunk;
   BD_LET_LOCK(&(sbinfo->mtx));
 
+  /*------------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_ALLOC
+  /* notify the master that you want to allocate memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = sbchunk->npages*sbinfo->pagesize;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  for (;;) {
+    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+      break;
+    slv_route(sbinfo->job, &gomsg);
+  }
+#endif
+  /*------------------------------------------------------------------------*/
+
   return (void *)sbchunk->saddr;
 }
 
@@ -487,9 +510,11 @@ void *sb_malloc(size_t nbytes)
 /*************************************************************************/
 void *sb_realloc(void *oldptr, size_t nbytes)
 {
-  size_t ip, new_saddr, new_npages;
+  int easy=0;
+  size_t ip, new_saddr, new_npages, count=0;
   uint8_t *new_pflags=NULL;
   sbchunk_t *sbchunk;
+  bdmsg_t msg, gomsg;
 
   if (sbinfo == NULL) {
     perror("sb_realloc: sbinfo == NULL");
@@ -504,7 +529,6 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     exit(EXIT_FAILURE);
   }
   BD_LET_LOCK(&(sbinfo->mtx));
-
 
   BD_GET_LOCK(&(sbchunk->mtx));
 
@@ -521,28 +545,11 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->npages = new_npages;
     sbchunk->eaddr  = sbchunk->saddr+nbytes;
     sbchunk->pflags[new_npages] = 0;  /* this is for the +1 reset */
+
+    easy = 1;
+    count = (sbchunk->npages-new_npages)*sbinfo->pagesize;
   }
   else {
-    /*----------------------------------------------------------------------*/
-#if 0
-    /* notify the master that you want to allocate memory */
-    msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
-    msg.source  = sbinfo->job->rank;
-    msg.count   = sbchunk->npages*sbinfo->pagesize;
-    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    for (;;) {
-      if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-        bdprintf("Failed on trying to recv a go message: %s.\n",
-          strerror(errno));
-
-      if (BDMPI_GORESP_PROCEED == gomsg.tag)
-        break;
-      slv_route(sbinfo->job, sbinfo->job->rank, &gomsg);
-    }
-#endif
-    /*----------------------------------------------------------------------*/
-
-
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_calloc(new_npages+1, sizeof(uint8_t))) == NULL) {
       perror("sb_realloc: failed to malloc new_pflags");
@@ -596,6 +603,35 @@ void *sb_realloc(void *oldptr, size_t nbytes)
 
   BD_LET_LOCK(&(sbchunk->mtx));
 
+#if SBNOTIFY >= SBNOTIFY_ALLOC
+  if (1 == easy) {
+    /*----------------------------------------------------------------------*/
+    /* notify the master that you are releasing some memory */
+    msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+    msg.source  = sbinfo->job->rank;
+    msg.count   = count;
+    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+    /*----------------------------------------------------------------------*/
+  } else {
+    /*----------------------------------------------------------------------*/
+    /* notify the master that you want to allocate memory */
+    msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+    msg.source  = sbinfo->job->rank;
+    msg.count   = count;
+    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+    for (;;) {
+      if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+        bdprintf("Failed on trying to recv a go message: %s.\n",
+          strerror(errno));
+
+      if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+        break;
+      slv_route(sbinfo->job, &gomsg);
+    }
+    /*----------------------------------------------------------------------*/
+  }
+#endif
+
   return (void *)sbchunk->saddr;
 
 ERROR_EXIT:
@@ -604,7 +640,6 @@ ERROR_EXIT:
     libc_free(new_pflags);
 
   return NULL;
-
 }
 
 
@@ -613,6 +648,8 @@ ERROR_EXIT:
 /*************************************************************************/
 void sb_free(void *buf)
 {
+  size_t count=0;
+  bdmsg_t msg;
   sbchunk_t *ptr, *pptr=NULL;
   size_t addr=(size_t)buf;
 
@@ -633,16 +670,6 @@ void sb_free(void *buf)
     exit(EXIT_FAILURE);
   }
 
-  /*----------------------------------------------------------------------*/
-#if 0
-  /* notify the master that you want to allocate memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
-  msg.source  = sbinfo->job->rank;
-  msg.count   = ptr->npages*sbinfo->pagesize;
-  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-#endif
-  /*----------------------------------------------------------------------*/
-
   /* update the link-list */
   if (pptr == NULL)
     sbinfo->head = ptr->next;
@@ -655,10 +682,17 @@ void sb_free(void *buf)
   GKASSERT(pthread_mutex_destroy(&(ptr->mtx)) == 0);
 
   /* free the chunk */
-  _sb_chunkfree(ptr);
+  count = _sb_chunkfree(ptr);
 
-
-  return;
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_FREE
+  /* notify the master that you are releasing memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -682,6 +716,8 @@ int sb_exists(void *ptr)
 /*************************************************************************/
 void sb_save(void *buf)
 {
+  size_t count=0;
+  bdmsg_t msg;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -695,8 +731,18 @@ void sb_save(void *buf)
     return;
 
   BD_GET_LOCK(&(sbchunk->mtx));
-  _sb_chunksave(sbchunk);
+  count = _sb_chunksave(sbchunk);
   BD_LET_LOCK(&(sbchunk->mtx));
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_SAVE
+  /* notify the master that you are releasing memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -705,6 +751,8 @@ void sb_save(void *buf)
 /*************************************************************************/
 void sb_saveall()
 {
+  size_t count=0;
+  bdmsg_t msg;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -713,10 +761,20 @@ void sb_saveall()
   BD_GET_LOCK(&(sbinfo->mtx));
   for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next) {
     BD_GET_LOCK(&(sbchunk->mtx));
-    _sb_chunksave(sbchunk);
+    count += _sb_chunksave(sbchunk);
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_SAVE
+  /* notify the master that you are releasing memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -725,6 +783,8 @@ void sb_saveall()
 /*************************************************************************/
 void sb_load(void *buf)
 {
+  size_t count=0;
+  bdmsg_t msg, gomsg;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -739,8 +799,26 @@ void sb_load(void *buf)
 
   BD_GET_LOCK(&(sbchunk->mtx));
   if (sbchunk->flags&SBCHUNK_NONE)
-    _sb_chunkload(sbchunk);
+    count = _sb_chunkload(sbchunk);
   BD_LET_LOCK(&(sbchunk->mtx));
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+  /* notify the master that you want to load memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  for (;;) {
+    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+      break;
+    slv_route(sbinfo->job, &gomsg);
+  }
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -749,6 +827,8 @@ void sb_load(void *buf)
 /*************************************************************************/
 void sb_loadall()
 {
+  size_t count=0;
+  bdmsg_t msg, gomsg;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -758,10 +838,28 @@ void sb_loadall()
   for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next) {
     BD_GET_LOCK(&(sbchunk->mtx));
     if (sbchunk->flags&SBCHUNK_NONE)
-      _sb_chunkload(sbchunk);
+      count += _sb_chunkload(sbchunk);
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+  /* notify the master that you want to load memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = count;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  for (;;) {
+    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
+      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
+
+    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
+      break;
+    slv_route(sbinfo->job, &gomsg);
+  }
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -916,7 +1014,7 @@ sbchunk_t *_sb_find(void *ptr)
 /*************************************************************************/
 /*! Loads the supplied sbchunk and makes it readable */
 /*************************************************************************/
-void _sb_chunkload(sbchunk_t *sbchunk)
+size_t _sb_chunkload(sbchunk_t *sbchunk)
 {
   ssize_t ip, ifirst, size, tsize, trsize, npages;
   char *buf;
@@ -989,13 +1087,15 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     if (pflags[ip]&SBCHUNK_NONE)
       pflags[ip] ^= SBCHUNK_NONE;
   }
+
+  return sbchunk->npages*sbinfo->pagesize;
 }
 
 
 /*************************************************************************/
 /*! Saves the supplied sbchunk to disk; this is an internal routine */
 /*************************************************************************/
-void _sb_chunksave(sbchunk_t *sbchunk)
+size_t _sb_chunksave(sbchunk_t *sbchunk)
 {
   size_t ip, ifirst, npages, size, tsize, twsize=0;
   char *buf;
@@ -1082,15 +1182,17 @@ void _sb_chunksave(sbchunk_t *sbchunk)
     exit(EXIT_FAILURE);
   }
 
-  return;
+  return sbchunk->npages*sbinfo->pagesize;
 }
 
 
 /*************************************************************************/
 /*! Frees an sbchunk and its anonymous mmap */
 /*************************************************************************/
-void _sb_chunkfree(sbchunk_t *sbchunk)
+size_t _sb_chunkfree(sbchunk_t *sbchunk)
 {
+  size_t count=sbchunk->npages*sbinfo->pagesize;
+
   /* delete the file, if on disk */
   if (sbchunk->flags&SBCHUNK_ONDISK) {
     if (unlink(sbchunk->fname) == -1) {
@@ -1109,24 +1211,25 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
   libc_free(sbchunk->fname);
   libc_free(sbchunk);
 
-  return;
+  return count;
 }
 
 
 /*************************************************************************/
 /*! Frees all the sbchunks */
 /*************************************************************************/
-void _sb_chunkfreeall()
+size_t _sb_chunkfreeall()
 {
+  size_t count=0;
   sbchunk_t *ptr, *nptr;
 
   ptr = sbinfo->head;
   while (ptr != NULL) {
     nptr = ptr->next;
-    _sb_chunkfree(ptr);
+    count += _sb_chunkfree(ptr);
     ptr = nptr;
   }
   sbinfo->head = NULL;
 
-  return;
+  return count;
 }

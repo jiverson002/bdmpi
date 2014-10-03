@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Alltoallv. - Send part
     Protocol:
@@ -41,7 +40,7 @@ void *mstr_alltoall_send(void *arg)
   BDASSERT(comm->nnodes == 1);
 
   /* deal with copid */
-  if (comm->counter == comm->lsize) 
+  if (comm->counter == comm->lsize)
     comm->copid++;
   if (bdmq_send(job->c2sMQs[srank], &(comm->copid), sizeof(int)) == -1)
     bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
@@ -60,7 +59,7 @@ void *mstr_alltoall_send(void *arg)
     else {
       buf = NULL;
     }
-  
+
     pending_addalltoall(job, msg, buf, (buf == NULL ? 0 : bdmp_msize(msg->count, msg->datatype)));
   }
 
@@ -73,7 +72,7 @@ void *mstr_alltoall_send(void *arg)
   /* see if all slaves have call the collective */
   if (--comm->counter == 0) {
     comm->counter = comm->lsize;
-    for (i=0; i<comm->lsize; i++) 
+    for (i=0; i<comm->lsize; i++)
       slvpool_cunblock(job, comm->sranks[i]);
   }
 
@@ -90,7 +89,7 @@ void *mstr_alltoall_send(void *arg)
 /*************************************************************************/
 /*! Response to a BDMPI_Alltoall - Recv step.
     Protocol:
-      - Finds the headers of the individual messages (if they exist) 
+      - Finds the headers of the individual messages (if they exist)
       - Reads and copies the data to the slave.
 */
 /*************************************************************************/
@@ -113,11 +112,11 @@ void *mstr_alltoall_recv(void *arg)
 
   /* go and copy the data received from all the slaves to that slave */
   for (p=0; p<comm->lsize-1; p++) {
-    if ((hdr = pending_getalltoall(job, msg)) == NULL) 
+    if ((hdr = pending_getalltoall(job, msg)) == NULL)
       slvpool_abort(1, "mstr_alltoall_recv: could not locate a pending_getalltoall.\n");
 
     /* send the specific info about the data been sent */
-    xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE); 
+    xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
 
     /* send the actual data */
     if (hdr->msg.fnum == -1)
@@ -134,4 +133,3 @@ void *mstr_alltoall_recv(void *arg)
 
   return NULL;
 }
-

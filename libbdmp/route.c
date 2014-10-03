@@ -20,7 +20,7 @@ void slv_route(sjob_t * const job, bdmsg_t const * const gomsg)
 
   switch (gomsg->msgtype) {
     case BDMPI_MSGTYPE_MEMFREE:
-      /*slv_mem_free(job, gomsg);*/
+      sb_saveall();
       break;
 
     default:

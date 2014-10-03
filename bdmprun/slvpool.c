@@ -284,6 +284,14 @@ void slvpool_route(mjob_t *job, bdmsg_t *msg)
         BDASSERT(pthread_create(&thread, NULL, mstr_comm_split, arg) == 0);
         break;
 
+      case BDMPI_MSGTYPE_MEMRQST:
+        BDASSERT(pthread_create(&thread, NULL, mstr_mem_rqst, arg) == 0);
+        break;
+
+      case BDMPI_MSGTYPE_MEMRLSD:
+        BDASSERT(pthread_create(&thread, NULL, mstr_mem_rlsd, arg) == 0);
+        break;
+
       default:
         slvpool_abort(1, "Got message: %d\n", msg->msgtype);
         return;
@@ -863,4 +871,3 @@ void slvpool_cunblock(mjob_t *job, int rank)
 
   BD_LET_LOCK(job->schedule_lock);
 }
-

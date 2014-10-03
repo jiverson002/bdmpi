@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
   setbuf(stdout, NULL);
   setbuf(stderr, NULL);
 
-  BDASSERT(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided) 
+  BDASSERT(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided)
            == MPI_SUCCESS);
   if (provided != MPI_THREAD_MULTIPLE)
     errexit("Failed to get the required thread support: provided: %d\n", provided);
@@ -79,7 +79,7 @@ void spawn_slaves(mjob_t *job)
 
   /* lock the global shared memory, as you will need it later to set
      up the pid-to-rank mappings during BDMPI_Init() */
-  bdsm_lock(job->globalSM); 
+  bdsm_lock(job->globalSM);
 
   /* print the command-line arguments */
   if (job->dbglvl>0 && job->mynode == 0) {
@@ -118,7 +118,7 @@ void spawn_slaves(mjob_t *job)
   comm_setup(job);
 
   /* unlock the global shared memory */
-  bdsm_unlock(job->globalSM); 
+  bdsm_unlock(job->globalSM);
 
   return;
 }
@@ -153,6 +153,10 @@ void setup_master_prefork(mjob_t *job)
   job->imsize *= sysconf(_SC_PAGESIZE);
   job->mmsize *= sysconf(_SC_PAGESIZE);
   job->smsize *= sysconf(_SC_PAGESIZE);
+
+  /* populate the various memory statistics */
+  job->memrss = 0;
+  job->memmax = 1U<<30; /* TODO: make this adaptable to system */
 
   /* setup MPI-related information */
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Setting up MPI environment\n"));
@@ -207,7 +211,7 @@ void setup_master_prefork(mjob_t *job)
   snprintf(job->jdesc->wdir, BDMPI_WDIR_LEN, "%s/%d", job->iwdir, (int)job->mpid);
   gk_free((void **)&job->iwdir, LTERM);
 
-  if (gk_mkpath(job->jdesc->wdir) == -1) 
+  if (gk_mkpath(job->jdesc->wdir) == -1)
     errexit("Failed to create the wdir: %s\n", job->jdesc->wdir);
   if (job->dbglvl>0)
     printf("Creating working directory: %s\n", job->jdesc->wdir);
@@ -218,21 +222,21 @@ void setup_master_prefork(mjob_t *job)
   /* setup the message storing directories */
   tmpstr = gk_cmalloc(strlen(job->jdesc->wdir)+100, "setup_master: tmpstr");
   sprintf(tmpstr, "%s/col", job->jdesc->wdir);
-  if (gk_mkpath(tmpstr) == -1) 
+  if (gk_mkpath(tmpstr) == -1)
     errexit("Failed to create the directory: %s\n", tmpstr);
 
   sprintf(tmpstr, "%s/p2p", job->jdesc->wdir);
-  if (gk_mkpath(tmpstr) == -1) 
+  if (gk_mkpath(tmpstr) == -1)
     errexit("Failed to create the directory: %s\n", tmpstr);
 
-  /*  No per-pe directories at this time 
+  /*  No per-pe directories at this time
   for (p=0; p<job->ns; p++) {
     sprintf(tmpstr, "%s/col/%d", job->jdesc->wdir, p);
-    if (gk_mkpath(tmpstr) == -1) 
+    if (gk_mkpath(tmpstr) == -1)
       errexit("Failed to create the directory: %s\n", tmpstr);
 
     sprintf(tmpstr, "%s/p2p/%d", job->jdesc->wdir, p);
-    if (gk_mkpath(tmpstr) == -1) 
+    if (gk_mkpath(tmpstr) == -1)
       errexit("Failed to create the directory: %s\n", tmpstr);
   }
   */
@@ -251,14 +255,16 @@ void setup_master_prefork(mjob_t *job)
   pending_setup(job);
 
   /* initialize pthreads */
-  job->schedule_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "schedule_lock"); 
-  job->comm_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "comm_lock"); 
+  job->schedule_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "schedule_lock");
+  job->comm_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "comm_lock");
+  job->memory_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "memory_lock");
 
   BDASSERT(pthread_mutexattr_init(&mtx_attr) == 0);
   BDASSERT(pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_RECURSIVE) == 0);
 
   BDASSERT(pthread_mutex_init(job->schedule_lock, &mtx_attr) == 0);
   BDASSERT(pthread_mutex_init(job->comm_lock, &mtx_attr) == 0);
+  BDASSERT(pthread_mutex_init(job->memory_lock, &mtx_attr) == 0);
   BDASSERT(pthread_mutexattr_destroy(&mtx_attr) == 0);
 
   return;
@@ -306,7 +312,7 @@ void setup_master_postfork(mjob_t *job)
   job->cblockedmap  = gk_ismalloc(job->ns, -1, "cblockedmap");
   job->blockedts    = gk_ismalloc(job->ns, -1, "blockedts");
 
-  /* everybody is alive and running (i.e., no co-operating scheduling) and 
+  /* everybody is alive and running (i.e., no co-operating scheduling) and
      runnablelist and blockedlist are empty. */
   job->nalive    = job->ns;
   job->nrunning  = job->ns;
@@ -370,60 +376,61 @@ void cleanup_master(mjob_t *job)
   }
 
   MPI_Reduce(&job->totalTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0) 
+  if (job->mynode == 0)
     bdprintf("    totalTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->routeTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0) 
+  if (job->mynode == 0)
     bdprintf("    routeTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->sendTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     sendTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->recvTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     recvTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->colTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("      colTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->barrierTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("  barrierTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->commTmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     commTmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->aux1Tmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     aux1Tmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->aux2Tmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     aux2Tmr:   %8.3lfs\n", maxtmr);
 
   MPI_Reduce(&job->aux3Tmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
-  if (job->mynode == 0 && maxtmr>0) 
+  if (job->mynode == 0 && maxtmr>0)
     bdprintf("     aux3Tmr:   %8.3lfs\n", maxtmr);
 
 
-  if (job->mynode == 0) 
+  if (job->mynode == 0)
     bdprintf("------------------------------------------------\n");
 
   pthread_mutex_destroy(job->schedule_lock);
   pthread_mutex_destroy(job->comm_lock);
+  pthread_mutex_destroy(job->memory_lock);
 
   gk_free((void **)&job->scbs, &job->goMQs, &job->c2sMQs, &job->c2mMQs,
-      &job->alivelist, &job->runnablelist, &job->runninglist, 
-      &job->mblockedlist, &job->cblockedlist, 
-      &job->alivemap, &job->runnablemap, &job->runningmap, 
-      &job->mblockedmap, &job->cblockedmap, 
+      &job->alivelist, &job->runnablelist, &job->runninglist,
+      &job->mblockedlist, &job->cblockedlist,
+      &job->alivemap, &job->runnablemap, &job->runningmap,
+      &job->mblockedmap, &job->cblockedmap,
       &job->blockedts,
       &job->slvdist,
-      &job->schedule_lock, &job->comm_lock, 
+      &job->schedule_lock, &job->comm_lock, &job->memory_lock,
       &job, LTERM);
 
   return;

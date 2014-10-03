@@ -28,8 +28,7 @@
 #define BDMPI_INIT_MAXNCOMM      2048
 
 /* The maximum length of the complete working directory path */
-#define BDMPI_WDIR_LEN           1024
-
+#define BDMPI_WDIR_LEN           1024 
 
 /*************************************************************************/
 /* Common macros */
@@ -202,7 +201,7 @@ typedef enum {
   BDMPI_MSGTYPE_CID          =100, /*!< a to master-node request for next mpi_commid */
 
   BDMPI_MSGTYPE_MEMRQST      =200, /*!< a memory request operation */
-  BDMPI_MSGTYPE_MEMRLSD      =200, /*!< a memory released operation */
+  BDMPI_MSGTYPE_MEMRLSD      =201, /*!< a memory released operation */
 
   BDMPI_MSGTYPE_PROCEED      =210,  /*!< slave should proceed with execution */
   BDMPI_MSGTYPE_MEMFREE      =211,  /*!< slave should free its memory */
