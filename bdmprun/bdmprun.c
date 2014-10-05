@@ -155,8 +155,10 @@ void setup_master_prefork(mjob_t *job)
   job->smsize *= sysconf(_SC_PAGESIZE);
 
   /* populate the various memory statistics */
+  if (job->rmsize > 63)
+    errexit("Invalid rmsize: %d\n", job->rmsize);
   job->memrss = 0;
-  job->memmax = 1U<<30; /* TODO: make this adaptable to system */
+  job->memmax = 1LLU<<job->rmsize;
 
   /* setup MPI-related information */
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Setting up MPI environment\n"));

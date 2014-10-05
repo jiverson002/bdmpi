@@ -1,6 +1,6 @@
 /*!
 \file cmdline.c
-\brief Command-line argument parsing 
+\brief Command-line argument parsing
 
 \date 3/31/2013
 \author George
@@ -11,17 +11,18 @@
 
 
 /*-------------------------------------------------------------------
- * Command-line options 
+ * Command-line options
  *-------------------------------------------------------------------*/
 static struct gk_option long_options[] = {
   {"ns",    1,      0,      BDMPRUN_CMD_NS},
-  {"nr",    1,      0,      BDMPRUN_CMD_NR}, 
-  {"wd",    1,      0,      BDMPRUN_CMD_WDIR}, 
-  {"sm",    1,      0,      BDMPRUN_CMD_SMSIZE}, 
-  {"im",    1,      0,      BDMPRUN_CMD_IMSIZE}, 
-  {"mm",    1,      0,      BDMPRUN_CMD_MMSIZE}, 
-  {"sb",    1,      0,      BDMPRUN_CMD_SBSIZE}, 
-  {"nlm",   0,      0,      BDMPRUN_CMD_NOLOCKMEM}, 
+  {"nr",    1,      0,      BDMPRUN_CMD_NR},
+  {"wd",    1,      0,      BDMPRUN_CMD_WDIR},
+  {"sm",    1,      0,      BDMPRUN_CMD_SMSIZE},
+  {"im",    1,      0,      BDMPRUN_CMD_IMSIZE},
+  {"mm",    1,      0,      BDMPRUN_CMD_MMSIZE},
+  {"sb",    1,      0,      BDMPRUN_CMD_SBSIZE},
+  {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
+  {"nlm",   0,      0,      BDMPRUN_CMD_NOLOCKMEM},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -73,6 +74,11 @@ static char helpstr[][100] =
 "     bcast/reduce operations.",
 */
 " ",
+"  -rm=int [Default: 32]",
+"     Specifies the aggregate maximum resident set size for the slave ",
+"     processes on each node. The int argument is the base two logarithm of ",
+"     the desired size, so default is 2^32 = 4GiB.",
+" ",
 "  -sb=int [Default: 32]",
 "     Specifies the size of allocations for which the explicit storage backed",
 "     subsystem should be used. The size is in terms of number of pages and a",
@@ -111,6 +117,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
   bdmp->sbsize   = BDMPRUN_DEFAULT_SBSIZE;
+  bdmp->rmsize   = BDMPRUN_DEFAULT_RMSIZE;
   bdmp->lockmem  = BDMPRUN_DEFAULT_LOCKMEM;
   bdmp->dbglvl   = BDMPRUN_DEFAULT_DBGLVL;
   bdmp->iwdir    = NULL;
@@ -143,6 +150,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_SBSIZE:
         if (gk_optarg) bdmp->sbsize = (size_t)atoi(gk_optarg);
+        break;
+
+      case BDMPRUN_CMD_RMSIZE:
+        if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
         break;
 
       case BDMPRUN_CMD_DBGLVL:
@@ -184,33 +195,31 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   /* allocate memory for bdmp->exeargv[] */
   bdmp->exeargv = (char **)gk_malloc(sizeof(char *)*(nargs+1), "exeargv");
 
-  for (i=0; i<nargs; i++) 
+  for (i=0; i<nargs; i++)
     bdmp->exeargv[i] = gk_strdup(argv[gk_optind++]);
   bdmp->exeargv[nargs] = NULL;
 
   bdmp->exefile = gk_strdup(bdmp->exeargv[0]);
 
   /* check for reasonable values */
-  if (bdmp->ns < 1) 
+  if (bdmp->ns < 1)
     errexit("The value for -ns should be greater than 0.");
-  if (bdmp->nr_input < 1) 
+  if (bdmp->nr_input < 1)
     errexit("The value for -nr should be greater than 0.");
-  if (bdmp->nr_input > bdmp->ns) 
+  if (bdmp->nr_input > bdmp->ns)
     errexit("The value for -nr should be less than or equal to that of -ns.");
-  if (bdmp->nc < 1) 
+  if (bdmp->nc < 1)
     errexit("The value for -nc should be greater than 0.");
-  if (bdmp->nc > SEM_VALUE_MAX) 
+  if (bdmp->nc > SEM_VALUE_MAX)
     errexit("The value for -nc should be less than %d.", (int)SEM_VALUE_MAX);
-  if (bdmp->smsize < 1) 
+  if (bdmp->smsize < 1)
     errexit("The value for -sm should be greater than 0.");
-  if (bdmp->imsize < 1) 
+  if (bdmp->imsize < 1)
     errexit("The value for -im should be greater than 0.");
-  if (bdmp->mmsize < 1) 
+  if (bdmp->mmsize < 1)
     errexit("The value for -mm should be greater than 0.");
-  if (bdmp->sbsize < 0) 
+  if (bdmp->sbsize < 0)
     errexit("The value for -sb should be non-negative.");
 
   return bdmp;
 }
-
-
