@@ -145,13 +145,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* allocate the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
@@ -192,13 +186,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* remove the info associated with the old communicator */
   gk_free((void **)comm, LTERM);
@@ -240,13 +228,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* create the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");

@@ -33,13 +33,7 @@ int bdmp_Finalize(sjob_t *job)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
   /* wait for a go response from the master */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", gomsg.msgtype));
 

@@ -73,13 +73,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       sb_saveall();*/
 
     /* go to sleep... */
-    for (;;) {
-      if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-        bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-      if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-        break;
-      slv_route(job, &gomsg);
-    }
+    BDMPI_SLEEP(job, gomsg);
   }
 
   /* get the missing message info from the master */

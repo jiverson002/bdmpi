@@ -81,13 +81,7 @@ int bdmp_Allgatherv(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the allgather */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* notify the master that you want to receive the allgathered data */
   msg.msgtype  = BDMPI_MSGTYPE_ALLGATHERF;

@@ -139,13 +139,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {

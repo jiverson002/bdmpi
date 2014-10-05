@@ -39,13 +39,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Barrier: exiting: comm: %p\n", comm));
 

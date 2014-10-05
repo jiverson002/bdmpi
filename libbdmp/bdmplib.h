@@ -43,6 +43,7 @@
 #include <bdipc.h>
 #include <bdcommon.h>
 #include "defs.h"
+#include "macros.h"
 #include "struct.h"
 #include "proto.h"
 

@@ -74,13 +74,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
 
   /* go to sleep until everybody has called the reduce */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -211,13 +205,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   /* go to sleep until everybody has called the reduce */
   /*if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();*/
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -301,13 +289,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLREDUCEF;

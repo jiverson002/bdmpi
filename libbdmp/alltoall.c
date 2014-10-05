@@ -101,13 +101,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
 
 
   /* go to sleep until everybody has called the collective */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
 
   /*=====================================================================*/

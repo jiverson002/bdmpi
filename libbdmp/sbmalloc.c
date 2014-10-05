@@ -490,14 +490,7 @@ void *sb_malloc(size_t nbytes)
   msg.source  = sbinfo->job->rank;
   msg.count   = sbchunk->npages*sbinfo->pagesize;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  for (;;) {
-    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(sbinfo->job, &gomsg);
-  }
+  BDMPI_SLEEP(sbinfo->job, gomsg);
 #endif
   /*------------------------------------------------------------------------*/
 
@@ -619,15 +612,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     msg.source  = sbinfo->job->rank;
     msg.count   = count;
     bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    for (;;) {
-      if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-        bdprintf("Failed on trying to recv a go message: %s.\n",
-          strerror(errno));
-
-      if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-        break;
-      slv_route(sbinfo->job, &gomsg);
-    }
+    BDMPI_SLEEP(sbinfo->job, gomsg);
     /*----------------------------------------------------------------------*/
   }
 #endif
@@ -809,14 +794,7 @@ void sb_load(void *buf)
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  for (;;) {
-    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(sbinfo->job, &gomsg);
-  }
+  BDMPI_SLEEP(sbinfo->job, gomsg);
 #endif
   /*----------------------------------------------------------------------*/
 }
@@ -850,14 +828,7 @@ void sb_loadall()
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  for (;;) {
-    if (-1 == bdmq_recv(sbinfo->job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(sbinfo->job, &gomsg);
-  }
+  BDMPI_SLEEP(sbinfo->job, gomsg);
 #endif
   /*----------------------------------------------------------------------*/
 }

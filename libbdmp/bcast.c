@@ -5,13 +5,14 @@
 \author George
 */
 
+
 #include "bdmplib.h"
 
 
 /*************************************************************************/
 /* Performs BDMPI_Bcast() */
 /*************************************************************************/
-int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype, 
+int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int root, BDMPI_Comm comm)
 {
   int mype, response, sleeping=1;
@@ -20,8 +21,8 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   if (bdmq_length(job->goMQ) != 0)
     bdprintf("BDMPI_Bcast: goMQ length is != 0.");
 
-  S_IFSET(BDMPI_DBG_IPCS, 
-      bdprintf("BDMPI_Bcast: entering: root: %d, comm: %p [goMQlen: %d]\n", 
+  S_IFSET(BDMPI_DBG_IPCS,
+      bdprintf("BDMPI_Bcast: entering: root: %d, comm: %p [goMQlen: %d]\n",
         root, comm, bdmq_length(job->goMQ)));
 
   /* some error checking */
@@ -71,20 +72,14 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the bcast */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
   /* all but the root will send a BCASTF request and get the data */
   if (mype != root) {
     /* notify the master that you want to receive the bcasted data */
     msg.msgtype = BDMPI_MSGTYPE_BCASTF;
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  
+
     /* copy the data from the master */
     xfer_in_scb(job->scb, buf, count, datatype);
 
@@ -96,5 +91,3 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
   return BDMPI_SUCCESS;
 }
-
-

@@ -96,13 +96,7 @@ int bdmp_Gatherv_node(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
 
 
   /*=====================================================================*/
@@ -296,13 +290,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
         /* go to sleep... */
         /*if (job->jdesc->nr < job->jdesc->ns)
           sb_saveall();*/
-        for (;;) {
-          if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-            bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-          if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-            break;
-          slv_route(job, &gomsg);
-        }
+        BDMPI_SLEEP(job, gomsg);
       }
 
       /* get the missing message info from the master */

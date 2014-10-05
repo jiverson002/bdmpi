@@ -144,13 +144,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
-  for (;;) {
-    if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-      bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-    if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-      break;
-    slv_route(job, &gomsg);
-  }
+  BDMPI_SLEEP(job, gomsg);
+
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: %d\n", gomsg.msgtype));
 
   /* TODO NEED TO AJUST THIS FOR NEW GO MSG */
