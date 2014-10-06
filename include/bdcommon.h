@@ -20,7 +20,7 @@
 /*************************************************************************/
 /* The size of the global shared memory region.
    TODO: This needs to be determined automatically, as it now
-   limits the maximum number of running processes to roughly 
+   limits the maximum number of running processes to roughly
    BDMPI_GLOBALSIZE/sizeof(int) */
 #define BDMPI_GLOBALSMSIZE       12576
 
@@ -28,7 +28,7 @@
 #define BDMPI_INIT_MAXNCOMM      2048
 
 /* The maximum length of the complete working directory path */
-#define BDMPI_WDIR_LEN           1024 
+#define BDMPI_WDIR_LEN           1024
 
 /*************************************************************************/
 /* Common macros */
@@ -141,7 +141,7 @@ typedef enum {
 
 
 /*************************************************************************/
-/*! The job description information that will reside on the 'global' 
+/*! The job description information that will reside on the 'global'
     shared memory */
 /*************************************************************************/
 typedef struct {
@@ -256,9 +256,9 @@ void reduce_op(void *a, void *b, size_t count, BDMPI_Datatype datatype,
 int op_isvalid(BDMPI_Op op);
 
 /* scan.c */
-void scan_init_op(void *a, size_t count, BDMPI_Datatype datatype, 
+void scan_init_op(void *a, size_t count, BDMPI_Datatype datatype,
          BDMPI_Op op);
-void scan_op(void *a, void *b, void *r, int a2r, size_t count, 
+void scan_op(void *a, void *b, void *r, int a2r, size_t count,
          BDMPI_Datatype datatype, BDMPI_Op op);
 
 /* util.c */
@@ -276,4 +276,4 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
 /* debug.c */
 void bdprintf(char *f_str,...);
 
-#endif 
+#endif

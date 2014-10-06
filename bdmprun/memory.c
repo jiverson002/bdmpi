@@ -28,8 +28,11 @@ void * mstr_mem_rqst(void * const arg)
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rqst: count: "
     "%zu [entering]\n", job->mynode, msg->source, msg->count));
 
+  BD_GET_LOCK(job->schedule_lock);
   BD_GET_LOCK(job->memory_lock);
+
   job->memrss += count;
+
   switch (msg->msgtype) {
   case BDMPI_MSGTYPE_MEMRQST:
     job->slvtot[source] += count;
@@ -41,9 +44,11 @@ void * mstr_mem_rqst(void * const arg)
       job->mynode, source, msg->msgtype);
     break;
   }
-  BD_LET_LOCK(job->memory_lock);
 
   memory_wakeup_some(job);
+
+  BD_LET_LOCK(job->memory_lock);
+  BD_LET_LOCK(job->schedule_lock);
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[source], &gomsg, sizeof(bdmsg_t)))
@@ -78,14 +83,22 @@ void * mstr_mem_rlsd(void * const arg)
     "%zu [entering]\n", job->mynode, msg->source, msg->count));
 
   BD_GET_LOCK(job->memory_lock);
-  BDASSERT(job->memrss >= count);
+
+  //BDASSERT(job->memrss >= count);
+  if (job->memrss < count)
+    bdprintf("mstr_mem_rlsd.0\n");
   job->memrss -= count;
+
   switch (msg->msgtype) {
   case BDMPI_MSGTYPE_MEMRLSD:
-    BDASSERT(job->slvtot[source] >= count);
+    //BDASSERT(job->slvtot[source] >= count);
+    if (job->slvtot[source] < count)
+      bdprintf("mstr_mem_rlsd.1\n");
     job->slvtot[source] -= count;
   case BDMPI_MSGTYPE_MEMSAVE:
-    BDASSERT(job->slvrss[source] >= count);
+    //BDASSERT(job->slvrss[source] >= count);
+    if (job->slvrss[source] < count)
+      bdprintf("mstr_mem_rlsd.2\n");
     job->slvrss[source] -= count;
     break;
   default:
@@ -93,6 +106,7 @@ void * mstr_mem_rlsd(void * const arg)
       job->mynode, source, msg->msgtype);
     break;
   }
+
   BD_LET_LOCK(job->memory_lock);
 
   gk_free((void **)&arg, LTERM);
@@ -110,20 +124,17 @@ void * mstr_mem_rlsd(void * const arg)
 /*************************************************************************/
 void memory_wakeup_some(mjob_t * const job)
 {
-  int i, itogo, togo, response;
-  size_t memrss;
+  int i, itogo, togo;
+  size_t count;
   bdmsg_t msg;
-
-  BD_GET_LOCK(job->memory_lock);
-  memrss = job->memrss;
-  BD_LET_LOCK(job->memory_lock);
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
   BD_GET_LOCK(job->schedule_lock);
+  BD_GET_LOCK(job->memory_lock);
 
   while ((job->nrunnable+job->nmblocked+job->ncblocked) > 0 &&
-         memrss > job->memmax)
+         job->memrss > job->memmax)
   {
     /* select a blocked slave to wakeup for memory free'ing */
     itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VMEM);
@@ -135,26 +146,24 @@ void memory_wakeup_some(mjob_t * const job)
     else
       togo = job->cblockedlist[itogo-job->nrunnable-job->nmblocked];
 
-    //bdprintf("[MSTR%04d] Telling slave [%d:%d] to free memory [msg:%d]\n",
-    //         job->mynode, togo, (int)job->spids[togo], msg.msgtype);
     /* send that slave a go message */
-    M_IFSET(BDMPI_DBG_IPCM,
-        bdprintf("[MSTR%04d] Telling slave [%d:%d] to free memory [msg:%d]\n",
-                 job->mynode, togo, (int)job->spids[togo], msg.msgtype));
     if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
       bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
-    if (-1 == bdmq_recv(job->c2mMQs[togo], &response, sizeof(int)))
+    if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
       bdprintf("Failed to recv a done message to %d: %s\n", togo, strerror(errno));
 
-    BD_GET_LOCK(job->memory_lock);
-    if (memrss == job->memrss) {
-      BD_LET_LOCK(job->memory_lock);
+    if (0 == count)
       break;
-    }
-    memrss = job->memrss;
-    BD_LET_LOCK(job->memory_lock);
+
+    if (job->memrss < count)
+      bdprintf("memory_wakeup_some.0 %d %zu %zu\n", togo, job->memrss, count);
+    job->memrss -= count;
+    if (job->slvrss[togo] < count)
+      bdprintf("memory_wakeup_some.1 %d %zu %zu\n", togo, job->slvrss[togo], count);
+    job->slvrss[togo] -= count;
   }
 
+  BD_LET_LOCK(job->memory_lock);
   BD_LET_LOCK(job->schedule_lock);
 }
 

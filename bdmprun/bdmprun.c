@@ -12,6 +12,7 @@
  *
  */
 
+
 #define BDMPRUN_MAIN
 #include "bdmprun.h"
 
@@ -334,6 +335,8 @@ void setup_master_postfork(mjob_t *job)
   job->memmax = 1LLU<<job->rmsize;
   job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
   job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
+  memset(job->slvrss, 0, job->ns*sizeof(size_t));
+  memset(job->slvtot, 0, job->ns*sizeof(size_t));
 
   return;
 }
