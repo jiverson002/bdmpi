@@ -34,8 +34,6 @@ void mstr_finalize(mjob_t *job, bdmsg_t *msg)
     job->nR = job->ns;
     for (i=0; i<job->ns; i++)
       slvpool_cunblock(job, i);
-
-    bdprintf("Memory stats [%zu]\n", job->memrss);
   }
 
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_finalize: njoined: %d [exiting]\n",

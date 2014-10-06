@@ -355,6 +355,7 @@ void cleanup_master(mjob_t *job)
   sleep(1);
   bdprintf("------------------------------------------------\n");
   bdprintf("Master %d is done.\n", job->mynode);
+  bdprintf("Memory stats [%zu / %zu]\n", job->memrss, job->memmax);
 
   gk_rmpath(job->jdesc->wdir);
 

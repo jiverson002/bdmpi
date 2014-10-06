@@ -40,10 +40,11 @@ __thread size_t last_addr=0;
 
 
 /* constants */
-#define SBCHUNK_NONE    1
-#define SBCHUNK_READ    2
-#define SBCHUNK_WRITE   4
-#define SBCHUNK_ONDISK  8
+#define SBCHUNK_NONE     1
+#define SBCHUNK_READ     2
+#define SBCHUNK_WRITE    4
+#define SBCHUNK_ONDISK   8
+#define SBCHUNK_SAVED   16
 
 
 /* enable master notification of memory operations */
@@ -1070,6 +1071,10 @@ size_t _sb_chunkload(sbchunk_t *sbchunk)
   sbchunk->flags ^= SBCHUNK_NONE;
   sbchunk->flags |= SBCHUNK_READ;
 
+  /* only toggle SBCHUNK_SAVED if this is not a new allocation */
+  if (sbchunk->flags&SBCHUNK_SAVED)
+    sbchunk->flags ^= SBCHUNK_SAVED;
+
   for (ip=0; ip<npages; ip++) {
     pflags[ip] |= SBCHUNK_READ;
     if (pflags[ip]&SBCHUNK_NONE)
@@ -1155,6 +1160,12 @@ size_t _sb_chunksave(sbchunk_t *sbchunk)
     sbchunk->flags ^= SBCHUNK_READ;
   sbchunk->flags |= SBCHUNK_NONE;
 
+  /*if (sbchunk->flags&SBCHUNK_SAVED) {
+    perror("_sb_chunksave: trying to save a previously saved chunk\n");
+    exit(EXIT_FAILURE);
+  }*/
+  sbchunk->flags |= SBCHUNK_SAVED;
+
   for (ip=0; ip<npages; ip++) {
     pflags[ip] |= SBCHUNK_NONE;
     if (pflags[ip]&SBCHUNK_READ)
@@ -1180,7 +1191,10 @@ size_t _sb_chunkfree(sbchunk_t *sbchunk)
 {
   size_t npages;
 
-  npages = sbchunk->npages;
+  if (sbchunk->flags&SBCHUNK_SAVED)
+    npages = 0;
+  else
+    npages = sbchunk->npages;
 
   /* delete the file, if on disk */
   if (sbchunk->flags&SBCHUNK_ONDISK) {

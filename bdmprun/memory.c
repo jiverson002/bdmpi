@@ -45,7 +45,7 @@ void * mstr_mem_rqst(void * const arg)
     break;
   }
 
-  memory_wakeup_some(job);
+  //memory_wakeup_some(job);
 
   BD_LET_LOCK(job->memory_lock);
   BD_LET_LOCK(job->schedule_lock);
@@ -95,6 +95,7 @@ void * mstr_mem_rlsd(void * const arg)
     if (job->slvtot[source] < count)
       bdprintf("mstr_mem_rlsd.1\n");
     job->slvtot[source] -= count;
+    break;
   case BDMPI_MSGTYPE_MEMSAVE:
     //BDASSERT(job->slvrss[source] >= count);
     if (job->slvrss[source] < count)
