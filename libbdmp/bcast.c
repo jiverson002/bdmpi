@@ -39,7 +39,6 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_ROOT;
   }
 
-
   mype = comm->rank;
 
   /* notify the master that you entering a bcast */

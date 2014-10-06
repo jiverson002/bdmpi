@@ -146,8 +146,8 @@ void *mstr_merge_recv(void *arg);
 void merge_infos(mergeinfo_t *a, mergeinfo_t *b, BDMPI_Datatype dtype, BDMPI_Op op);
 
 /* memory.c */
-void * mstr_mem_rqst(void * const arg);
-void * mstr_mem_rlsd(void * const arg);
+void * mstr_mem_load(void * const arg);
+void * mstr_mem_save(void * const arg);
 void memory_wakeup_some(mjob_t * const job, size_t const size);
 int memory_select_task_to_wakeup(mjob_t *job, int type);
 

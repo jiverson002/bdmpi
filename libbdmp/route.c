@@ -15,20 +15,19 @@
 /*************************************************************************/
 void slv_route(sjob_t * const job, bdmsg_t const * const gomsg)
 {
-  size_t count=0;
+  size_t count;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("[%04d] slv_route: response: %d\n",
         job->rank, gomsg->msgtype));
 
   switch (gomsg->msgtype) {
     case BDMPI_MSGTYPE_MEMFREE:
-      if (job->jdesc->nr < job->jdesc->ns)
-        count = sb_saveall_internal();
+      count = sb_saveall_internal();
       bdmq_send(job->c2mMQ, &count, sizeof(size_t));
       break;
 
     default:
-      errexit("Got go queue response %d\n", gomsg->tag);
+      errexit("Got go queue response %d\n", gomsg->msgtype);
   }
 
   return;

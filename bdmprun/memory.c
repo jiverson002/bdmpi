@@ -10,105 +10,57 @@
 
 
 /*************************************************************************/
-/*! Response to a BDMPI_MSGTYPE_MEMRQST or BDMPI_MSGTYPE_MEMLOAD
+/*! Response to a BDMPI_MSGTYPE_MEMLOAD
     Checks if a the memory being requested will over-subscribe the system
     memory, in which case it chooses a slave to wake and release its memory,
-    otherwise it notifies the requesting slave that it can safely allocate the
+    otherwise it notifies the requesting slave that it can safely load the
     amount of memory requested.
 */
 /*************************************************************************/
-void * mstr_mem_rqst(void * const arg)
+void * mstr_mem_load(void * const arg)
 {
   mjob_t * const job = ((ptarg_t const *)arg)->job;
   bdmsg_t const * const msg = &(((ptarg_t const *)arg)->msg);
-  int const source = msg->source;
-  size_t const count = msg->count;
   bdmsg_t gomsg;
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rqst: count: "
-    "%zu [entering]\n", job->mynode, msg->source, msg->count));
-
   BD_GET_LOCK(job->schedule_lock);
-
-  job->memrss += count;
-
-  switch (msg->msgtype) {
-  case BDMPI_MSGTYPE_MEMRQST:
-    job->slvtot[source] += count;
-  case BDMPI_MSGTYPE_MEMLOAD:
-    job->slvrss[source] += count;
-    break;
-  default:
-    bdprintf("[MSTR%04d.%04d] mstr_mem_rqst: invalid message %d\n",
-      job->mynode, source, msg->msgtype);
-    break;
-  }
-
-  memory_wakeup_some(job, count);
-
-  BD_LET_LOCK(job->schedule_lock);
+  job->memrss += msg->count;
+  if (job->memrss > job->memmax)
+    memory_wakeup_some(job, msg->count);
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
-  if (-1 == bdmq_send(job->goMQs[source], &gomsg, sizeof(bdmsg_t)))
-    bdprintf("Failed to send a go message to %d: %s\n", source, strerror(errno));
+  if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
+    bdprintf("Failed to send a go message to %d: %s\n", msg->source, strerror(errno));
+  BD_LET_LOCK(job->schedule_lock);
 
   gk_free((void **)&arg, LTERM);
-
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rqst: count: "
-    "%zu [exiting]\n", job->mynode, msg->source, msg->count));
 
   return NULL;
 }
 
 
 /*************************************************************************/
-/*! Response to a BDMPI_MSGTYPE_MEM*FRE or BDMPI_MSGTYPE_MEMSAVE
-    Checks if a the memory being requested will over-subscribe the system
-    memory, in which case it chooses a slave to wake and release its memory,
-    otherwise it notifies the requesting slave that it can safely allocate the
-    amount of memory requested.
+/*! Response to a BDMPI_MSGTYPE_MEMSAVE
+    Decreases resident set size for job.
 */
 /*************************************************************************/
-void * mstr_mem_rlsd(void * const arg)
+void * mstr_mem_save(void * const arg)
 {
   mjob_t * const job = ((ptarg_t const *)arg)->job;
   bdmsg_t const * const msg = &(((ptarg_t const *)arg)->msg);
-  int const source = msg->source;
-  size_t const count = msg->count;
   bdmsg_t gomsg;
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rlsd: count: "
-    "%zu [entering]\n", job->mynode, msg->source, msg->count));
-
   BD_GET_LOCK(job->schedule_lock);
+  if (job->memrss < msg->count)
+    bdprintf("job->memrss < msg->count\n");
+  job->memrss -= msg->count;
 
-  switch (msg->msgtype) {
-  case BDMPI_MSGTYPE_MEMSFRE:
-    BDASSERT(job->slvtot[source] >= count);
-    job->slvtot[source] -= count;
-    break;
-  case BDMPI_MSGTYPE_MEMNFRE:
-    BDASSERT(job->slvtot[source] >= count);
-    job->slvtot[source] -= count;
-  case BDMPI_MSGTYPE_MEMSAVE:
-    BDASSERT(job->slvrss[source] >= count);
-    job->slvrss[source] -= count;
-
-    BDASSERT(job->memrss >= count);
-    job->memrss -= count;
-    break;
-  default:
-    bdprintf("[MSTR%04d.%04d] mstr_mem_rlsd: invalid message %d\n",
-      job->mynode, source, msg->msgtype);
-    break;
-  }
-
+  gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
+  if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
+    bdprintf("Failed to send a go message to %d: %s\n", msg->source, strerror(errno));
   BD_LET_LOCK(job->schedule_lock);
 
   gk_free((void **)&arg, LTERM);
-
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rlsd: count: "
-    "%zu [exiting]\n", job->mynode, msg->source, msg->count));
 
   return NULL;
 }
@@ -120,42 +72,29 @@ void * mstr_mem_rlsd(void * const arg)
 /*************************************************************************/
 void memory_wakeup_some(mjob_t * const job, size_t const size)
 {
-  int i, itogo, togo;
-  size_t count;
+  int i, itogo, togo=0;
+  size_t count=0;
   bdmsg_t msg;
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
   BD_GET_LOCK(job->schedule_lock);
+  if (0 != job->nrunnable) {
+    itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
 
-  while ((job->nrunnable+job->nmblocked+job->ncblocked) > 0 &&
-         job->memrss > size && job->memrss > job->memmax)
-  {
-    /* select a blocked slave to wakeup for memory free'ing */
-    itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VMEM);
-
-    if (itogo < job->nrunnable)
+    if (-1 != itogo) {
       togo = job->runnablelist[itogo];
-    else if (itogo < job->nmblocked)
-      togo = job->mblockedlist[itogo-job->nrunnable];
-    else
-      togo = job->cblockedlist[itogo-job->nrunnable-job->nmblocked];
 
-    /* send that slave a go message */
-    if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
-      bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
-    if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
-      bdprintf("Failed to recv a done message to %d: %s\n", togo, strerror(errno));
+      /* send that slave a go free memory message */
+      if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
+        bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
+      /* recv from slave a done message */
+      if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
+        bdprintf("Failed to recv a done message to %d: %s\n", togo, strerror(errno));
 
-    if (0 == count)
-      break;
-
-    BDASSERT(job->memrss >= count);
-    BDASSERT(job->slvrss[togo] >= count);
-    job->memrss -= count;
-    job->slvrss[togo] -= count;
+      job->memrss -= count;
+    }
   }
-
   BD_LET_LOCK(job->schedule_lock);
 }
 
@@ -172,42 +111,34 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
   char fname[1024];
   FILE *fp;
 
+  BD_GET_LOCK(job->schedule_lock);
   switch (type) {
-    case BDMPRUN_WAKEUP_VMEM:
-      ifres = -1.0;
-      itogo = 0;
+    case BDMPRUN_WAKEUP_VRSS:
+      ifres = 0;
+      itogo = -1;
       for (i=0; i<job->nrunnable; i++) {
-        resident = job->slvrss[job->runnablelist[i]];
-        size = job->slvtot[job->runnablelist[i]];
+        sprintf(fname, "/proc/%d/statm", job->spids[job->runnablelist[i]]);
+
+        if ((fp = fopen(fname, "r")) == NULL)
+          slvpool_abort(1, "Failed to open %s.\n", fname);
+        if (fscanf(fp, "%zu %zu", &size, &resident) != 2)
+          slvpool_abort(1, "Failed to read to values from %s.\n", fname);
+        if (fclose(fp) != 0)
+          slvpool_abort(1, "Failed to close%s.\n", fname);
+
         cfres = 1.0*resident/size;
+        //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (cfres > ifres) {
           itogo = i;
           ifres = cfres;
         }
       }
-      /*for (i=0; i<job->ncblocked; i++) {
-        resident = job->slvrss[job->cblockedlist[i]];
-        size = job->slvtot[job->cblockedlist[i]];
-        cfres = 1.0*resident/size;
-        if (cfres > ifres) {
-          itogo = i + job->nrunnable;
-          ifres = cfres;
-        }
-      }
-      for (i=0; i<job->nmblocked; i++) {
-        resident = job->slvrss[job->mblockedlist[i]];
-        size = job->slvtot[job->mblockedlist[i]];
-        cfres = 1.0*resident/size;
-        if (cfres > ifres) {
-          itogo = i + job->nrunnable + job->ncblocked;
-          ifres = cfres;
-        }
-      }*/
       break;
 
     default:
       itogo = 0;
   }
+  BD_LET_LOCK(job->schedule_lock);
 
   return itogo;
 }

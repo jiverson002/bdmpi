@@ -94,7 +94,7 @@ bdmq_t *bdmq_open(char *tag, int num)
 void bdmq_close(bdmq_t *mq)
 {
   if (bdmq_length(mq) > 0)
-    printf("Closing a non-empty message queue.\n");
+    printf("Closing a non-empty message queue '%s'.\n", mq->name);
 
   if (mq_close(mq->mqdes) == -1)
     errexit("Failed on mq_close(mq->mqdes): %s\n", strerror(errno));

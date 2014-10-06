@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Bcast. - Init part
     Protocol:
@@ -47,7 +46,7 @@ void *mstr_bcast_init(void *arg)
   msize = bdmp_msize(msg->count, msg->datatype);
 
   /* deal with copid */
-  if (comm->counter == comm->lsize) 
+  if (comm->counter == comm->lsize)
     comm->copid++;
   if (bdmq_send(job->c2sMQs[srank], &(comm->copid), sizeof(int)) == -1)
     bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
@@ -58,7 +57,7 @@ void *mstr_bcast_init(void *arg)
   if (msg->myrank == msg->source) {
     /* allocate memory and get the data */
     buf = gk_cmalloc(msize, "bcast: buf");
-    xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype); 
+    xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype);
     pending_addbcast(job, msg, buf, msize, comm->lsize);
   }
 
@@ -68,14 +67,14 @@ void *mstr_bcast_init(void *arg)
 
   /* take action if all slaves have called */
   if (--comm->counter == 0) {
-    if (babel_is_local(comm, msg->source)) 
+    if (babel_is_local(comm, msg->source))
       hdr = pending_getbcast(job, msg, 1, NULL);
 
     if (comm->nnodes > 1) {  /* do something if more than one node is involved */
       BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
 
       if (babel_is_local(comm, msg->source)) {
-        BDASSERT(MPI_Bcast(hdr->buf, msg->count, mpi_dt(msg->datatype), 
+        BDASSERT(MPI_Bcast(hdr->buf, msg->count, mpi_dt(msg->datatype),
                      comm->mynode, comm->mpi_comm)
             == MPI_SUCCESS);
 
@@ -84,7 +83,7 @@ void *mstr_bcast_init(void *arg)
       }
       else {
         buf = gk_cmalloc(msize, "bcast: buf");
-        BDASSERT(MPI_Bcast(buf, msg->count, mpi_dt(msg->datatype), 
+        BDASSERT(MPI_Bcast(buf, msg->count, mpi_dt(msg->datatype),
                      babel_get_node(comm, msg->source), comm->mpi_comm)
             == MPI_SUCCESS);
 
@@ -94,7 +93,7 @@ void *mstr_bcast_init(void *arg)
       BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
     }
 
-    /* all processes have called the bcast, unblock them in order to get to 
+    /* all processes have called the bcast, unblock them in order to get to
        the second step of bcast */
     comm->counter = comm->lsize;
     for (i=0; i<comm->lsize; i++)
@@ -129,7 +128,7 @@ void *mstr_bcast_recv(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] mstr_bacst_recv: entering: msg->myrank: %d.\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] mstr_bacst_recv: entering: msg->myrank: %d.\n",
         job->mynode, msg->myrank));
 
   /* hook to the key info */
@@ -138,28 +137,27 @@ void *mstr_bcast_recv(void *arg)
 
   /* get the header */
   if ((hdr = pending_getbcast(job, msg, 1, &counter)) == NULL)
-    slvpool_abort(1, "mstr_bcast_recv: failed to find a header for a bcast operation! [%d %d %d]\n", 
+    slvpool_abort(1, "mstr_bcast_recv: failed to find a header for a bcast operation! [%d %d %d]\n",
         msg->source, msg->dest, (int)msg->mcomm);
 
   /* send the data */
-  xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype); 
+  xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype);
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
 
   /* wait for the ACK from the slave */
   bdmq_recv(job->c2mMQs[srank], &response, sizeof(int));
 
-  if (counter == 0) { 
+  if (counter == 0) {
     BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock);
     pending_freeheader(job, &hdr);
     BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] mstr_bacst_recv: exiting: msg->myrank: %d.\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] mstr_bacst_recv: exiting: msg->myrank: %d.\n",
         job->mynode, msg->myrank));
 
   gk_free((void **)&arg, LTERM);
 
   return NULL;
 }
-
