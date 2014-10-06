@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Gatherv. - Send part
     Protocol:
@@ -38,7 +37,7 @@ void *mstr_gather_send(void *arg)
   BDASSERT(comm->nnodes == 1);
 
   /* deal with copid */
-  if (comm->counter == comm->lsize) 
+  if (comm->counter == comm->lsize)
     comm->copid++;
   if (bdmq_send(job->c2sMQs[srank], &(comm->copid), sizeof(int)) == -1)
     bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
@@ -46,14 +45,14 @@ void *mstr_gather_send(void *arg)
 
 
   /* if not the root, see if slave is sending you data */
-  if (msg->myrank != msg->dest) { 
+  if (msg->myrank != msg->dest) {
     /* receive the specific info about this message */
-    xfer_in_scb(job->scbs[srank], msg, sizeof(bdmsg_t), BDMPI_BYTE); 
+    xfer_in_scb(job->scbs[srank], msg, sizeof(bdmsg_t), BDMPI_BYTE);
 
     if (msg->fnum == -1) {
       /* allocate memory and receive it */
       buf = gk_cmalloc(msg->count*bdmp_sizeof(msg->datatype), "gather: buf");
-      xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype); 
+      xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype);
     }
     else {
       buf = NULL;
@@ -84,7 +83,7 @@ void *mstr_gather_send(void *arg)
 /*************************************************************************/
 /*! Response to a BDMPI_Gather - Recv step.
     Protocol:
-      - Finds the headers of the individual messages (if they exist) 
+      - Finds the headers of the individual messages (if they exist)
       - Reads and copies the data to the slave.
 */
 /*************************************************************************/
@@ -108,11 +107,11 @@ void *mstr_gather_recv(void *arg)
 
   /* go and copy the data received from all the slaves to the root */
   for (i=0; i<comm->lsize-1; i++) {
-    if ((hdr = pending_getgather(job, msg)) == NULL) 
+    if ((hdr = pending_getgather(job, msg)) == NULL)
       slvpool_abort(1, "mstr_gather_recv: could not locate a pending_getgather.\n");
 
     /* send the specific info about the data been sent */
-    xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE); 
+    xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
 
     /* send the actual data */
     if (hdr->msg.fnum == -1)
@@ -127,4 +126,3 @@ void *mstr_gather_recv(void *arg)
 
   return NULL;
 }
-

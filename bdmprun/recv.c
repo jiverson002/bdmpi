@@ -9,12 +9,11 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Recv.
     Checks if a previous send has already been posted, if yes it proceeds
     to service the request, otherwise it denies it, which ends up blocking
-    the process. 
+    the process.
 */
 /*************************************************************************/
 void *mstr_recv(void *arg)
@@ -27,7 +26,7 @@ void *mstr_recv(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: source: %d, dest: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: source: %d, dest: %d [entering]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
@@ -37,18 +36,18 @@ void *mstr_recv(void *arg)
   /* see if the send has been posted */
   pending_locksend(job, msg);
   if ((hdr = pending_getsend(job, msg, 1)) == NULL) {
-    M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: mblocking srank: %d\n", 
+    M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: mblocking srank: %d\n",
           job->mynode, msg->myrank, srank));
 
-    /* this is within a pending_locksend, to prevent the race condition 
-       in which the slave misses a wakeup due to the arrival of a message 
+    /* this is within a pending_locksend, to prevent the race condition
+       in which the slave misses a wakeup due to the arrival of a message
        before its set to blocked */
     slvpool_mblock(job, srank);
   }
   pending_unlocksend(job, msg);
 
 
-  if (hdr == NULL) { 
+  if (hdr == NULL) {
     /* it has not been posted yet */
     response = 0;
     if (bdmq_send(job->c2sMQs[srank], &response, sizeof(int)) == -1)
@@ -64,12 +63,12 @@ void *mstr_recv(void *arg)
     xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
 
     if (hdr->msg.fnum == -1) /* in memory message */
-      xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype); 
+      xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype);
 
     pending_freeheader(job, &hdr);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: source: %d, dest: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: source: %d, dest: %d [exiting]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -83,7 +82,7 @@ void *mstr_recv(void *arg)
 /*************************************************************************/
 /*! Response to a BDMPI_Irecv.
     Checks if a previous send has already been posted, if yes it proceeds
-    to service the request, otherwise it denies it. 
+    to service the request, otherwise it denies it.
 */
 /*************************************************************************/
 void *mstr_irecv(void *arg)
@@ -96,7 +95,7 @@ void *mstr_irecv(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_irecv: source: %d, dest: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_irecv: source: %d, dest: %d [entering]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
@@ -105,7 +104,7 @@ void *mstr_irecv(void *arg)
 
   /* see if the send has been posted */
   if ((hdr = pending_getsend(job, msg, 1)) == NULL) { /* it has not been posted yet */
-    M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: mblocking srank: %d\n", 
+    M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: mblocking srank: %d\n",
           job->mynode, msg->myrank, srank));
 
     response = 0;
@@ -121,12 +120,12 @@ void *mstr_irecv(void *arg)
     xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
 
     if (hdr->msg.fnum == -1) /* in memory message */
-      xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype); 
+      xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype);
 
     pending_freeheader(job, &hdr);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_irecv: source: %d, dest: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_irecv: source: %d, dest: %d [exiting]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -135,4 +134,3 @@ void *mstr_irecv(void *arg)
 
   return NULL;
 }
-

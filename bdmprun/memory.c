@@ -84,25 +84,17 @@ void * mstr_mem_rlsd(void * const arg)
 
   switch (msg->msgtype) {
   case BDMPI_MSGTYPE_MEMSFRE:
-    //BDASSERT(job->slvtot[source] >= count);
-    if (job->slvtot[source] < count)
-      bdprintf("mstr_mem_rlsd.0\n");
+    BDASSERT(job->slvtot[source] >= count);
     job->slvtot[source] -= count;
     break;
   case BDMPI_MSGTYPE_MEMNFRE:
-    //BDASSERT(job->slvtot[source] >= count);
-    if (job->slvtot[source] < count)
-      bdprintf("mstr_mem_rlsd.1\n");
+    BDASSERT(job->slvtot[source] >= count);
     job->slvtot[source] -= count;
   case BDMPI_MSGTYPE_MEMSAVE:
-    //BDASSERT(job->slvrss[source] >= count);
-    if (job->slvrss[source] < count)
-      bdprintf("mstr_mem_rlsd.2\n");
+    BDASSERT(job->slvrss[source] >= count);
     job->slvrss[source] -= count;
 
-    //BDASSERT(job->memrss >= count);
-    if (job->memrss < count)
-      bdprintf("mstr_mem_rlsd.3\n");
+    BDASSERT(job->memrss >= count);
     job->memrss -= count;
     break;
   default:
@@ -158,11 +150,9 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
     if (0 == count)
       break;
 
-    if (job->memrss < count)
-      bdprintf("memory_wakeup_some.0 %d %zu %zu\n", togo, job->memrss, count);
+    BDASSERT(job->memrss >= count);
+    BDASSERT(job->slvrss[togo] >= count);
     job->memrss -= count;
-    if (job->slvrss[togo] < count)
-      bdprintf("memory_wakeup_some.1 %d %zu %zu\n", togo, job->slvrss[togo], count);
     job->slvrss[togo] -= count;
   }
 
@@ -195,7 +185,7 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
           ifres = cfres;
         }
       }
-      for (i=0; i<job->ncblocked; i++) {
+      /*for (i=0; i<job->ncblocked; i++) {
         resident = job->slvrss[job->cblockedlist[i]];
         size = job->slvtot[job->cblockedlist[i]];
         cfres = 1.0*resident/size;
@@ -212,7 +202,7 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
           itogo = i + job->nrunnable + job->ncblocked;
           ifres = cfres;
         }
-      }
+      }*/
       break;
 
     default:

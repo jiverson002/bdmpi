@@ -355,8 +355,6 @@ void cleanup_master(mjob_t *job)
   bdprintf("Master %d is done.\n", job->mynode);
   bdprintf("Memory stats [%zu / %zu]\n", job->memrss, job->memmax);
 
-  gk_rmpath(job->jdesc->wdir);
-
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
     bdprintf("       [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
@@ -365,6 +363,8 @@ void cleanup_master(mjob_t *job)
     bdmq_destroy(job->c2sMQs[i]);
     bdmq_destroy(job->c2mMQs[i]);
   }
+
+  gk_rmpath(job->jdesc->wdir);
 
   bdmq_destroy(job->reqMQ);
   bdsm_destroy(job->globalSM);

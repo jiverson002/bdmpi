@@ -8,6 +8,7 @@
 
 #include "common.h"
 
+
 /* the working directory; initialized during init */
 static char xfer_wdir[BDMPI_WDIR_LEN];
 
@@ -30,9 +31,9 @@ void xfer_setwdir(char *wdir)
 ssize_t xfer_getfnum()
 {
   static ssize_t nextfnum=1;
-  
+
   nextfnum++;
-  
+
   return ((ssize_t)getpid())*10000000 + nextfnum;
 }
 
@@ -40,7 +41,7 @@ ssize_t xfer_getfnum()
 /*************************************************************************/
 /*! Unlinks the file associated with fnum. */
 /*************************************************************************/
-void xfer_unlink(ssize_t fnum) 
+void xfer_unlink(ssize_t fnum)
 {
   char *fname;
 
@@ -58,7 +59,7 @@ void xfer_unlink(ssize_t fnum)
 /*************************************************************************/
 /*! Copies data into remote buffer space via scb. */
 /*************************************************************************/
-void xfer_out_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype) 
+void xfer_out_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype)
 {
   size_t i, dtsize, chunk, len;
   char *buf = (char *)vbuf;
@@ -82,7 +83,7 @@ void xfer_out_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatyp
 /*************************************************************************/
 /*! Copies data into local buffer space via scb. */
 /*************************************************************************/
-void xfer_in_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype) 
+void xfer_in_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype)
 {
   size_t i, dtsize, chunk, len;
   char *buf = (char *)vbuf;
@@ -106,11 +107,12 @@ void xfer_in_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype
 /*************************************************************************/
 /*! Copies data into the specified file. */
 /*************************************************************************/
-void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype) 
+void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype)
 {
   char *fname;
   int fd;
   size_t len, size = bdmp_msize(count, datatype);
+  ssize_t err;
 
   if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
     errexit("xfer_out_disk: Failed to create filename.\n");
@@ -121,7 +123,7 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
   //bdprintf("out_disk: %zu bytes from %p [%zu %zu]\n", size, buf, size, fnum);
   do {
     len = (size > BDMPI_DISK_CHUNK ? BDMPI_DISK_CHUNK : size);
-    if (write(fd, buf, len) != len)
+    if ((size_t)(err=write(fd, buf, len)) != len)
       errexit("xfer_out_disk: Write size does not match: %s\n", strerror(errno));
     buf += len;
     size -= len;
@@ -138,8 +140,8 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
 /*************************************************************************/
 /*! Copies data from the specified file. */
 /*************************************************************************/
-void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype, 
-         int rmfile) 
+void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype,
+         int rmfile)
 {
   char *fname;
   int fd;
@@ -162,7 +164,7 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
   size = rsize;
   do {
     len = (size > BDMPI_DISK_CHUNK ? BDMPI_DISK_CHUNK : size);
-    if (gk_read(fd, buf, len) != len) 
+    if (gk_read(fd, buf, len) != len)
       errexit("xfer_in_disk: Read size does not match: %s\n", strerror(errno));
     buf  += len;
     size -= len;
@@ -170,12 +172,10 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
 
   close(fd);
 
-  if (rmfile) 
+  if (rmfile)
     unlink(fname);
 
   free(fname);
 
   return;
 }
-
-
