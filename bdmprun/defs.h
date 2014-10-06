@@ -41,6 +41,7 @@
 #define BDMPRUN_WAKEUP_LAST     2
 #define BDMPRUN_WAKEUP_LIFO     3
 #define BDMPRUN_WAKEUP_VRSS     4
+#define BDMPRUN_WAKEUP_VMEM     5
 
 /* MPI message tags (should be < 100) */
 #define BDMPI_HDR_TAG            10  /* header for remote send */

@@ -52,8 +52,7 @@ __thread size_t last_addr=0;
 #define SBNOTIFY_FINALIZE 3
 #define SBNOTIFY_ALLOC    4
 #define SBNOTIFY_LOAD     5
-/*#define SBNOTIFY          SBNOTIFY_FINALIZE*/
-#define SBNOTIFY          SBNOTIFY_ALLOC
+#define SBNOTIFY          SBNOTIFY_LOAD
 
 
 /* hooks to build-in function */
@@ -610,7 +609,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     /* notify the master that you want to allocate memory */
     msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
     msg.source  = sbinfo->job->rank;
-    msg.count   = count;
+    msg.count   = sbchunk->npages*sbinfo->pagesize;
     bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
     BDMPI_SLEEP(sbinfo->job, gomsg);
     /*----------------------------------------------------------------------*/
@@ -722,7 +721,7 @@ void sb_save(void *buf)
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_SAVE
   /* notify the master that you are releasing memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
@@ -754,7 +753,7 @@ void sb_saveall()
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_SAVE
   /* notify the master that you are releasing memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRLSD;
+  msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
@@ -790,7 +789,7 @@ void sb_load(void *buf)
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_LOAD
   /* notify the master that you want to load memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
@@ -824,7 +823,7 @@ void sb_loadall()
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_LOAD
   /* notify the master that you want to load memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMRQST;
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
   msg.source  = sbinfo->job->rank;
   msg.count   = count;
   bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
@@ -1068,7 +1067,7 @@ size_t _sb_chunkload(sbchunk_t *sbchunk)
 /*************************************************************************/
 size_t _sb_chunksave(sbchunk_t *sbchunk)
 {
-  size_t ip, ifirst, npages, size, tsize, twsize=0;
+  size_t ip, ifirst, npages, size, tsize, twsize=0, count=0;
   char *buf;
   uint8_t *pflags;
   int fd;
@@ -1142,8 +1141,10 @@ size_t _sb_chunksave(sbchunk_t *sbchunk)
     pflags[ip] |= SBCHUNK_NONE;
     if (pflags[ip]&SBCHUNK_READ)
       pflags[ip] ^= SBCHUNK_READ;
-    if (pflags[ip]&SBCHUNK_WRITE)
+    if (pflags[ip]&SBCHUNK_WRITE) {
       pflags[ip] ^= SBCHUNK_WRITE;
+      count += sbinfo->pagesize;
+    }
   }
 
 
@@ -1153,7 +1154,7 @@ size_t _sb_chunksave(sbchunk_t *sbchunk)
     exit(EXIT_FAILURE);
   }
 
-  return sbchunk->npages*sbinfo->pagesize;
+  return count;
 }
 
 

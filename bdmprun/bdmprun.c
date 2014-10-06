@@ -154,12 +154,6 @@ void setup_master_prefork(mjob_t *job)
   job->mmsize *= sysconf(_SC_PAGESIZE);
   job->smsize *= sysconf(_SC_PAGESIZE);
 
-  /* populate the various memory statistics */
-  if (job->rmsize > 63)
-    errexit("Invalid rmsize: %d\n", job->rmsize);
-  job->memrss = 0;
-  job->memmax = 1LLU<<job->rmsize;
-
   /* setup MPI-related information */
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Setting up MPI environment\n"));
   MPI_Comm_dup(MPI_COMM_WORLD, &(job->mpi_wcomm));
@@ -333,6 +327,14 @@ void setup_master_postfork(mjob_t *job)
 
   job->nR = job->ns; /* initially, no co-operating scheduling */
 
+  /* populate the various memory statistics */
+  if (job->rmsize > 63)
+    errexit("Invalid rmsize: %d\n", job->rmsize);
+  job->memrss = 0;
+  job->memmax = 1LLU<<job->rmsize;
+  job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
+  job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
+
   return;
 }
 
@@ -432,6 +434,7 @@ void cleanup_master(mjob_t *job)
       &job->mblockedmap, &job->cblockedmap,
       &job->blockedts,
       &job->slvdist,
+      &job->slvrss, &job->slvtot,
       &job->schedule_lock, &job->comm_lock, &job->memory_lock,
       &job, LTERM);
 

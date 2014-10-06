@@ -285,10 +285,12 @@ void slvpool_route(mjob_t *job, bdmsg_t *msg)
         break;
 
       case BDMPI_MSGTYPE_MEMRQST:
+      case BDMPI_MSGTYPE_MEMLOAD:
         BDASSERT(pthread_create(&thread, NULL, mstr_mem_rqst, arg) == 0);
         break;
 
       case BDMPI_MSGTYPE_MEMRLSD:
+      case BDMPI_MSGTYPE_MEMSAVE:
         BDASSERT(pthread_create(&thread, NULL, mstr_mem_rlsd, arg) == 0);
         break;
 
@@ -377,7 +379,8 @@ void slvpool_wakeup_some(mjob_t *job)
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_LAST);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_FIRST);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_LIFO);
-    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
+    //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
+    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VMEM);
 
     togo = job->runnablelist[itogo];
     job->runnablelist[itogo] = job->runnablelist[--job->nrunnable];
@@ -445,6 +448,20 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
 
         cfres = 1.0*resident/size;
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
+        if (cfres > ifres) {
+          itogo = i;
+          ifres = cfres;
+        }
+      }
+      break;
+
+    case BDMPRUN_WAKEUP_VMEM:
+      ifres = -1.0;
+      itogo = 0;
+      for (i=0; i<job->nrunnable; i++) {
+        resident = job->slvrss[job->runnablelist[i]];
+        size = job->slvtot[job->runnablelist[i]];
+        cfres = 1.0*resident/size;
         if (cfres > ifres) {
           itogo = i;
           ifres = cfres;
