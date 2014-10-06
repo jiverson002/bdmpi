@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! It repeatedly checks/routes messages from the slaves and watches for
     slaves that have terminated. */
@@ -289,7 +288,8 @@ void slvpool_route(mjob_t *job, bdmsg_t *msg)
         BDASSERT(pthread_create(&thread, NULL, mstr_mem_rqst, arg) == 0);
         break;
 
-      case BDMPI_MSGTYPE_MEMRLSD:
+      case BDMPI_MSGTYPE_MEMNFRE:
+      case BDMPI_MSGTYPE_MEMSFRE:
       case BDMPI_MSGTYPE_MEMSAVE:
         BDASSERT(pthread_create(&thread, NULL, mstr_mem_rlsd, arg) == 0);
         break;

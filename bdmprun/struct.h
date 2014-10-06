@@ -174,7 +174,6 @@ typedef struct {
   /* pthread info */
   pthread_mutex_t *schedule_lock; /*!< Used for manipulating the scheduling structures */
   pthread_mutex_t *comm_lock;     /*!< Used for manipulating the communicator structures */
-  pthread_mutex_t *memory_lock;     /*!< Used for manipulating the memory structures */
 } mjob_t;
 
 

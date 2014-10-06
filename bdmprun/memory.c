@@ -29,7 +29,6 @@ void * mstr_mem_rqst(void * const arg)
     "%zu [entering]\n", job->mynode, msg->source, msg->count));
 
   BD_GET_LOCK(job->schedule_lock);
-  BD_GET_LOCK(job->memory_lock);
 
   job->memrss += count;
 
@@ -47,7 +46,6 @@ void * mstr_mem_rqst(void * const arg)
 
   //memory_wakeup_some(job);
 
-  BD_LET_LOCK(job->memory_lock);
   BD_LET_LOCK(job->schedule_lock);
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
@@ -64,7 +62,7 @@ void * mstr_mem_rqst(void * const arg)
 
 
 /*************************************************************************/
-/*! Response to a BDMPI_MSGTYPE_MEMRLSD or BDMPI_MSGTYPE_MEMSAVE
+/*! Response to a BDMPI_MSGTYPE_MEM*FRE or BDMPI_MSGTYPE_MEMSAVE
     Checks if a the memory being requested will over-subscribe the system
     memory, in which case it chooses a slave to wake and release its memory,
     otherwise it notifies the requesting slave that it can safely allocate the
@@ -82,25 +80,30 @@ void * mstr_mem_rlsd(void * const arg)
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_mem_rlsd: count: "
     "%zu [entering]\n", job->mynode, msg->source, msg->count));
 
-  BD_GET_LOCK(job->memory_lock);
-
-  //BDASSERT(job->memrss >= count);
-  if (job->memrss < count)
-    bdprintf("mstr_mem_rlsd.0\n");
-  job->memrss -= count;
+  BD_GET_LOCK(job->schedule_lock);
 
   switch (msg->msgtype) {
-  case BDMPI_MSGTYPE_MEMRLSD:
+  case BDMPI_MSGTYPE_MEMSFRE:
+    //BDASSERT(job->slvtot[source] >= count);
+    if (job->slvtot[source] < count)
+      bdprintf("mstr_mem_rlsd.0\n");
+    job->slvtot[source] -= count;
+    break;
+  case BDMPI_MSGTYPE_MEMNFRE:
     //BDASSERT(job->slvtot[source] >= count);
     if (job->slvtot[source] < count)
       bdprintf("mstr_mem_rlsd.1\n");
     job->slvtot[source] -= count;
-    break;
   case BDMPI_MSGTYPE_MEMSAVE:
     //BDASSERT(job->slvrss[source] >= count);
     if (job->slvrss[source] < count)
       bdprintf("mstr_mem_rlsd.2\n");
     job->slvrss[source] -= count;
+
+    //BDASSERT(job->memrss >= count);
+    if (job->memrss < count)
+      bdprintf("mstr_mem_rlsd.3\n");
+    job->memrss -= count;
     break;
   default:
     bdprintf("[MSTR%04d.%04d] mstr_mem_rlsd: invalid message %d\n",
@@ -108,7 +111,7 @@ void * mstr_mem_rlsd(void * const arg)
     break;
   }
 
-  BD_LET_LOCK(job->memory_lock);
+  BD_LET_LOCK(job->schedule_lock);
 
   gk_free((void **)&arg, LTERM);
 
@@ -132,7 +135,6 @@ void memory_wakeup_some(mjob_t * const job)
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
   BD_GET_LOCK(job->schedule_lock);
-  BD_GET_LOCK(job->memory_lock);
 
   while ((job->nrunnable+job->nmblocked+job->ncblocked) > 0 &&
          job->memrss > job->memmax)
@@ -164,7 +166,6 @@ void memory_wakeup_some(mjob_t * const job)
     job->slvrss[togo] -= count;
   }
 
-  BD_LET_LOCK(job->memory_lock);
   BD_LET_LOCK(job->schedule_lock);
 }
 

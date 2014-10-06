@@ -254,14 +254,12 @@ void setup_master_prefork(mjob_t *job)
   /* initialize pthreads */
   job->schedule_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "schedule_lock");
   job->comm_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "comm_lock");
-  job->memory_lock = (pthread_mutex_t *)gk_malloc(sizeof(pthread_mutex_t), "memory_lock");
 
   BDASSERT(pthread_mutexattr_init(&mtx_attr) == 0);
   BDASSERT(pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_RECURSIVE) == 0);
 
   BDASSERT(pthread_mutex_init(job->schedule_lock, &mtx_attr) == 0);
   BDASSERT(pthread_mutex_init(job->comm_lock, &mtx_attr) == 0);
-  BDASSERT(pthread_mutex_init(job->memory_lock, &mtx_attr) == 0);
   BDASSERT(pthread_mutexattr_destroy(&mtx_attr) == 0);
 
   return;
@@ -361,6 +359,7 @@ void cleanup_master(mjob_t *job)
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
+    bdprintf("  [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
     bdscb_destroy(job->scbs[i]);
     bdmq_destroy(job->goMQs[i]);
     bdmq_destroy(job->c2sMQs[i]);
@@ -429,7 +428,6 @@ void cleanup_master(mjob_t *job)
 
   pthread_mutex_destroy(job->schedule_lock);
   pthread_mutex_destroy(job->comm_lock);
-  pthread_mutex_destroy(job->memory_lock);
 
   gk_free((void **)&job->scbs, &job->goMQs, &job->c2sMQs, &job->c2mMQs,
       &job->alivelist, &job->runnablelist, &job->runninglist,
@@ -439,7 +437,7 @@ void cleanup_master(mjob_t *job)
       &job->blockedts,
       &job->slvdist,
       &job->slvrss, &job->slvtot,
-      &job->schedule_lock, &job->comm_lock, &job->memory_lock,
+      &job->schedule_lock, &job->comm_lock,
       &job, LTERM);
 
   return;
