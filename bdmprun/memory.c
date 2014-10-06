@@ -44,7 +44,7 @@ void * mstr_mem_rqst(void * const arg)
     break;
   }
 
-  //memory_wakeup_some(job);
+  memory_wakeup_some(job, count);
 
   BD_LET_LOCK(job->schedule_lock);
 
@@ -126,7 +126,7 @@ void * mstr_mem_rlsd(void * const arg)
 /*! If the number of running slaves is less that nr, then some runnable
     slaves are told to go ahead and execute. */
 /*************************************************************************/
-void memory_wakeup_some(mjob_t * const job)
+void memory_wakeup_some(mjob_t * const job, size_t const size)
 {
   int i, itogo, togo;
   size_t count;
@@ -137,7 +137,7 @@ void memory_wakeup_some(mjob_t * const job)
   BD_GET_LOCK(job->schedule_lock);
 
   while ((job->nrunnable+job->nmblocked+job->ncblocked) > 0 &&
-         job->memrss > job->memmax)
+         job->memrss > size && job->memrss > job->memmax)
   {
     /* select a blocked slave to wakeup for memory free'ing */
     itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VMEM);

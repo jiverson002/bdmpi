@@ -359,7 +359,7 @@ void cleanup_master(mjob_t *job)
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
-    bdprintf("  [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
+    bdprintf("       [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
     bdscb_destroy(job->scbs[i]);
     bdmq_destroy(job->goMQs[i]);
     bdmq_destroy(job->c2sMQs[i]);
