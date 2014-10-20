@@ -441,6 +441,7 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           slvpool_abort(1, "Failed to read to values from %s.\n", fname);
         if (fclose(fp) != 0)
           slvpool_abort(1, "Failed to close%s.\n", fname);
+        //resident = job->slvrss[job->runnablelist[i]];
 
         cfres = 1.0*resident/size;
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
@@ -724,6 +725,7 @@ void slvpool_cblock(mjob_t *job, int rank)
   BD_GET_LOCK(job->schedule_lock);
 
   BDASSERT(rank>=0 && rank<job->ns);
+  //bdprintf("[MSTR%04d] cblocking: %d\n", job->mynode, rank);
   M_IFSET(BDMPI_DBG_IPCM,
       bdprintf("[MSTR%04d] cblocking.0: %d[%+d:%+d]; nalive: %d, nrunning: %d, nrunnable: %d, n[c:b]blocked: %d:%d, \n",
               job->mynode, rank, job->cblockedmap[rank], job->mblockedmap[rank],

@@ -24,7 +24,12 @@ void * mstr_mem_load(void * const arg)
   bdmsg_t gomsg;
 
   BD_GET_LOCK(job->schedule_lock);
+  //bdprintf("[%04d] mstr_mem_load %10zu / %10zu / %10zu\n", msg->source,
+  //  msg->count, job->memrss, job->memmax);
+
   job->memrss += msg->count;
+  job->slvrss[msg->source] += msg->count;
+
   if (job->memrss > job->memmax)
     memory_wakeup_some(job, msg->count);
 
@@ -51,9 +56,11 @@ void * mstr_mem_save(void * const arg)
   bdmsg_t gomsg;
 
   BD_GET_LOCK(job->schedule_lock);
-  if (job->memrss < msg->count)
-    bdprintf("job->memrss < msg->count\n");
+  //bdprintf("[%04d] mstr_mem_save %10zu / %10zu / %10zu\n", msg->source,
+  //  msg->count, job->memrss, job->memmax);
+
   job->memrss -= msg->count;
+  job->slvrss[msg->source] -= msg->count;
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
@@ -84,15 +91,25 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
 
     if (-1 != itogo) {
       togo = job->runnablelist[itogo];
+      job->runnablelist[itogo] = job->runnablelist[--job->nrunnable];
+      job->runnablemap[togo] = -1;
+      BD_LET_LOCK(job->schedule_lock);
+#if 1
 
       /* send that slave a go free memory message */
       if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
         bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
       /* recv from slave a done message */
       if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
-        bdprintf("Failed to recv a done message to %d: %s\n", togo, strerror(errno));
+        bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
 
+#endif
+      BD_GET_LOCK(job->schedule_lock);
       job->memrss -= count;
+      job->slvrss[togo] -= count;
+
+      job->runnablelist[job->nrunnable] = togo;
+      job->runnablemap[togo] = job->nrunnable++;
     }
   }
   BD_LET_LOCK(job->schedule_lock);
@@ -106,7 +123,7 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
 int memory_select_task_to_wakeup(mjob_t *job, int type)
 {
   int i, itogo;
-  size_t size, resident;
+  size_t size, resident, isize;
   float ifres, cfres;
   char fname[1024];
   FILE *fp;
@@ -115,24 +132,34 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
   switch (type) {
     case BDMPRUN_WAKEUP_VRSS:
       ifres = 0;
+      isize = 0;
       itogo = -1;
       for (i=0; i<job->nrunnable; i++) {
         sprintf(fname, "/proc/%d/statm", job->spids[job->runnablelist[i]]);
 
-        if ((fp = fopen(fname, "r")) == NULL)
+        if (NULL == (fp = fopen(fname, "r")))
           slvpool_abort(1, "Failed to open %s.\n", fname);
-        if (fscanf(fp, "%zu %zu", &size, &resident) != 2)
+        if (2 != fscanf(fp, "%zu %zu", &size, &resident))
           slvpool_abort(1, "Failed to read to values from %s.\n", fname);
-        if (fclose(fp) != 0)
-          slvpool_abort(1, "Failed to close%s.\n", fname);
+        if (0 != fclose(fp))
+          slvpool_abort(1, "Failed to close %s.\n", fname);
+        resident = job->slvrss[job->runnablelist[i]];
 
-        cfres = 1.0*resident/size;
+        cfres = 1.0*resident/(size*sysconf(_SC_PAGESIZE));
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (cfres > ifres) {
           itogo = i;
           ifres = cfres;
+          isize = size;
         }
       }
+
+      if (-1 != itogo) {
+        bdprintf("[%04d] memory_wakeup_some\n", job->runnablelist[itogo]);
+        bdprintf("[%04d] %10zu / %10zu\n", job->runnablelist[itogo],
+          job->slvrss[job->runnablelist[itogo]], isize*sysconf(_SC_PAGESIZE));
+      }
+
       break;
 
     default:

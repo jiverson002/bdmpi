@@ -525,20 +525,6 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->pflags[new_npages] = 0;  /* this is for the +1 reset */
   }
   else {
-#if SBNOTIFY >= SBNOTIFY_LOAD
-    if (!(sbchunk->flags&SBCHUNK_NONE)) {
-      bdmsg_t msg, gomsg;
-
-      /* notify the master that you want to load memory */
-      msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-      msg.source  = sbinfo->job->rank;
-      msg.count   = (new_npages-sbchunk->npages)*sbinfo->pagesize;
-      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-      BDMPI_SLEEP(sbinfo->job, gomsg);
-    }
-#endif
-    /*----------------------------------------------------------------------*/
-
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_calloc(new_npages+1, sizeof(uint8_t))) == NULL) {
       perror("sb_realloc: failed to malloc new_pflags");
@@ -1028,7 +1014,7 @@ void _sb_chunksave(sbchunk_t *sbchunk)
   if (!(sbchunk->flags&SBCHUNK_NONE)) {
     bdmsg_t msg, gomsg;
 
-    /* notify the master that you want to load memory */
+    /* notify the master that you have saved memory */
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
     msg.source  = sbinfo->job->rank;
     msg.count   = _sb_chunksave_internal(sbchunk);

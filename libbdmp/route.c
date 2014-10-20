@@ -15,13 +15,14 @@
 /*************************************************************************/
 void slv_route(sjob_t * const job, bdmsg_t const * const gomsg)
 {
-  size_t count;
+  size_t count=0;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("[%04d] slv_route: response: %d\n",
         job->rank, gomsg->msgtype));
 
   switch (gomsg->msgtype) {
     case BDMPI_MSGTYPE_MEMFREE:
+      //bdprintf("[%04d] slv_route: memfree\n", job->rank);
       count = sb_saveall_internal();
       bdmq_send(job->c2mMQ, &count, sizeof(size_t));
       break;
