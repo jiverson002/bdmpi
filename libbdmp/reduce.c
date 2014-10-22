@@ -66,8 +66,8 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
-  /*if (mype == root)
-    sb_discard(recvbuf, bdmp_msize(count, datatype));*/
+  if (mype == root)
+    sb_discard(recvbuf, bdmp_msize(count, datatype));
   /*if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();*/
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
@@ -283,7 +283,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
-  /*sb_discard(recvbuf, count*bdmp_sizeof(datatype));*/
+  sb_discard(recvbuf, count*bdmp_sizeof(datatype));
   /*if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();*/
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);

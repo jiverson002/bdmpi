@@ -421,6 +421,22 @@ void *sb_malloc(size_t nbytes)
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
 
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+{
+  bdmsg_t msg, gomsg;
+
+  /* notify the master that you want to load memory */
+  //printf("[%3d] get ok from master for %zu bytes\n", sbinfo->job->rank, nbytes);
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = sbchunk->npages*sbinfo->pagesize;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  BDMPI_SLEEP(sbinfo->job, gomsg);
+}
+#endif
+  /*----------------------------------------------------------------------*/
+
   /* allocate the flag array for the pages */
   sbchunk->pflags = (uint8_t *)libc_calloc(sbchunk->npages+1, sizeof(uint8_t));
   if (sbchunk->pflags == NULL) {
@@ -473,22 +489,6 @@ void *sb_malloc(size_t nbytes)
   sbchunk->next = sbinfo->head;
   sbinfo->head  = sbchunk;
   BD_LET_LOCK(&(sbinfo->mtx));
-
-  /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
-{
-  bdmsg_t msg, gomsg;
-
-  /* notify the master that you want to load memory */
-  //printf("[%3d] get ok from master for %zu bytes\n", sbinfo->job->rank, nbytes);
-  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-  msg.source  = sbinfo->job->rank;
-  msg.count   = sbchunk->npages*sbinfo->pagesize;
-  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  BDMPI_SLEEP(sbinfo->job, gomsg);
-}
-#endif
-  /*----------------------------------------------------------------------*/
 
   return (void *)sbchunk->saddr;
 }

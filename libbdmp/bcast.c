@@ -64,8 +64,8 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
 
   /* prepare to go to sleep */
-  /*if (mype != root)
-    sb_discard(buf, bdmp_msize(count, datatype));*/
+  if (mype != root)
+    sb_discard(buf, bdmp_msize(count, datatype));
   /*if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();*/
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);

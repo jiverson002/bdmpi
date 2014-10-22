@@ -259,8 +259,8 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     }
 
     /* sbdiscard the incoming buffers */
-    /*for (p=0; p<npes; p++)
-      sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);*/
+    for (p=0; p<npes; p++)
+      sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
 
     /* receive data from everybody else */
     msg.msgtype  = BDMPI_MSGTYPE_RECV;

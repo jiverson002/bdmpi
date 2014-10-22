@@ -40,12 +40,12 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   mype = comm->rank;
 
   /* save the state in case you go to sleep */
-  /*bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
+  bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
     sb_discard(buf, bdmp_msize(count, datatype));
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
-  }*/
+    /*if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();*/
+  }
 
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
   msg.mcomm    = comm->mcomm;

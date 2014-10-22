@@ -285,8 +285,8 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
 
   /* sbdiscard the incoming buffers */
-  /*for (p=0; p<npes; p++)
-    sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);*/
+  for (p=0; p<npes; p++)
+    sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
 
   /* save your address space before blocking */
   /*if (job->jdesc->nr < job->jdesc->ns)
