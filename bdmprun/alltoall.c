@@ -104,6 +104,9 @@ void *mstr_alltoall_recv(void *arg)
   //bdprintf("%d alltoall-recv1: rank: %d\n", (int)time(0), msg->myrank);
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
+  //bdprintf("[%3d]alltoall: %10zu / %10zu / %10zu\n", msg->myrank,
+  //  job->slvrss[msg->myrank], job->memrss, job->memmax);
+
   /* hook to the key info */
   comm  = job->comms[msg->mcomm];
   srank = babel_get_srank(comm, msg->myrank);

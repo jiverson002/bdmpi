@@ -23,6 +23,8 @@ void slv_route(sjob_t * const job, bdmsg_t const * const gomsg)
   switch (gomsg->msgtype) {
     case BDMPI_MSGTYPE_MEMFREE:
       //bdprintf("[%04d] slv_route: memfree\n", job->rank);
+      //bdprintf("[%3d] saveall(", job->rank);
+      //bdprintf("[%3d] saveall()\n", job->rank);
       count = sb_saveall_internal();
       bdmq_send(job->c2mMQ, &count, sizeof(size_t));
       break;

@@ -402,6 +402,7 @@ int sb_finalize()
 /*************************************************************************/
 void *sb_malloc(size_t nbytes)
 {
+  ssize_t ip;
   sbchunk_t *sbchunk;
 
   //printf("sb_malloc: allocating %zu bytes\n", nbytes);
@@ -440,7 +441,6 @@ void *sb_malloc(size_t nbytes)
   }
   sbchunk->eaddr = sbchunk->saddr+nbytes;
 
-
   /* create the filename for storage purposes */
   if ((sbchunk->fname = (char *)libc_malloc(100+strlen(sbinfo->fstem))) == NULL) {
     munmap((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize);
@@ -456,7 +456,15 @@ void *sb_malloc(size_t nbytes)
     return NULL;
   }
 
-  sbchunk->flags = SBCHUNK_NONE;
+  //sbchunk->flags = SBCHUNK_NONE;
+  if (mprotect((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize, PROT_READ) == -1) {
+    perror("sb_realloc: failed to PROT_READ");
+    exit(EXIT_FAILURE);
+  }
+
+  sbchunk->flags = SBCHUNK_READ;
+  for (ip=0; ip<sbchunk->npages; ip++)
+    sbchunk->pflags[ip] = SBCHUNK_READ;
 
   /* initialize the mutex */
   GKASSERT(pthread_mutex_init(&(sbchunk->mtx), &(sbinfo->mtx_attr)) == 0);
@@ -465,6 +473,22 @@ void *sb_malloc(size_t nbytes)
   sbchunk->next = sbinfo->head;
   sbinfo->head  = sbchunk;
   BD_LET_LOCK(&(sbinfo->mtx));
+
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+{
+  bdmsg_t msg, gomsg;
+
+  /* notify the master that you want to load memory */
+  //printf("[%3d] get ok from master for %zu bytes\n", sbinfo->job->rank, nbytes);
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = sbchunk->npages*sbinfo->pagesize;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  BDMPI_SLEEP(sbinfo->job, gomsg);
+}
+#endif
+  /*----------------------------------------------------------------------*/
 
   return (void *)sbchunk->saddr;
 }
@@ -498,7 +522,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
   /* see if we are shrinking */
   if (nbytes <= sbchunk->nbytes) { /* easy case */
     /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
+#if SBNOTIFY >= SBNOTIFY_SAVE
     if (!(sbchunk->flags&SBCHUNK_NONE)) {
       bdmsg_t msg, gomsg;
 
@@ -525,6 +549,21 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->pflags[new_npages] = 0;  /* this is for the +1 reset */
   }
   else {
+    /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+{
+    bdmsg_t msg, gomsg;
+
+    /* notify the master that you want to load memory */
+    msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+    msg.source  = sbinfo->job->rank;
+    msg.count   = (new_npages-sbchunk->npages)*sbinfo->pagesize;
+    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+    BDMPI_SLEEP(sbinfo->job, gomsg);
+}
+#endif
+    /*----------------------------------------------------------------------*/
+
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_calloc(new_npages+1, sizeof(uint8_t))) == NULL) {
       perror("sb_realloc: failed to malloc new_pflags");
@@ -558,6 +597,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->saddr  = new_saddr;
     sbchunk->eaddr  = sbchunk->saddr+nbytes;
 
+    /* TODO: does the whole chunk need to be re-written */
     /* set remapped sbchunk for writing and remove its ondisk flag */
     sbchunk->flags |= SBCHUNK_WRITE;
     if (sbchunk->flags&SBCHUNK_ONDISK)
@@ -709,6 +749,9 @@ size_t sb_saveall_internal()
   }
   BD_LET_LOCK(&(sbinfo->mtx));
 
+  //if (0 != count)
+  //  fprintf(stderr, "%zu)\n", count);
+
   return count;
 }
 
@@ -822,7 +865,6 @@ void sb_discard(void *ptr, ssize_t size)
       sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
   }
   BD_LET_LOCK(&(sbchunk->mtx));
-
 }
 
 
@@ -987,6 +1029,10 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     perror("sb_realloc: failed to PROT_READ");
     exit(EXIT_FAILURE);
   }
+  /*if (0 != mlock((void *)sbchunk->saddr, npages*sbinfo->pagesize)) {
+    perror("_sb_chunkload: failed to mlock");
+    exit(EXIT_FAILURE);
+  }*/
 
   sbchunk->flags ^= SBCHUNK_NONE;
   sbchunk->flags |= SBCHUNK_READ;
@@ -1091,12 +1137,6 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
     //printf("_sb_chunksave: %s, size: %zu\n", sbchunk->fname, twsize);
   }
 
-  /* set madvise */
-  if (madvise((void *)sbchunk->saddr, npages*sbinfo->pagesize, MADV_DONTNEED) == -1) {
-    perror("_sb_chunksave: failed to MADV_DONTNEED");
-    exit(EXIT_FAILURE);
-  }
-
   /* reset flags */
   if (sbchunk->flags&SBCHUNK_WRITE)
     sbchunk->flags ^= SBCHUNK_WRITE;
@@ -1112,11 +1152,25 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
       pflags[ip] ^= SBCHUNK_WRITE;
   }
 
+  /* set madvise */
+  if (madvise((void *)sbchunk->saddr, npages*sbinfo->pagesize, MADV_DONTNEED) == -1) {
+    perror("_sb_chunksave: failed to MADV_DONTNEED");
+    exit(EXIT_FAILURE);
+  }
+
+  /* unlock */
+  /*if (0 != munlock((void *)sbchunk->saddr, npages*sbinfo->pagesize)) {
+    perror("_sb_chunksave: failed to munlock");
+    exit(EXIT_FAILURE);
+  }*/
+
   /* change protection to PROT_NONE for next time */
   if (mprotect((void *)sbchunk->saddr, npages*sbinfo->pagesize, PROT_NONE) == -1) {
     perror("_sb_chunksave: failed to PROT_NONE");
     exit(EXIT_FAILURE);
   }
+
+  //printf("chunk size %zu\n", count);
 
   return count;
 }

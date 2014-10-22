@@ -122,14 +122,17 @@ int main(int argc, char **argv)
 
   dmat = LoadData(params);
 
+  //printf("[%3d] starting\n", params->mype);
   gk_startwctimer(params->setupTmr);
   SetupData(params, dmat);
   gk_stopwctimer(params->setupTmr);
+  //printf("[%3d] stopping\n", params->mype);
 
   if (params->type == 1)
     prvec = ComputePR_a2a(params, dmat);
   else
     prvec = ComputePR_p2p(params, dmat);
+  //printf("[%3d] computed\n", params->mype);
 
   //WritePR(params, dmat, prvec);
 
@@ -733,6 +736,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     if (!(iter%10 == 0 || iter == params->niters-1)) 
       gk_free((void **)&pr, LTERM);
 
+    //printf("[%3d] start-comm.1 [ts: %d]\n", params->mype, (int)time(NULL));
     gk_startwctimer(params->commTmr);
     /* get the overall gsinks across all processors */
     if (gsinks > 0)
@@ -745,6 +749,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
                   prrecv, dmat->rcounts, dmat->rdispls, BDMPI_DOUBLE,
                   params->comm);
     gk_stopwctimer(params->commTmr);
+    //printf("[%3d] stop-comm.1 [ts: %d]\n", params->mype, (int)time(NULL));
 
     if (params->mlock) 
       GKWARN(BDMPI_mlock(prrecv, nrecv*sizeof(double)) == 0);
@@ -788,10 +793,12 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
       gk_free((void **)&pr, LTERM);
 
       /* get the global rmsd across all processors */
+      //printf("[%3d] start-comm.2 [ts: %d]\n", params->mype, (int)time(NULL));
       gk_startwctimer(params->commTmr);
       BDMPI_Allreduce(&lrmsd, &grmsd, 1, BDMPI_DOUBLE, BDMPI_SUM, params->comm);
       grmsd = sqrt(grmsd);
       gk_stopwctimer(params->commTmr);
+      //printf("[%3d] stop-comm.2 [ts: %d]\n", params->mype, (int)time(NULL));
 
       if (mype == 0)
         printf("Iter: %5zu, grmsd: %.6le [gsinks: %.6le, rprob: %.6le]\n",
