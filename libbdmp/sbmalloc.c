@@ -633,7 +633,6 @@ ERROR_EXIT:
     libc_free(new_pflags);
 
   return NULL;
-
 }
 
 
@@ -1052,11 +1051,12 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 /*************************************************************************/
 void _sb_chunksave(sbchunk_t *sbchunk)
 {
-  size_t ip, ifirst, npages, size, tsize, twsize=0;
+  size_t ip, ifirst, npages, size, tsize, twsize=0, count=0;
   char *buf;
   uint8_t *pflags;
   int fd;
 
+  count = _sb_chunksave_internal(sbchunk);
 
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_SAVE
@@ -1066,7 +1066,7 @@ void _sb_chunksave(sbchunk_t *sbchunk)
     /* notify the master that you have saved memory */
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
     msg.source  = sbinfo->job->rank;
-    msg.count   = _sb_chunksave_internal(sbchunk);
+    msg.count   = count;
     bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
     BDMPI_SLEEP(sbinfo->job, gomsg);
   }
