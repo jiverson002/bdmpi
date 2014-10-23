@@ -50,7 +50,7 @@ __thread size_t last_addr=0;
 #define SBNOTIFY_NONE 0
 #define SBNOTIFY_LOAD 1
 #define SBNOTIFY_SAVE 2
-#define SBNOTIFY SBNOTIFY_NONE
+#define SBNOTIFY SBNOTIFY_SAVE
 
 
 /* hooks to build-in function */
@@ -421,23 +421,6 @@ void *sb_malloc(size_t nbytes)
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
 
-
-  /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
-{
-  bdmsg_t msg, gomsg;
-
-  /* notify the master that you want to load memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-  msg.source  = sbinfo->job->rank;
-  msg.count   = sbchunk->npages*sbinfo->pagesize;
-  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  BDMPL_SLEEP(sbinfo->job, gomsg);
-}
-#endif
-  /*----------------------------------------------------------------------*/
-
-
   /* allocate the flag array for the pages */
   sbchunk->pflags = (uint8_t *)libc_calloc(sbchunk->npages+1, sizeof(uint8_t));
   if (sbchunk->pflags == NULL) {
@@ -474,9 +457,25 @@ void *sb_malloc(size_t nbytes)
     return NULL;
   }
 
-#if 0
+#if 1
   sbchunk->flags = SBCHUNK_NONE;
 #else
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_LOAD
+{
+  bdmsg_t msg, gomsg;
+
+  /* notify the master that you want to load memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = sbchunk->npages*sbinfo->pagesize;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  BDMPL_SLEEP(sbinfo->job, gomsg);
+}
+#endif
+  /*----------------------------------------------------------------------*/
+
+
   if (-1 == mprotect((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize, PROT_READ)) {
     perror("sb_malloc: failed to PROT_READ");
     exit(EXIT_FAILURE);
@@ -675,7 +674,6 @@ void sb_free(void *buf)
   /* free the chunk */
   _sb_chunkfree(ptr);
 
-
   return;
 }
 
@@ -866,7 +864,6 @@ void sb_discard(void *ptr, ssize_t size)
       sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
   }
   BD_LET_LOCK(&(sbchunk->mtx));
-
 }
 
 
@@ -1056,8 +1053,6 @@ void _sb_chunksave(sbchunk_t *sbchunk)
   uint8_t *pflags;
   int fd;
 
-  count = _sb_chunksave_internal(sbchunk);
-
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_SAVE
   if (!(sbchunk->flags&SBCHUNK_NONE)) {
@@ -1066,12 +1061,14 @@ void _sb_chunksave(sbchunk_t *sbchunk)
     /* notify the master that you have saved memory */
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
     msg.source  = sbinfo->job->rank;
-    msg.count   = count;
+    msg.count   = sbchunk->npages*sbinfo->pagesize;
     bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    BDMPI_SLEEP(sbinfo->job, gomsg);
+    BDMPL_SLEEP(sbinfo->job, gomsg);
   }
 #endif
   /*----------------------------------------------------------------------*/
+
+  _sb_chunksave_internal(sbchunk);
 }
 
 
@@ -1172,8 +1169,6 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
     perror("_sb_chunksave: failed to PROT_NONE");
     exit(EXIT_FAILURE);
   }
-
-  //printf("chunk size %zu\n", count);
 
   return count;
 }

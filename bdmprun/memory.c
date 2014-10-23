@@ -14,8 +14,7 @@
     Checks if a the memory being requested will over-subscribe the system
     memory, in which case it chooses a slave to wake and release its memory,
     otherwise it notifies the requesting slave that it can safely load the
-    amount of memory requested.
-*/
+    amount of memory requested. */
 /*************************************************************************/
 void * mstr_mem_load(void * const arg)
 {
@@ -26,6 +25,9 @@ void * mstr_mem_load(void * const arg)
   BD_GET_LOCK(job->schedule_lock);
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
+
+  bdprintf("[%3d] %10zu / %10zu / %10zu\n", msg->source,
+    job->slvrss[msg->source], job->memrss, job->memmax);
 
 #if 0
   if (job->memrss > job->memmax)
@@ -45,8 +47,7 @@ void * mstr_mem_load(void * const arg)
 
 /*************************************************************************/
 /*! Response to a BDMPI_MSGTYPE_MEMSAVE
-    Decreases resident set size for job.
-*/
+    Decreases resident set size for job. */
 /*************************************************************************/
 void * mstr_mem_save(void * const arg)
 {

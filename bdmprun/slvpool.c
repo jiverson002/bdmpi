@@ -283,6 +283,14 @@ void slvpool_route(mjob_t *job, bdmsg_t *msg)
         BDASSERT(pthread_create(&thread, NULL, mstr_comm_split, arg) == 0);
         break;
 
+      case BDMPI_MSGTYPE_MEMLOAD:
+        BDASSERT(pthread_create(&thread, NULL, mstr_mem_load, arg) == 0);
+        break;
+
+      case BDMPI_MSGTYPE_MEMSAVE:
+        BDASSERT(pthread_create(&thread, NULL, mstr_mem_save, arg) == 0);
+        break;
+
       default:
         slvpool_abort(1, "Got message: %d\n", msg->msgtype);
         return;
@@ -433,6 +441,7 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           slvpool_abort(1, "Failed to read to values from %s.\n", fname);
         if (fclose(fp) != 0)
           slvpool_abort(1, "Failed to close%s.\n", fname);
+        //resident = job->slvrss[job->runnablelist[i]];
 
         cfres = 1.0*resident/size;
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
