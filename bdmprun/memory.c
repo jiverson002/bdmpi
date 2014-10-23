@@ -106,13 +106,18 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
       }
       BD_LET_LOCK(job->schedule_lock);*/
 #else
-      iitogo = itogo;
-      if (itogo < job->nrunnable)
-        togo = job->runnablelist[itogo];
-      else if (itogo < job->nrunnable+job->nmblocked)
-        togo = job->mblockedlist[itogo-job->nrunnable];
-      else
-        togo = job->cblockedlist[itogo-job->nrunnable-job->nmblocked];
+      if (itogo < job->nrunnable) {
+        iitogo = itogo;
+        togo = job->runnablelist[iitogo];
+      }
+      else if (itogo < job->nrunnable+job->nmblocked) {
+        iitogo = itogo - job->nrunnable;
+        togo = job->mblockedlist[iitogo];
+      }
+      else {
+        iitogo = itogo - job->nrunnable - job->nmblocked;
+        togo = job->cblockedlist[iitogo];
+      }
 #endif
 
       /* send that slave a go free memory message */

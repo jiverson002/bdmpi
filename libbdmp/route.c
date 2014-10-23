@@ -22,7 +22,7 @@ void slv_route(sjob_t * const job, bdmsg_t const * const gomsg)
 
   switch (gomsg->msgtype) {
     case BDMPI_MSGTYPE_MEMFREE:
-      //count = sb_saveall_internal();
+      count = sb_saveall_internal();
       bdmq_send(job->c2mMQ, &count, sizeof(size_t));
       break;
 
