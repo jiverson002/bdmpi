@@ -452,34 +452,7 @@ void *sb_malloc(size_t nbytes)
     return NULL;
   }
 
-#if 1
   sbchunk->flags = SBCHUNK_NONE;
-#else
-  /*----------------------------------------------------------------------*/
-#ifdef BDMPL_WITH_SB_NOTFIY
-{
-  bdmsg_t msg, gomsg;
-
-  /* notify the master that you want to load memory */
-  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-  msg.source  = sbinfo->job->rank;
-  msg.count   = sbchunk->npages*sbinfo->pagesize;
-  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-  BDMPL_SLEEP(sbinfo->job, gomsg);
-}
-#endif
-  /*----------------------------------------------------------------------*/
-
-
-  if (-1 == mprotect((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize, PROT_READ)) {
-    perror("sb_malloc: failed to PROT_READ");
-    exit(EXIT_FAILURE);
-  }
-
-  sbchunk->flags = SBCHUNK_READ;
-  for (ip=0; ip<sbchunk->npages; ip++)
-    sbchunk->pflags[ip] = SBCHUNK_READ;
-#endif
 
   /* initialize the mutex */
   GKASSERT(pthread_mutex_init(&(sbchunk->mtx), &(sbinfo->mtx_attr)) == 0);
