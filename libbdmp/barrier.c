@@ -32,8 +32,10 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   msg.myrank  = comm->rank;
 
   /* save the address space before blocking */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
 
   /* notify the master that you entering a barrier */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));

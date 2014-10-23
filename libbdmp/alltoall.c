@@ -95,8 +95,10 @@ int bdmp_Alltoallv_node(sjob_t *job,
   }
 
   /* prepare to go to sleep */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
 
@@ -289,8 +291,10 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
     sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
 
   /* save your address space before blocking */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
 
   /* receive data from everybody else */
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -316,16 +320,12 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
       if (response == 1)
         break;
 
-      /*if (job->jdesc->nr < job->jdesc->ns)
-        sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+      if (job->jdesc->nr < job->jdesc->ns)
+        sb_saveall();
+#endif
       /* go to sleep... */
-      for (;;) {
-        if (-1 == bdmq_recv(job->goMQ, &gomsg, sizeof(bdmsg_t)))
-          bdprintf("Failed on trying to recv a go message: %s.\n", strerror(errno));
-        if (BDMPI_MSGTYPE_PROCEED == gomsg.msgtype)
-          break;
-        slv_route(job, &gomsg);
-      }
+      BDMPI_SLEEP(job, gomsg);
     }
 
     /* get the missing message info from the master */

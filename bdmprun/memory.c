@@ -28,8 +28,10 @@ void * mstr_mem_load(void * const arg)
   job->slvrss[msg->source] += msg->count;
 
   //printf("[%3d] %zu / %zu\n", msg->source, job->memrss, job->memmax);
+#ifndef BDMPL_WITH_SB_SAVEALL
   if (job->memrss > job->memmax)
     memory_wakeup_some(job, msg->count);
+#endif
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))

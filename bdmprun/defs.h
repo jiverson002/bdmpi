@@ -59,3 +59,6 @@
 /* Predefinied communicators */
 #define BDMPI_COMM_WORLD         ((int)0)
 #define BDMPI_COMM_NODE          ((int)1)
+
+/* BDMPI library configurations */
+#define BDMPL_WITH_SB_SAVEALL

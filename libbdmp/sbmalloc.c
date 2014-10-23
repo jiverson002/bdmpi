@@ -48,7 +48,7 @@ __thread size_t last_addr=0;
 #define SBNOTIFY_NONE 0
 #define SBNOTIFY_LOAD 1
 #define SBNOTIFY_SAVE 2
-#define SBNOTIFY SBNOTIFY_SAVE
+#define SBNOTIFY SBNOTIFY_NONE
 
 
 /* hooks to build-in function */

@@ -91,8 +91,10 @@ int bdmp_Gatherv_node(sjob_t *job,
   }
 
   /* prepare to go to sleep */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
@@ -237,8 +239,10 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     bdmp_Send(job, (char *)sendbuf, sendcount, sendtype, root, tag, comm);
 
   /* save the data in case you go to sleep */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
 
   /* sync to ensure collective semantics */
   bdmp_Barrier(job, comm);
@@ -287,8 +291,10 @@ int bdmp_Gatherv_p2p(sjob_t *job,
           break;
 
         /* go to sleep... */
-        /*if (job->jdesc->nr < job->jdesc->ns)
-          sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+        if (job->jdesc->nr < job->jdesc->ns)
+          sb_saveall();
+#endif
         BDMPI_SLEEP(job, gomsg);
       }
 

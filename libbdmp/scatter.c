@@ -98,8 +98,10 @@ int bdmp_Scatterv_node(sjob_t *job,
   }
 
   /* prepare to go to sleep */
-  /*if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+  if (job->jdesc->nr < job->jdesc->ns)
+    sb_saveall();
+#endif
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */

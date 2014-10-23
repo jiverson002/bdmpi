@@ -43,8 +43,10 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
     sb_discard(buf, bdmp_msize(count, datatype));
-    /*if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+#endif
   }
 
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -69,8 +71,10 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
-    /*if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();*/
+#ifdef BDMPL_WITH_SB_SAVEALL
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+#endif
 
     /* go to sleep... */
     BDMPI_SLEEP(job, gomsg);
