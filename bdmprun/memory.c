@@ -79,13 +79,9 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
-#if 1
-  if (0 != job->nrunnable) {
-#else
   while (job->memrss > job->memmax &&
          0 != job->nrunnable+job->nmblocked+job->ncblocked)
   {
-#endif
     itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
 
     if (-1 != itogo) {
@@ -132,10 +128,8 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
       if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
         bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
 
-#if 0
       if (0 == count)
         break;
-#endif
 #endif
 
 #if 0
@@ -156,11 +150,9 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
       job->memrss -= count;
       job->slvrss[togo] -= count;
     }
-#if 0
     else {
       break;
     }
-#endif
   }
 }
 

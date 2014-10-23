@@ -47,11 +47,6 @@ __thread size_t last_addr=0;
 #define SBCHUNK_WRITE   4
 #define SBCHUNK_ONDISK  8
 
-#define SBNOTIFY_NONE 0
-#define SBNOTIFY_LOAD 1
-#define SBNOTIFY_SAVE 2
-#define SBNOTIFY SBNOTIFY_NONE
-
 
 /* hooks to build-in function */
 static void *(*libc_malloc)(size_t) = NULL;
@@ -461,7 +456,7 @@ void *sb_malloc(size_t nbytes)
   sbchunk->flags = SBCHUNK_NONE;
 #else
   /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
+#ifdef BDMPL_WITH_SB_NOTFIY
 {
   bdmsg_t msg, gomsg;
 
@@ -526,7 +521,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
   /* see if we are shrinking */
   if (nbytes <= sbchunk->nbytes) { /* easy case */
     /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_SAVE
+#ifdef BDMPL_WITH_SB_NOTIFY
     if (!(sbchunk->flags&SBCHUNK_NONE)) {
       bdmsg_t msg, gomsg;
 
@@ -555,7 +550,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
   }
   else {
     /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
+#ifdef BDMPL_WITH_SB_NOTIFY
 {
     bdmsg_t msg, gomsg;
 
@@ -966,7 +961,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 
 
   /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_LOAD
+#ifdef BDMPL_WITH_SB_NOTIFY
   if (sbchunk->flags&SBCHUNK_NONE) {
     bdmsg_t msg, gomsg;
 
@@ -1061,7 +1056,7 @@ void _sb_chunksave(sbchunk_t *sbchunk)
   int fd;
 
   /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_SAVE
+#ifdef BDMPL_WITH_SB_NOTIFY
   if (!(sbchunk->flags&SBCHUNK_NONE)) {
     bdmsg_t msg, gomsg;
 
@@ -1187,7 +1182,7 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
 void _sb_chunkfree(sbchunk_t *sbchunk)
 {
   /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_SAVE
+#ifdef BDMPL_WITH_SB_NOTIFY
 {
   if (!(sbchunk->flags&SBCHUNK_NONE)) {
     bdmsg_t msg, gomsg;
