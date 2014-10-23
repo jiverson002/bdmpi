@@ -18,7 +18,7 @@ int bdmp_Scatterv_node(sjob_t *job,
           BDMPI_Comm comm)
 {
   size_t size, sdtsize, rdtsize;
-  int npes, mype, p, response, sleeping=1;
+  int npes, mype, p, sleeping=1;
   bdmsg_t msg, rmsg, gomsg;
 
 
@@ -105,8 +105,7 @@ int bdmp_Scatterv_node(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  BDMPI_SLEEP(job, gomsg);
-
+  BDMPL_SLEEP(job, gomsg);
 
   /*=====================================================================*/
   /* after waking up... */
@@ -135,7 +134,6 @@ int bdmp_Scatterv_node(sjob_t *job,
 
   return BDMPI_SUCCESS;
 }
-
 
 
 /*************************************************************************/

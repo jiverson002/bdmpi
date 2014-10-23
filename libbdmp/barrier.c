@@ -14,7 +14,6 @@
 /*************************************************************************/
 int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 {
-  int response;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS,
@@ -41,7 +40,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Barrier: exiting: comm: %p\n", comm));
 

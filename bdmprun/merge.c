@@ -19,7 +19,7 @@
        and sets the counter back to the size of that communicator.
 
     Meaning of fields of msg:
-       msg->dest is the root of the reduction (ie., the slave that sent 
+       msg->dest is the root of the reduction (ie., the slave that sent
                  a message to the master)
 */
 /*************************************************************************/
@@ -76,12 +76,12 @@ void *mstr_merge_send(void *arg)
 
   /* check to see if this is the first slave calling the reduction */
   if (comm->counter == comm->lsize) {
-    pending_addmerge(job, msg, minfo, 
+    pending_addmerge(job, msg, minfo,
         (babel_is_local(comm, msg->dest) ? comm->lsize+1 : comm->lsize));
   }
   else { /* this is a set of data that needs to be reduced with the current data */
     if ((hdr = pending_getmerge(job, msg)) == NULL) {
-      slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n", 
+      slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n",
           msg->source, msg->dest, msg->mcomm);
     }
 
@@ -95,8 +95,8 @@ void *mstr_merge_send(void *arg)
 
   /* do some work when all slaves have called */
   if (--comm->counter == 0) {
-    if ((hdr = pending_getmerge(job, msg)) == NULL) 
-      slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n", 
+    if ((hdr = pending_getmerge(job, msg)) == NULL)
+      slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n",
           msg->source, msg->dest, msg->mcomm);
     cminfo = (mergeinfo_t *)hdr->buf;
 
@@ -111,16 +111,16 @@ void *mstr_merge_send(void *arg)
 
         nleft = comm->nnodes-1;
         while (nleft > 0) {
-          MPI_Recv(&(minfo->len), sizeof(size_t), MPI_BYTE, MPI_ANY_SOURCE, 20000, 
+          MPI_Recv(&(minfo->len), sizeof(size_t), MPI_BYTE, MPI_ANY_SOURCE, 20000,
               comm->mpi_comm, &status);
           i = status.MPI_SOURCE;
 
           minfo->buf = gk_cmalloc(minfo->len*dtsize, "merge: buf");
           minfo->ids = gk_imalloc(minfo->len, "merge: ids");
 
-          MPI_Recv(minfo->buf, minfo->len*dtsize, MPI_BYTE, i, 20001, comm->mpi_comm, 
+          MPI_Recv(minfo->buf, minfo->len*dtsize, MPI_BYTE, i, 20001, comm->mpi_comm,
               &status);
-          MPI_Recv(minfo->ids, minfo->len, MPI_INT, i, 20002, comm->mpi_comm, 
+          MPI_Recv(minfo->ids, minfo->len, MPI_INT, i, 20002, comm->mpi_comm,
               &status);
 
           gk_startwctimer(job->aux3Tmr);
@@ -147,7 +147,7 @@ void *mstr_merge_send(void *arg)
       pending_freeheader(job, &hdr);
     }
 
-    /* all processes have called reduce, unblock them in order to get to the second 
+    /* all processes have called reduce, unblock them in order to get to the second
        step of reduce */
     comm->counter = comm->lsize;
     for (i=0; i<comm->lsize; i++)
@@ -171,10 +171,10 @@ void *mstr_merge_send(void *arg)
        Sends the data to the root.
 
     Meaning of fields of msg:
-       msg->dest is the root of the reduction (ie., the slave that sent 
+       msg->dest is the root of the reduction (ie., the slave that sent
                  a message to the master)
 
-    Note: Only the root will ever call this.                   
+    Note: Only the root will ever call this.
 */
 /*************************************************************************/
 void *mstr_merge_recv(void *arg)
@@ -191,7 +191,7 @@ void *mstr_merge_recv(void *arg)
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_merge_recv: counter: %d [entering]\n",
                         job->mynode, msg->myrank, job->comms[msg->mcomm]->counter));
 
-  if (msg->myrank != msg->dest) 
+  if (msg->myrank != msg->dest)
     slvpool_abort(1, "The merge_recv is not called from the root: root:%d myrank:%d\n",
         msg->dest, msg->myrank);
 
@@ -200,20 +200,20 @@ void *mstr_merge_recv(void *arg)
   srank = babel_get_srank(comm, msg->myrank);
 
   /* get the header */
-  if ((hdr = pending_getmerge(job, msg)) == NULL) 
-    slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n", 
+  if ((hdr = pending_getmerge(job, msg)) == NULL)
+    slvpool_abort(1, "Failed to find a header for a merge operation! [%d %d %d]\n",
         msg->source, msg->dest, msg->mcomm);
 
   cminfo = (mergeinfo_t *)hdr->buf;
 
-  if (msg->count < cminfo->len) 
+  if (msg->count < cminfo->len)
     slvpool_abort(1, "The length of the merged info is greater than the provided recv buffer [%zu %zu].\n",
         msg->count, cminfo->len);
 
   /* send the data to the slave */
-  xfer_out_scb(job->scbs[srank], &(cminfo->len), 1, BDMPI_SIZE_T); 
-  xfer_out_scb(job->scbs[srank], cminfo->buf, cminfo->len, msg->datatype); 
-  xfer_out_scb(job->scbs[srank], cminfo->ids, cminfo->len, BDMPI_INT); 
+  xfer_out_scb(job->scbs[srank], &(cminfo->len), 1, BDMPI_SIZE_T);
+  xfer_out_scb(job->scbs[srank], cminfo->buf, cminfo->len, msg->datatype);
+  xfer_out_scb(job->scbs[srank], cminfo->ids, cminfo->len, BDMPI_INT);
 
   gk_free((void **)&cminfo->ids, &cminfo->buf, LTERM);
   pending_freeheader(job, &hdr);
@@ -227,7 +227,6 @@ void *mstr_merge_recv(void *arg)
 
   return NULL;
 }
-
 
 
 /*************************************************************************/

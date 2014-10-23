@@ -5,7 +5,9 @@
 \author George
 */
 
+
 #include "bdmplib.h"
+
 
 #define MERGE_APPLY_OP1(i, a, b, count, op) \
   do {\
@@ -76,7 +78,6 @@
   } while (0)
 
 
-
 /*************************************************************************/
 /*! Performs BDMPI_Merge() */
 /*************************************************************************/
@@ -85,7 +86,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
   size_t i, len, chunk, size, dtsize;
-  int mype, response, sleeping=1;
+  int mype, sleeping=1;
   bdmsg_t msg, gomsg;
 
 
@@ -141,7 +142,7 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {

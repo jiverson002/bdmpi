@@ -1,17 +1,17 @@
 /*!
 \file
-\brief Contails various functions for dealing with intra/inter communicators and 
+\brief Contails various functions for dealing with intra/inter communicators and
        manipulations of their ranks.
 \date Started 6/5/2013
 \author George
 */
 
+
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
-/*! Returns the slave rank of a global rank. It aborts if the global rank 
+/*! Returns the slave rank of a global rank. It aborts if the global rank
     does not correspond to a rank mapped to the local node. */
 /*************************************************************************/
 int babel_get_srank(bdmcomm_t *comm, int grank)
@@ -28,7 +28,7 @@ int babel_get_srank(bdmcomm_t *comm, int grank)
 
 
 /*************************************************************************/
-/*! Returns the local rank of a global rank. It aborts if the global 
+/*! Returns the local rank of a global rank. It aborts if the global
     rank does not correspond to a rank within the intra communicator. */
 /*************************************************************************/
 int babel_get_lrank(bdmcomm_t *comm, int grank)
@@ -45,7 +45,7 @@ int babel_get_lrank(bdmcomm_t *comm, int grank)
 
 
 /*************************************************************************/
-/*! Returns the global rank of a local rank. It aborts if the local 
+/*! Returns the global rank of a local rank. It aborts if the local
     rank does not correspond to a rank within the intra communicator. */
 /*************************************************************************/
 int babel_get_grank(bdmcomm_t *comm, int lrank)
@@ -90,10 +90,10 @@ int babel_get_my_mcomm(mjob_t *job, int mpi_commid)
   int i, mcomm=-1;
 
   if (mpi_commid == BDMPI_COMM_WORLD)
-    return BDMPI_COMM_WORLD;  
+    return BDMPI_COMM_WORLD;
   if (mpi_commid == BDMPI_COMM_NODE)
-    return BDMPI_COMM_NODE;  
-  
+    return BDMPI_COMM_NODE;
+
   BD_GET_LOCK(job->comm_lock);
   for (i=job->maxncomm-1; i>0; i--) {
     if (job->comms[i] != NULL && job->comms[i]->mpi_commid == mpi_commid) {

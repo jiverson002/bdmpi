@@ -9,19 +9,18 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a completion of BDMPI_Init().
     - Increases the number of slaves in the pool.
     - When all have joined, it unblocks them and makes them runnable.
-    It assumes that prior to initialization, all slaves are runnable and 
+    It assumes that prior to initialization, all slaves are runnable and
     unblocked. The call to _Init() creates the co-operating execution.
 */
 /*************************************************************************/
 void mstr_init(mjob_t *job, bdmsg_t *msg)
 {
   size_t i;
-  
+
   /* block it */
   slvpool_cblock(job, msg->myrank-job->jdesc->soffset);
 
@@ -47,4 +46,3 @@ void mstr_init(mjob_t *job, bdmsg_t *msg)
 
   return;
 }
-

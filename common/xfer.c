@@ -112,7 +112,6 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
   char *fname;
   int fd;
   size_t len, size = bdmp_msize(count, datatype);
-  ssize_t err;
 
   if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
     errexit("xfer_out_disk: Failed to create filename.\n");
@@ -123,7 +122,7 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
   //bdprintf("out_disk: %zu bytes from %p [%zu %zu]\n", size, buf, size, fnum);
   do {
     len = (size > BDMPI_DISK_CHUNK ? BDMPI_DISK_CHUNK : size);
-    if ((size_t)(err=write(fd, buf, len)) != len)
+    if (write(fd, buf, len) != len)
       errexit("xfer_out_disk: Write size does not match: %s\n", strerror(errno));
     buf += len;
     size -= len;

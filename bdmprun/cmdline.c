@@ -7,6 +7,7 @@
 \version\verbatim $Id: cmdline_gpmetis.c 13901 2013-03-24 16:17:03Z karypis $\endverbatim
 */
 
+
 #include "bdmprun.h"
 
 
@@ -117,7 +118,6 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
   bdmp->sbsize   = BDMPRUN_DEFAULT_SBSIZE;
-  bdmp->rmsize   = BDMPRUN_DEFAULT_RMSIZE;
   bdmp->lockmem  = BDMPRUN_DEFAULT_LOCKMEM;
   bdmp->dbglvl   = BDMPRUN_DEFAULT_DBGLVL;
   bdmp->iwdir    = NULL;

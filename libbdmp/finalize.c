@@ -14,16 +14,13 @@
 /*************************************************************************/
 int bdmp_Finalize(sjob_t *job)
 {
-  int i, response;
+  int i;
   bdmsg_t donemsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
-
-  /* turn off sbmalloc */
-  sb_finalize();
 
   /* send a message to the slave telling it that you are leaving... */
   donemsg.msgtype = BDMPI_MSGTYPE_FINALIZE;
@@ -32,10 +29,14 @@ int bdmp_Finalize(sjob_t *job)
   if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
-  /* wait for a go response from the master */
-  BDMPI_SLEEP(job, gomsg);
+  /* turn off sbmalloc */
+  sb_finalize();
 
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following response: %d\n", gomsg.msgtype));
+  /* wait for a go response from the master */
+  BDMPL_SLEEP(job, gomsg);
+
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following msg:"
+    "%d\n", gomsg.msgtype));
 
   /* close the global SMR */
   bdsm_close(job->globalSM);

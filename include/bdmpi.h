@@ -1,5 +1,5 @@
 /*!
-\file bdmpi.h 
+\file bdmpi.h
 \brief This file contains function prototypes and constant definitions for BDMPI
  *
 \author George
@@ -8,7 +8,7 @@
 */
 
 #ifndef _BDMPI_H_
-#define _BDMPI_H_ 
+#define _BDMPI_H_
 
 
 /* Uniform definitions for various compilers */
@@ -78,7 +78,7 @@ typedef __int64 int64_t;
 /* Reduction operation types */
 typedef int BDMPI_Op;
 
-#define BDMPI_OP_NULL   ((BDMPI_Op) -1)         
+#define BDMPI_OP_NULL   ((BDMPI_Op) -1)
 
 #define BDMPI_MAX       ((BDMPI_Op)1001)    /*!< max reduction */
 #define BDMPI_MIN       ((BDMPI_Op)1002)    /*!< min reduction */
@@ -184,12 +184,12 @@ typedef enum {
   BDMPI_REQUEST_ISEND,           /*!< Request created due to an Isend */
   BDMPI_REQUEST_IRECV,           /*!< Request created due to an Irecv */
   BDMPI_REQUEST_REDUCEI,         /*!< Request created due to a Reduce_init */
-} bdmp_request_et; 
+} bdmp_request_et;
 
 
 /*! Request */
 typedef struct {
-  bdmp_request_et type; 
+  bdmp_request_et type;
   int state;
   void *buf;
   BDMPI_Status status;
@@ -202,7 +202,7 @@ typedef bdrequest_t * BDMPI_Request;
 
 
 /*------------------------------------------------------------------------
-* Prototypes 
+* Prototypes
 *-------------------------------------------------------------------------*/
 #ifdef _WINDLL
 #define BDMPI_API(type) __declspec(dllexport) type __cdecl
@@ -246,68 +246,68 @@ BDMPI_API(int) BDMPI_Comm_rrank(BDMPI_Comm comm, int *rrank);
 BDMPI_API(int) BDMPI_Comm_dup(BDMPI_Comm comm, BDMPI_Comm *newcomm);
 BDMPI_API(int) BDMPI_Comm_free(BDMPI_Comm *comm);
 BDMPI_API(int) BDMPI_Comm_split(BDMPI_Comm comm, int color, int key, BDMPI_Comm *newcomm);
-BDMPI_API(int) BDMPI_Send(void *buf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Send(void *buf, size_t count, BDMPI_Datatype datatype,
                    int dest, int tag, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Isend(void *buf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Isend(void *buf, size_t count, BDMPI_Datatype datatype,
                    int dest, int tag, BDMPI_Comm comm, BDMPI_Request *request);
-BDMPI_API(int) BDMPI_Recv(void *buf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Recv(void *buf, size_t count, BDMPI_Datatype datatype,
                    int source, int tag, BDMPI_Comm comm, BDMPI_Status *status);
-BDMPI_API(int) BDMPI_Irecv(void *buf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Irecv(void *buf, size_t count, BDMPI_Datatype datatype,
                    int source, int tag, BDMPI_Comm comm, BDMPI_Request *request);
-BDMPI_API(int) BDMPI_Sendrecv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype, 
-                   int dest, int sendtag, void *recvbuf, size_t recvcount, 
+BDMPI_API(int) BDMPI_Sendrecv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
+                   int dest, int sendtag, void *recvbuf, size_t recvcount,
                    BDMPI_Datatype recvtype, int source, int recvtag, BDMPI_Comm comm,
                    BDMPI_Status *status);
 BDMPI_API(int) BDMPI_Test(BDMPI_Request *request, int *flag, BDMPI_Status *status);
 BDMPI_API(int) BDMPI_Wait(BDMPI_Request *request, BDMPI_Status *status);
 BDMPI_API(int) BDMPI_Waitall(int count, BDMPI_Request *request, BDMPI_Status *status);
-BDMPI_API(int) BDMPI_Get_count(BDMPI_Status *status, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Get_count(BDMPI_Status *status, BDMPI_Datatype datatype,
                    size_t *count);
 BDMPI_API(int) BDMPI_Barrier(BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Bcast(void *buf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Bcast(void *buf, size_t count, BDMPI_Datatype datatype,
                    int root, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Allgather(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
                    void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype,
                    BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Allgatherv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-                   void *recvbuf, size_t *recvcounts, size_t *displs, 
+                   void *recvbuf, size_t *recvcounts, size_t *displs,
                    BDMPI_Datatype recvtype, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Gather(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
                    void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype,
                    int root, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Gatherv(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
-                   void *recvbuf, size_t *recvcounts, size_t *displs, 
+                   void *recvbuf, size_t *recvcounts, size_t *displs,
                    BDMPI_Datatype recvtype, int root, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Scatter(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
                    void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype,
                    int root, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Scatterv(void *sendbuf, size_t *sendcounts, size_t *displs, 
-                   BDMPI_Datatype sendtype, void *recvbuf, size_t recvcount, 
+BDMPI_API(int) BDMPI_Scatterv(void *sendbuf, size_t *sendcounts, size_t *displs,
+                   BDMPI_Datatype sendtype, void *recvbuf, size_t recvcount,
                    BDMPI_Datatype recvtype, int root, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Alltoall(void *sendbuf, size_t sendcount, BDMPI_Datatype sendtype,
                    void *recvbuf, size_t recvcount, BDMPI_Datatype recvtype,
                    BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Alltoallv(void *sendbuf, size_t *sendcounts, size_t *sdipls, 
-                   BDMPI_Datatype sendtype, void *recvbuf, size_t *recvcounts, 
+BDMPI_API(int) BDMPI_Alltoallv(void *sendbuf, size_t *sendcounts, size_t *sdipls,
+                   BDMPI_Datatype sendtype, void *recvbuf, size_t *recvcounts,
                    size_t *rdispls, BDMPI_Datatype recvtype, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Reduce(void *sendbuf, void *recvbuf, size_t count, 
+BDMPI_API(int) BDMPI_Reduce(void *sendbuf, void *recvbuf, size_t count,
                    BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Reduce_init(void *sendbuf, void *recvbuf, size_t count, 
+BDMPI_API(int) BDMPI_Reduce_init(void *sendbuf, void *recvbuf, size_t count,
                    BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
                    BDMPI_Request *request);
-BDMPI_API(int) BDMPI_Reduce_fine(void *recvbuf, size_t count, BDMPI_Datatype datatype, 
+BDMPI_API(int) BDMPI_Reduce_fine(void *recvbuf, size_t count, BDMPI_Datatype datatype,
                    BDMPI_Op op, int root, BDMPI_Comm comm, BDMPI_Request *request);
-BDMPI_API(int) BDMPI_Allreduce(void *sendbuf, void *recvbuf, size_t count, 
+BDMPI_API(int) BDMPI_Allreduce(void *sendbuf, void *recvbuf, size_t count,
                    BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Merge(void *sendbuf, int *sendids, size_t sendcount, 
-                   void *recvbuf, int *recvids, size_t *r_recvcount, 
+BDMPI_API(int) BDMPI_Merge(void *sendbuf, int *sendids, size_t sendcount,
+                   void *recvbuf, int *recvids, size_t *r_recvcount,
                    BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm);
 BDMPI_API(int) BDMPI_Probe(int source, int tag, BDMPI_Comm comm, BDMPI_Status *status);
-BDMPI_API(int) BDMPI_Iprobe(int source, int tag, BDMPI_Comm comm, int *flag, 
+BDMPI_API(int) BDMPI_Iprobe(int source, int tag, BDMPI_Comm comm, int *flag,
                    BDMPI_Status *status);
-BDMPI_API(int) BDMPI_Scan(void *sendbuf, void *recvbuf, size_t count, 
+BDMPI_API(int) BDMPI_Scan(void *sendbuf, void *recvbuf, size_t count,
                    BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm);
-BDMPI_API(int) BDMPI_Exscan(void *sendbuf, void *recvbuf, size_t count, 
+BDMPI_API(int) BDMPI_Exscan(void *sendbuf, void *recvbuf, size_t count,
                    BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm);
 BDMPI_API(double) BDMPI_Wtime(void);
 
@@ -318,94 +318,94 @@ BDMPI_API(double) BDMPI_Wtime(void);
 
 #ifndef BDMPRUN
 /*------------------------------------------------------------------------
-* The MPI-compliant interface 
+* The MPI-compliant interface
 *-------------------------------------------------------------------------*/
 #define MPI_UNDEFINED    (-32766)
 
 /* Wild-cards */
-#define MPI_ANY_SOURCE  BDMPI_ANY_SOURCE         
-#define MPI_ANY_TAG     BDMPI_ANY_TAG            
+#define MPI_ANY_SOURCE  BDMPI_ANY_SOURCE
+#define MPI_ANY_TAG     BDMPI_ANY_TAG
 
 
 /* Return codes  */
-#define MPI_SUCCESS       BDMPI_SUCCESS       
-#define MPI_INPROGRESS    BDMPI_INPROGRESS    
-#define MPI_ERR_UNKNOWN   BDMPI_ERR_UNKNOWN   
-#define MPI_ERR_COMM      BDMPI_ERR_COMM      
-#define MPI_ERR_ARG       BDMPI_ERR_ARG       
-#define MPI_ERR_BUFFER    BDMPI_ERR_BUFFER    
-#define MPI_ERR_COUNT     BDMPI_ERR_COUNT     
-#define MPI_ERR_TYPE      BDMPI_ERR_TYPE      
-#define MPI_ERR_TAG       BDMPI_ERR_TAG       
-#define MPI_ERR_ROOT      BDMPI_ERR_ROOT      
-#define MPI_ERR_RANK      BDMPI_ERR_RANK      
-#define MPI_ERR_TRUNCATE  BDMPI_ERR_TRUNCATE  
-#define MPI_ERR_OP        BDMPI_ERR_OP        
+#define MPI_SUCCESS       BDMPI_SUCCESS
+#define MPI_INPROGRESS    BDMPI_INPROGRESS
+#define MPI_ERR_UNKNOWN   BDMPI_ERR_UNKNOWN
+#define MPI_ERR_COMM      BDMPI_ERR_COMM
+#define MPI_ERR_ARG       BDMPI_ERR_ARG
+#define MPI_ERR_BUFFER    BDMPI_ERR_BUFFER
+#define MPI_ERR_COUNT     BDMPI_ERR_COUNT
+#define MPI_ERR_TYPE      BDMPI_ERR_TYPE
+#define MPI_ERR_TAG       BDMPI_ERR_TAG
+#define MPI_ERR_ROOT      BDMPI_ERR_ROOT
+#define MPI_ERR_RANK      BDMPI_ERR_RANK
+#define MPI_ERR_TRUNCATE  BDMPI_ERR_TRUNCATE
+#define MPI_ERR_OP        BDMPI_ERR_OP
 
 
 /* Reduction operation types */
 typedef BDMPI_Op MPI_Op;
 
-#define MPI_OP_NULL BDMPI_OP_NULL   
+#define MPI_OP_NULL BDMPI_OP_NULL
 
-#define MPI_MAX       BDMPI_MAX       
-#define MPI_MIN       BDMPI_MIN       
-#define MPI_SUM       BDMPI_SUM       
-#define MPI_PROD      BDMPI_PROD      
-#define MPI_LAND      BDMPI_LAND      
-#define MPI_BAND      BDMPI_BAND      
-#define MPI_LOR       BDMPI_LOR       
-#define MPI_BOR       BDMPI_BOR       
-#define MPI_LXOR      BDMPI_LXOR      
-#define MPI_BXOR      BDMPI_BXOR      
-#define MPI_MAXLOC    BDMPI_MAXLOC    
-#define MPI_MINLOC    BDMPI_MINLOC    
+#define MPI_MAX       BDMPI_MAX
+#define MPI_MIN       BDMPI_MIN
+#define MPI_SUM       BDMPI_SUM
+#define MPI_PROD      BDMPI_PROD
+#define MPI_LAND      BDMPI_LAND
+#define MPI_BAND      BDMPI_BAND
+#define MPI_LOR       BDMPI_LOR
+#define MPI_BOR       BDMPI_BOR
+#define MPI_LXOR      BDMPI_LXOR
+#define MPI_BXOR      BDMPI_BXOR
+#define MPI_MAXLOC    BDMPI_MAXLOC
+#define MPI_MINLOC    BDMPI_MINLOC
 
 
 
 /* Data types */
 typedef BDMPI_Datatype MPI_Datatype;
 
-#define MPI_DATATYPE_NULL BDMPI_DATATYPE_NULL     
+#define MPI_DATATYPE_NULL BDMPI_DATATYPE_NULL
 
-#define MPI_CHAR                BDMPI_CHAR                
-#define MPI_SIGNED_CHAR         BDMPI_SIGNED_CHAR         
-#define MPI_UNSIGNED_CHAR       BDMPI_UNSIGNED_CHAR       
-#define MPI_BYTE                BDMPI_BYTE                
-#define MPI_WCHAR               BDMPI_WCHAR               
-#define MPI_SHORT               BDMPI_SHORT               
-#define MPI_UNSIGNED_SHORT      BDMPI_UNSIGNED_SHORT      
-#define MPI_INT                 BDMPI_INT                 
-#define MPI_UNSIGNED            BDMPI_UNSIGNED            
-#define MPI_LONG                BDMPI_LONG                
-#define MPI_UNSIGNED_LONG       BDMPI_UNSIGNED_LONG       
-#define MPI_LONG_LONG_INT       BDMPI_LONG_LONG_INT       
-#define MPI_UNSIGNED_LONG_LONG  BDMPI_UNSIGNED_LONG_LONG  
-#define MPI_INT8_T              BDMPI_INT8_T              
-#define MPI_UINT8_T             BDMPI_UINT8_T             
-#define MPI_INT16_T             BDMPI_INT16_T             
-#define MPI_UINT16_T            BDMPI_UINT16_T            
-#define MPI_INT32_T             BDMPI_INT32_T             
-#define MPI_UINT32_T            BDMPI_UINT32_T            
-#define MPI_INT64_T             BDMPI_INT64_T             
-#define MPI_UINT64_T            BDMPI_UINT64_T            
-#define MPI_SIZE_T              BDMPI_SIZE_T              
-#define MPI_SSIZE_T             BDMPI_SSIZE_T             
-#define MPI_FLOAT               BDMPI_FLOAT               
-#define MPI_DOUBLE              BDMPI_DOUBLE              
-#define MPI_FLOAT_INT           BDMPI_FLOAT_INT          
-#define MPI_DOUBLE_INT          BDMPI_DOUBLE_INT         
-#define MPI_LONG_INT            BDMPI_LONG_INT           
-#define MPI_SHORT_INT           BDMPI_SHORT_INT          
-#define MPI_2INT                BDMPI_2INT               
+#define MPI_CHAR                BDMPI_CHAR
+#define MPI_SIGNED_CHAR         BDMPI_SIGNED_CHAR
+#define MPI_UNSIGNED_CHAR       BDMPI_UNSIGNED_CHAR
+#define MPI_BYTE                BDMPI_BYTE
+#define MPI_WCHAR               BDMPI_WCHAR
+#define MPI_SHORT               BDMPI_SHORT
+#define MPI_UNSIGNED_SHORT      BDMPI_UNSIGNED_SHORT
+#define MPI_INT                 BDMPI_INT
+#define MPI_UNSIGNED            BDMPI_UNSIGNED
+#define MPI_LONG                BDMPI_LONG
+#define MPI_UNSIGNED_LONG       BDMPI_UNSIGNED_LONG
+#define MPI_LONG_LONG_INT       BDMPI_LONG_LONG_INT
+#define MPI_UNSIGNED_LONG_LONG  BDMPI_UNSIGNED_LONG_LONG
+#define MPI_INT8_T              BDMPI_INT8_T
+#define MPI_UINT8_T             BDMPI_UINT8_T
+#define MPI_INT16_T             BDMPI_INT16_T
+#define MPI_UINT16_T            BDMPI_UINT16_T
+#define MPI_INT32_T             BDMPI_INT32_T
+#define MPI_UINT32_T            BDMPI_UINT32_T
+#define MPI_INT64_T             BDMPI_INT64_T
+#define MPI_UINT64_T            BDMPI_UINT64_T
+#define MPI_SIZE_T              BDMPI_SIZE_T
+#define MPI_SSIZE_T             BDMPI_SSIZE_T
+#define MPI_FLOAT               BDMPI_FLOAT
+#define MPI_DOUBLE              BDMPI_DOUBLE
+#define MPI_FLOAT_INT           BDMPI_FLOAT_INT
+#define MPI_DOUBLE_INT          BDMPI_DOUBLE_INT
+#define MPI_LONG_INT            BDMPI_LONG_INT
+#define MPI_SHORT_INT           BDMPI_SHORT_INT
+#define MPI_2INT                BDMPI_2INT
 
 
 /* Communicators */
 typedef BDMPI_Comm MPI_Comm;
 
 #define MPI_COMM_NULL     BDMPI_COMM_NULL
-#define MPI_COMM_WORLD    BDMPI_COMM_WORLD    
-#define MPI_COMM_SELF     BDMPI_COMM_SELF    
+#define MPI_COMM_WORLD    BDMPI_COMM_WORLD
+#define MPI_COMM_SELF     BDMPI_COMM_SELF
 
 /* Processes */
 #define MPI_PROC_NULL BDMPI_PROC_NULL
@@ -413,7 +413,7 @@ typedef BDMPI_Comm MPI_Comm;
 /* Status */
 typedef BDMPI_Status MPI_Status;
 
-#define MPI_STATUS_IGNORE BDMPI_STATUS_IGNORE 
+#define MPI_STATUS_IGNORE BDMPI_STATUS_IGNORE
 
 
 /*! Request */
@@ -423,7 +423,7 @@ typedef BDMPI_Request MPI_Request;
 
 
 /*------------------------------------------------------------------------
-* Prototypes 
+* Prototypes
 *-------------------------------------------------------------------------*/
 #ifdef _WINDLL
 #define MPI_API(type) __declspec(dllexport) type __cdecl
@@ -444,13 +444,13 @@ MPI_API(int) MPI_Comm_lrank(MPI_Comm comm, int *lrank);
 MPI_API(int) MPI_Comm_nsize(MPI_Comm comm, int *nsize);
 MPI_API(int) MPI_Comm_nrank(MPI_Comm comm, int *nrank);
 MPI_API(int) MPI_Comm_rrank(MPI_Comm comm, int *rrank);
-MPI_API(int) MPI_Reduce_init(void *sendbuf, void *recvbuf, int count, 
+MPI_API(int) MPI_Reduce_init(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm,
                    MPI_Request *request);
-MPI_API(int) MPI_Reduce_fine(void *recvbuf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Reduce_fine(void *recvbuf, int count, MPI_Datatype datatype,
                    MPI_Op op, int root, MPI_Comm comm, MPI_Request *request);
-MPI_API(int) MPI_Merge(void *sendbuf, int *sendids, int sendcount, 
-                   void *recvbuf, int *recvids, int *r_recvcount, 
+MPI_API(int) MPI_Merge(void *sendbuf, int *sendids, int sendcount,
+                   void *recvbuf, int *recvids, int *r_recvcount,
                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
 
 MPI_API(int) MPI_Init(int *argc, char **argv[]);
@@ -460,60 +460,60 @@ MPI_API(int) MPI_Comm_rank(MPI_Comm comm, int *rank);
 MPI_API(int) MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 MPI_API(int) MPI_Comm_free(MPI_Comm *comm);
 MPI_API(int) MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
-MPI_API(int) MPI_Send(void *buf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Send(void *buf, int count, MPI_Datatype datatype,
                    int dest, int tag, MPI_Comm comm);
-MPI_API(int) MPI_Isend(void *buf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Isend(void *buf, int count, MPI_Datatype datatype,
                    int dest, int tag, MPI_Comm comm, MPI_Request *request);
-MPI_API(int) MPI_Recv(void *buf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                    int source, int tag, MPI_Comm comm, MPI_Status *status);
-MPI_API(int) MPI_Irecv(void *buf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
                    int source, int tag, MPI_Comm comm, MPI_Request *request);
-MPI_API(int) MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, 
-                   int dest, int sendtag, void *recvbuf, int recvcount, 
+MPI_API(int) MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                   int dest, int sendtag, void *recvbuf, int recvcount,
                    MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
                    MPI_Status *status);
 MPI_API(int) MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 MPI_API(int) MPI_Wait(MPI_Request *request, MPI_Status *status);
 MPI_API(int) MPI_Waitall(int count, MPI_Request *request, MPI_Status *status);
-MPI_API(int) MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, 
+MPI_API(int) MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                    int *count);
 MPI_API(int) MPI_Barrier(MPI_Comm comm);
-MPI_API(int) MPI_Bcast(void *buf, int count, MPI_Datatype datatype, 
+MPI_API(int) MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
                    int root, MPI_Comm comm);
 MPI_API(int) MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    MPI_Comm comm);
 MPI_API(int) MPI_Allgatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                   void *recvbuf, int *recvcounts, int *displs, 
+                   void *recvbuf, int *recvcounts, int *displs,
                    MPI_Datatype recvtype, MPI_Comm comm);
 MPI_API(int) MPI_Gather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    int root, MPI_Comm comm);
 MPI_API(int) MPI_Gatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                   void *recvbuf, int *recvcounts, int *displs, 
+                   void *recvbuf, int *recvcounts, int *displs,
                    MPI_Datatype recvtype, int root, MPI_Comm comm);
 MPI_API(int) MPI_Scatter(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    int root, MPI_Comm comm);
-MPI_API(int) MPI_Scatterv(void *sendbuf, int *sendcounts, int *displs, 
-                   MPI_Datatype sendtype, void *recvbuf, int recvcount, 
+MPI_API(int) MPI_Scatterv(void *sendbuf, int *sendcounts, int *displs,
+                   MPI_Datatype sendtype, void *recvbuf, int recvcount,
                    MPI_Datatype recvtype, int root, MPI_Comm comm);
 MPI_API(int) MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    MPI_Comm comm);
-MPI_API(int) MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdipls, 
-                   MPI_Datatype sendtype, void *recvbuf, int *recvcounts, 
+MPI_API(int) MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdipls,
+                   MPI_Datatype sendtype, void *recvbuf, int *recvcounts,
                    int *rdispls, MPI_Datatype recvtype, MPI_Comm comm);
-MPI_API(int) MPI_Reduce(void *sendbuf, void *recvbuf, int count, 
+MPI_API(int) MPI_Reduce(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
-MPI_API(int) MPI_Allreduce(void *sendbuf, void *recvbuf, int count, 
+MPI_API(int) MPI_Allreduce(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
 MPI_API(int) MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
-MPI_API(int) MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag, 
+MPI_API(int) MPI_Iprobe(int source, int tag, MPI_Comm comm, int *flag,
                    MPI_Status *status);
-MPI_API(int) MPI_Scan(void *sendbuf, void *recvbuf, int count, 
+MPI_API(int) MPI_Scan(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
-MPI_API(int) MPI_Exscan(void *sendbuf, void *recvbuf, int count, 
+MPI_API(int) MPI_Exscan(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
 MPI_API(double) MPI_Wtime(void);
 

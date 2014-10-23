@@ -139,7 +139,6 @@ void sb_free(void *buf);
 int sb_exists(void *ptr);
 void sb_save(void *buf);
 void sb_saveall();
-size_t sb_saveall_internal();
 void sb_load(void *buf);
 void sb_loadall();
 void sb_discard(void *ptr, ssize_t size);

@@ -123,7 +123,6 @@ int bdmp_Comm_rrank(sjob_t *job, BDMPI_Comm comm, int *rrank)
 int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 {
   size_t i;
-  int response;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_dup: entering: comm: %p\n", comm));
@@ -147,7 +146,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* allocate the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
@@ -166,7 +165,6 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 /*************************************************************************/
 int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 {
-  int response;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_dup: entering: comm: %p\n", *comm));
@@ -190,7 +188,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* remove the info associated with the old communicator */
   gk_free((void **)comm, LTERM);
@@ -206,7 +204,6 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
           BDMPI_Comm *newcomm)
 {
-  int response;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Comm_split: entering: comm: %p\n", comm));
@@ -234,7 +231,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* create the new communicator */
   *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");

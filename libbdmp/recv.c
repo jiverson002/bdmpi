@@ -15,7 +15,7 @@
 int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int source, int tag, BDMPI_Comm comm, BDMPI_Status *status)
 {
-  int mype, flag=0, response;
+  int mype, response, flag=0;
   bdmsg_t msg, rmsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS,
@@ -42,7 +42,9 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   /* save the state in case you go to sleep */
   bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
+#ifdef BDMPL_WITH_SB_DISCARD
     sb_discard(buf, bdmp_msize(count, datatype));
+#endif
 #ifdef BDMPL_WITH_SB_SAVEALL
     if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
@@ -77,7 +79,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 #endif
 
     /* go to sleep... */
-    BDMPI_SLEEP(job, gomsg);
+    BDMPL_SLEEP(job, gomsg);
   }
 
   /* get the missing message info from the master */

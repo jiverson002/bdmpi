@@ -1,6 +1,6 @@
 /*!
 \file
-\brief A program to test Allgather
+\brief A program to test Allgather 
 \date Started 4/5/2013
 \author George
 */
@@ -52,20 +52,20 @@ int main(int argc, char *argv[])
 
     /* test 1 */
     MPI_Allgather(sendbuf, n, MPI_INT, recvbuf, n, MPI_INT, MPI_COMM_WORLD);
-
+  
     for (k=0; k<npes; k++) {
       for (i=0; i<n; i++) {
         if (recvbuf[k*n+i] != i)
           printf("[%3d]Error: recvbuf[%d]: got %d instead of %d\n", myrank, k*n+i, recvbuf[k*n+i], i);
       }
     }
-
+  
     /* test 2 */
     for (i=0; i<n; i++)
       sendbuf[i] = i+myrank;
-
+  
     MPI_Allgather(sendbuf, n, MPI_INT, recvbuf, n, MPI_INT, MPI_COMM_WORLD);
-
+  
     for (k=0; k<npes; k++) {
       for (i=0; i<n; i++) {
         if (recvbuf[k*n+i] != i+k)
@@ -100,14 +100,14 @@ int main(int argc, char *argv[])
       for (j=0; j<i; j++)
         displs[i] += j;
     }
-
-    MPI_Allgatherv(sendbuf, n+myrank, MPI_INT, recvbuf, counts, displs, MPI_INT,
+  
+    MPI_Allgatherv(sendbuf, n+myrank, MPI_INT, recvbuf, counts, displs, MPI_INT, 
         MPI_COMM_WORLD);
-
+  
     for (k=0; k<npes; k++) {
       for (i=0; i<n+k; i++) {
         if (recvbuf[displs[k]+i] != i+k)
-          printf("[%3d]Error: recvbuf[%d]: got %d instead of %d\n",
+          printf("[%3d]Error: recvbuf[%d]: got %d instead of %d\n", 
               myrank, displs[k]+i, recvbuf[displs[k]+i], i+k);
       }
     }

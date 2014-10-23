@@ -18,7 +18,7 @@ int bdmp_Gatherv_node(sjob_t *job,
           BDMPI_Comm comm)
 {
   size_t sdtsize, rdtsize;
-  int npes, mype, i, p, response, sleeping=1;
+  int npes, mype, i, p, sleeping=1;
   bdmsg_t msg, rmsg, gomsg;
   ssize_t myfnum=-1;
 
@@ -98,8 +98,7 @@ int bdmp_Gatherv_node(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  BDMPI_SLEEP(job, gomsg);
-
+  BDMPL_SLEEP(job, gomsg);
 
   /*=====================================================================*/
   /* after waking up... */
@@ -263,8 +262,10 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     }
 
     /* sbdiscard the incoming buffers */
+#ifdef BDMPL_WITH_SB_DISCARD
     for (p=0; p<npes; p++)
       sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
+#endif
 
     /* receive data from everybody else */
     msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -295,7 +296,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
         if (job->jdesc->nr < job->jdesc->ns)
           sb_saveall();
 #endif
-        BDMPI_SLEEP(job, gomsg);
+        BDMPL_SLEEP(job, gomsg);
       }
 
       /* get the missing message info from the master */

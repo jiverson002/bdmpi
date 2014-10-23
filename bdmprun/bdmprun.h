@@ -64,4 +64,3 @@
 extern
 #endif
 mjob_t *job;
-

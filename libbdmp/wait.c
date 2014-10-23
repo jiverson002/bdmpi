@@ -5,7 +5,6 @@
 \author George
 */
 
-
 #include "bdmplib.h"
 
 
@@ -17,7 +16,7 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
   BDMPI_Request request = *r_request;
   int ierror;
 
-  S_IFSET(BDMPI_DBG_IPCS,
+  S_IFSET(BDMPI_DBG_IPCS, 
       bdprintf("BDMPI_Wait: Testing a non-blocking request [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   if (request == BDMPI_REQUEST_NULL) {
@@ -30,8 +29,8 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
   }
   else { /* this happens only for BDMPI_REQUEST_IRECV */
     BDASSERT(request->type == BDMPI_REQUEST_IRECV);
-    ierror = bdmp_Recv(job, request->buf, request->status.count,
-                  request->status.datatype, request->status.BDMPI_SOURCE,
+    ierror = bdmp_Recv(job, request->buf, request->status.count, 
+                  request->status.datatype, request->status.BDMPI_SOURCE, 
                   request->status.BDMPI_TAG, request->status.comm, status);
   }
 
@@ -40,3 +39,6 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
 
   return BDMPI_SUCCESS;
 }
+
+
+

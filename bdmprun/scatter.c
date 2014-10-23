@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Scatterv. - Send part
     Protocol:
@@ -38,7 +37,7 @@ void *mstr_scatter_send(void *arg)
   BDASSERT(comm->nnodes == 1);
 
   /* deal with copid */
-  if (comm->counter == comm->lsize) 
+  if (comm->counter == comm->lsize)
     comm->copid++;
   if (bdmq_send(job->c2sMQs[srank], &(comm->copid), sizeof(int)) == -1)
     bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
@@ -48,18 +47,18 @@ void *mstr_scatter_send(void *arg)
   if (msg->source == msg->myrank) {
     for (i=0; i<comm->lsize-1; i++) {
       /* receive the specific info about this message */
-      xfer_in_scb(job->scbs[srank], msg, sizeof(bdmsg_t), BDMPI_BYTE); 
+      xfer_in_scb(job->scbs[srank], msg, sizeof(bdmsg_t), BDMPI_BYTE);
 
       if (msg->fnum == -1) {
         /* allocate memory and get data */
         buf = gk_cmalloc(bdmp_msize(msg->count, msg->datatype), "scatter: buf");
-        xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype); 
+        xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype);
       }
       else {
         buf = NULL;
       }
 
-      pending_addscatter(job, msg, buf, 
+      pending_addscatter(job, msg, buf,
           (buf == NULL ? 0 : bdmp_msize(msg->count, msg->datatype)));
     }
   }
@@ -86,7 +85,7 @@ void *mstr_scatter_send(void *arg)
 /*************************************************************************/
 /*! Response to a BDMPI_Scatter - Recv step.
     Protocol:
-      - Finds the headers of the individual messages (if they exist) 
+      - Finds the headers of the individual messages (if they exist)
       - Reads and copies the data to the slave.
 */
 /*************************************************************************/
@@ -107,14 +106,14 @@ void *mstr_scatter_recv(void *arg)
   BDASSERT(comm->nnodes == 1);
 
   /* go and copy the data received from the root for that slave */
-  if ((hdr = pending_getscatter(job, msg)) == NULL) 
+  if ((hdr = pending_getscatter(job, msg)) == NULL)
     slvpool_abort(1, "mstr_scatter_recv: Could not locate pending_getscatter.\n");
-  
+
   /* send the specific info about the data been sent */
-  xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE); 
+  xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
 
   /* send the actual data */
-  if (hdr->msg.fnum == -1) 
+  if (hdr->msg.fnum == -1)
     xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype);
 
   pending_freeheader(job, &hdr);
@@ -125,4 +124,3 @@ void *mstr_scatter_recv(void *arg)
 
   return NULL;
 }
-

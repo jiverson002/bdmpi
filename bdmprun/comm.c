@@ -10,8 +10,8 @@
  *
  */
 
-#include "bdmprun.h"
 
+#include "bdmprun.h"
 
 
 /*************************************************************************/
@@ -26,7 +26,7 @@ void comm_setup(mjob_t *job)
      the nodes that are involved in the communicator */
   job->next_mpi_commid = 10;
 
-  job->next_mpi_tag = 1000;  /* used to uniquely tag the send's out of a node */ 
+  job->next_mpi_tag = 1000;  /* used to uniquely tag the send's out of a node */
 
   job->maxncomm   = BDMPI_INIT_MAXNCOMM;
   job->nfreecomm  = job->maxncomm - 2; /* to account for the WORLD/NODE communicators */
@@ -177,7 +177,7 @@ void comm_free(mjob_t *job, int comm)
   BD_GET_LOCK(job->comm_lock);
 
   if (job->maxncomm < comm)
-    slvpool_abort(1, "Trying to free a non-existing communicator [%d %d]!\n", 
+    slvpool_abort(1, "Trying to free a non-existing communicator [%d %d]!\n",
         comm, job->maxncomm);
 
   if (job->comms[comm] == NULL)
@@ -187,15 +187,15 @@ void comm_free(mjob_t *job, int comm)
   MPI_Comm_free(&(job->comms[comm]->mpi_comm));
 
   pthread_rwlock_destroy(job->comms[comm]->rwlock);
-  
-  gk_free((void **)&(job->comms[comm]->sranks), 
+
+  gk_free((void **)&(job->comms[comm]->sranks),
           &(job->comms[comm]->slvdist),
           &(job->comms[comm]->g2nmap),
           &(job->comms[comm]->g2lmap),
           &(job->comms[comm]->l2gmap),
           &(job->comms[comm]->wnranks),
           &(job->comms[comm]->rwlock),
-          &(job->comms[comm]), 
+          &(job->comms[comm]),
           LTERM);
 
   job->comms[comm] = NULL;  /* this is already done in gk_free, but just in case :) */
@@ -238,7 +238,7 @@ void comm_realloc_master(mjob_t *job)
     Protocol:
        Blocks the process.
        Decreases the counter associated with the counter.
-       If counter becomes 0, then a new master communicator is created 
+       If counter becomes 0, then a new master communicator is created
        Sets the counter back to the size of that communicator.
        Copies the per-slave communicator info in the per-slave scbs
 */
@@ -256,8 +256,8 @@ void *mstr_comm_dup(void *arg)
 
   BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, 
-      bdprintf("[MSTR%04d] comm_dup: mcomm: %d, counter: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM,
+      bdprintf("[MSTR%04d] comm_dup: mcomm: %d, counter: %d [entering]\n",
         job->mynode, msg->mcomm, job->comms[msg->mcomm]->counter));
 
   /* see if all local slaves called this collective */
@@ -290,31 +290,31 @@ void *mstr_comm_dup(void *arg)
     MPI_Comm_rank(job->comms[newcomm]->mpi_comm, &(job->comms[newcomm]->mynode));
 
     job->comms[newcomm]->wnranks = gk_imalloc(job->comms[newcomm]->nnodes, "wnranks");
-    gk_icopy(job->comms[newcomm]->nnodes, job->comms[oldcomm]->wnranks, 
+    gk_icopy(job->comms[newcomm]->nnodes, job->comms[oldcomm]->wnranks,
         job->comms[newcomm]->wnranks);
 
     /* inter<->intra component */
     job->comms[newcomm]->gsize   = job->comms[oldcomm]->gsize;
 
     job->comms[newcomm]->slvdist = gk_imalloc(job->comms[newcomm]->nnodes+1, "slvdist");
-    gk_icopy(job->comms[newcomm]->nnodes+1, job->comms[oldcomm]->slvdist, 
+    gk_icopy(job->comms[newcomm]->nnodes+1, job->comms[oldcomm]->slvdist,
         job->comms[newcomm]->slvdist);
 
     job->comms[newcomm]->g2nmap = gk_imalloc(job->comms[newcomm]->gsize, "g2nmap");
-    gk_icopy(job->comms[newcomm]->gsize, job->comms[oldcomm]->g2nmap, 
+    gk_icopy(job->comms[newcomm]->gsize, job->comms[oldcomm]->g2nmap,
         job->comms[newcomm]->g2nmap);
 
     job->comms[newcomm]->g2lmap = gk_imalloc(job->comms[newcomm]->gsize, "g2lmap");
-    gk_icopy(job->comms[newcomm]->gsize, job->comms[oldcomm]->g2lmap, 
+    gk_icopy(job->comms[newcomm]->gsize, job->comms[oldcomm]->g2lmap,
         job->comms[newcomm]->g2lmap);
 
     job->comms[newcomm]->l2gmap = gk_imalloc(job->comms[newcomm]->lsize, "l2gmap");
-    gk_icopy(job->comms[newcomm]->lsize, job->comms[oldcomm]->l2gmap, 
+    gk_icopy(job->comms[newcomm]->lsize, job->comms[oldcomm]->l2gmap,
         job->comms[newcomm]->l2gmap);
 
 
     /* get the commid from the master node */
-    if (job->comms[newcomm]->mynode == 0) 
+    if (job->comms[newcomm]->mynode == 0)
       job->comms[newcomm]->mpi_commid = mnode_get_next_commid(job);
     MPI_Bcast(&(job->comms[newcomm]->mpi_commid), 1, MPI_INT, 0, job->comms[newcomm]->mpi_comm);
 
@@ -347,8 +347,8 @@ void *mstr_comm_dup(void *arg)
     }
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, 
-      bdprintf("[MSTR%04d] comm_dup: mcomm: %d, counter: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM,
+      bdprintf("[MSTR%04d] comm_dup: mcomm: %d, counter: %d [exiting]\n",
         job->mynode, msg->mcomm, job->comms[msg->mcomm]->counter));
 
   BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -380,19 +380,19 @@ void *mstr_comm_free(void *arg)
 
   BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, 
-      bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d, counter: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM,
+      bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d, counter: %d [entering]\n",
         job->mynode, msg->myrank, msg->mcomm, job->comms[msg->mcomm]->counter));
 
   if (--job->comms[msg->mcomm]->counter == 0) {
     comm = msg->mcomm;
 
     /* all processes have called, unblock them */
-    for (i=0; i<job->comms[comm]->lsize; i++) 
+    for (i=0; i<job->comms[comm]->lsize; i++)
       slvpool_cunblock(job, job->comms[comm]->sranks[i]);
 
-    M_IFSET(BDMPI_DBG_IPCM, 
-        bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d [exiting]\n", 
+    M_IFSET(BDMPI_DBG_IPCM,
+        bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d [exiting]\n",
             job->mynode, msg->myrank, msg->mcomm));
 
     BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -400,8 +400,8 @@ void *mstr_comm_free(void *arg)
     comm_free(job, comm);
   }
   else {
-    M_IFSET(BDMPI_DBG_IPCM, 
-        bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d [exiting]\n", 
+    M_IFSET(BDMPI_DBG_IPCM,
+        bdprintf("[MSTR%04d.%04d] comm_free: mcomm: %d [exiting]\n",
             job->mynode, msg->myrank, msg->mcomm));
 
     BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -418,7 +418,7 @@ void *mstr_comm_free(void *arg)
     Protocol:
        Blocks the process.
        Decreases the counter associated with the counter.
-       If counter becomes 0, then a new master communicator is created 
+       If counter becomes 0, then a new master communicator is created
        Sets the counter back to the size of that communicator.
        Copies the per-slave communicator info in the per-slave scbs
 
@@ -446,14 +446,14 @@ void *mstr_comm_split(void *arg)
 
   BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, 
-      bdprintf("[MSTR%04d.%04d] comm_split: mcomm: %d, counter: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM,
+      bdprintf("[MSTR%04d.%04d] comm_split: mcomm: %d, counter: %d [entering]\n",
         job->mynode, msg->myrank, msg->mcomm, job->comms[msg->mcomm]->counter));
 
   oldcomm = job->comms[msg->mcomm];
 
   /* allocate memory for colors/keys */
-  if (oldcomm->counter == oldcomm->lsize) 
+  if (oldcomm->counter == oldcomm->lsize)
     oldcomm->skeys = (splitdata_t *)gk_malloc(oldcomm->lsize*sizeof(splitdata_t), "skeys");
 
   /* populate the colors & keys */
@@ -503,20 +503,20 @@ void *mstr_comm_split(void *arg)
     k = 0;
     while (k < oldsize) {
       newlsize = 0;
-      if (babel_is_local(oldcomm, allskeys[k].rank)) 
+      if (babel_is_local(oldcomm, allskeys[k].rank))
         newlsize++;
-        
+
       for (j=k+1; j<oldsize; j++) {
         if (allskeys[j].color != allskeys[k].color)
           break;
 
-        if (babel_is_local(oldcomm, allskeys[j].rank)) 
+        if (babel_is_local(oldcomm, allskeys[j].rank))
           newlsize++;
       }
       newsize = j-k;
 
       /*
-      bdprintf("[%04d] color: %d, newlsize: %d, newsize: %d\n", 
+      bdprintf("[%04d] color: %d, newlsize: %d, newsize: %d\n",
           job->mynode, allskeys[k].color, newlsize, newsize);
       */
 
@@ -591,7 +591,7 @@ void *mstr_comm_split(void *arg)
           if (counts[i+1]-counts[i] > 0)
             counts[i] = j++;
         }
-        for (i=0; i<newsize; i++) 
+        for (i=0; i<newsize; i++)
           newcomm->g2nmap[i] = counts[oldcomm->g2nmap[allskeys[k+i].rank]];
 
         newcomm->mynode = counts[oldcomm->mynode];
@@ -603,11 +603,11 @@ void *mstr_comm_split(void *arg)
       }
 
       /* inter-node component */
-      if (newlsize > 0) 
-        BDASSERT(MPI_Comm_split(oldcomm->mpi_comm, 1, 0, &(newcomm->mpi_comm)) 
+      if (newlsize > 0)
+        BDASSERT(MPI_Comm_split(oldcomm->mpi_comm, 1, 0, &(newcomm->mpi_comm))
             == MPI_SUCCESS);
-      else 
-        BDASSERT(MPI_Comm_split(oldcomm->mpi_comm, MPI_UNDEFINED, 0, &null_mpi_comm) 
+      else
+        BDASSERT(MPI_Comm_split(oldcomm->mpi_comm, MPI_UNDEFINED, 0, &null_mpi_comm)
             == MPI_SUCCESS);
 
       if (newlsize > 0) {
@@ -617,15 +617,15 @@ void *mstr_comm_split(void *arg)
         BDASSERT(itmp == newcomm->mynode);
 
         /* get the commid from the master node */
-        if (newcomm->mynode == 0) 
+        if (newcomm->mynode == 0)
           newcomm->mpi_commid = mnode_get_next_commid(job);
         MPI_Bcast(&(newcomm->mpi_commid), 1, MPI_INT, 0, newcomm->mpi_comm);
 
         /*
         bdprintf("[%04d] color: %d, nnodes: %d, mynode: %d, mcomm: %d, size: %d, lsize: %d, newcomm->mpi_commid: %d\n",
-            job->mynode, allskeys[k].color, 
-            newcomm->nnodes, newcomm->mynode, newcomm->mcomm, 
-            newcomm->slvdist[newcomm->nnodes], newcomm->lsize, 
+            job->mynode, allskeys[k].color,
+            newcomm->nnodes, newcomm->mynode, newcomm->mcomm,
+            newcomm->slvdist[newcomm->nnodes], newcomm->lsize,
             newcomm->mpi_commid);
         */
 
@@ -648,7 +648,7 @@ void *mstr_comm_split(void *arg)
           srank = newcomm->sranks[i];
 
           xfer_out_scb(job->scbs[srank], &scomm, sizeof(bdscomm_t), BDMPI_BYTE);
-          slvpool_cunblock(job, srank);  
+          slvpool_cunblock(job, srank);
         }
       }
 
@@ -659,8 +659,8 @@ void *mstr_comm_split(void *arg)
     gk_free((void **)&oldcomm->skeys, &allskeys, &counts, &displs, LTERM);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, 
-      bdprintf("[MSTR%04d.%04d] comm_split: mcomm: %d, counter: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM,
+      bdprintf("[MSTR%04d.%04d] comm_split: mcomm: %d, counter: %d [exiting]\n",
         job->mynode, msg->myrank, msg->mcomm, job->comms[msg->mcomm]->counter));
 
   BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */

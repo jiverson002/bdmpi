@@ -39,6 +39,7 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_ROOT;
   }
 
+
   mype = comm->rank;
 
   /* notify the master that you entering a bcast */
@@ -64,8 +65,10 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
 
   /* prepare to go to sleep */
+#ifdef BDMPL_WITH_SB_DISCARD
   if (mype != root)
     sb_discard(buf, bdmp_msize(count, datatype));
+#endif
 #ifdef BDMPL_WITH_SB_SAVEALL
   if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();
@@ -73,7 +76,7 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the bcast */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* all but the root will send a BCASTF request and get the data */
   if (mype != root) {

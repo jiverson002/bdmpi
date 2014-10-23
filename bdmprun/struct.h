@@ -92,6 +92,7 @@ typedef struct {
   char *exefile;        /*!< The name of the executable to be run */
   char **exeargv;       /*!< The command-line arguments of the executable */
 
+  /* memory structure */
   size_t memrss;        /*!< Current resident set size for slaves on node */
   size_t memmax;        /*!< Maximum amount of memory available on system */
   size_t * slvrss;      /*!< Current resident set size for slaves on node */

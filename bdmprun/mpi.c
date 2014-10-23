@@ -10,7 +10,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Converts a BDMPI_Datatype into an MPI_Datatype */
 /*************************************************************************/
@@ -26,10 +25,10 @@ MPI_Datatype mpi_dt(BDMPI_Datatype datatype)
     case BDMPI_UNSIGNED_CHAR:
       return MPI_UNSIGNED_CHAR;
 
-    case BDMPI_BYTE:          
+    case BDMPI_BYTE:
       return MPI_BYTE;
 
-    case BDMPI_WCHAR:          
+    case BDMPI_WCHAR:
       return MPI_WCHAR;
 
     case BDMPI_SHORT:
@@ -97,13 +96,13 @@ MPI_Datatype mpi_dt(BDMPI_Datatype datatype)
 
     case BDMPI_DOUBLE:
       return MPI_DOUBLE;
-      
+
     case BDMPI_FLOAT_INT:
       return MPI_FLOAT_INT;
 
     case BDMPI_DOUBLE_INT:
       return MPI_DOUBLE_INT;
-      
+
     case BDMPI_SHORT_INT:
       return MPI_SHORT_INT;
 
@@ -132,10 +131,10 @@ MPI_Op mpi_op(BDMPI_Op op)
 
     case BDMPI_MIN:
       return MPI_MIN;
-      
+
     case BDMPI_SUM:
       return MPI_SUM;
-      
+
     case BDMPI_PROD:
       return MPI_PROD;
 

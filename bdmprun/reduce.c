@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_Reduce. - Send-to-master part
     Protocol:
@@ -20,7 +19,7 @@
        and sets the counter back to the size of that communicator.
 
     Meaning of fields of msg:
-       msg->dest is the root of the reduction (ie., the slave that sent 
+       msg->dest is the root of the reduction (ie., the slave that sent
                  a message to the master)
 */
 /*************************************************************************/
@@ -75,7 +74,7 @@ void *mstr_reduce_send(void *arg)
 
     if (hdr == NULL) {
       /* this should not have happened */
-      slvpool_abort(1, "Failed to find a header for a reduce operation! [%d %d %d]\n", 
+      slvpool_abort(1, "Failed to find a header for a reduce operation! [%d %d %d]\n",
           msg->source, msg->dest, msg->mcomm);
     }
     else {
@@ -117,7 +116,7 @@ void *mstr_reduce_send(void *arg)
     if (hdr->counter == 0)
       pending_freeheader(job, &hdr);
 
-    /* all processes have called reduce, unblock them in order to get to the second 
+    /* all processes have called reduce, unblock them in order to get to the second
        step of reduce */
     comm->counter = comm->lsize;
     for (i=0; i<comm->lsize; i++)
@@ -138,10 +137,10 @@ void *mstr_reduce_send(void *arg)
        Sends the data to the root.
 
     Meaning of fields of msg:
-       msg->dest is the root of the reduction (ie., the slave that sent 
+       msg->dest is the root of the reduction (ie., the slave that sent
                  a message to the master)
 
-    Note: Only the root will ever call this.                   
+    Note: Only the root will ever call this.
 */
 /*************************************************************************/
 void *mstr_reduce_recv(void *arg)
@@ -154,7 +153,7 @@ void *mstr_reduce_recv(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  if (msg->myrank != msg->dest) 
+  if (msg->myrank != msg->dest)
     slvpool_abort(1, "The reduce_recv is not called from the root: root:%d myrank:%d\n",
         msg->dest, msg->myrank);
 
@@ -166,7 +165,7 @@ void *mstr_reduce_recv(void *arg)
   hdr = pending_getreduce(job, msg);
 
   /* send the data to the slave */
-  xfer_out_scb(job->scbs[srank], hdr->buf, msg->count, msg->datatype); 
+  xfer_out_scb(job->scbs[srank], hdr->buf, msg->count, msg->datatype);
 
   pending_freeheader(job, &hdr);
 
@@ -183,7 +182,7 @@ void *mstr_reduce_recv(void *arg)
     Protocol:
        Blocks the process.
        Decreases the counter associated with the counter.
-       Reduces the data 
+       Reduces the data
        If counter becomes 0, then moves all processes to runnable state
        and sets the counter back to the size of that communicator.
 
@@ -237,7 +236,7 @@ void *mstr_allreduce_send(void *arg)
 
     if (hdr == NULL) {
       /* this should not have happened */
-      slvpool_abort(1, "Failed to find a header for an allreduce operation! [%d %d]\n", 
+      slvpool_abort(1, "Failed to find a header for an allreduce operation! [%d %d]\n",
           msg->myrank, msg->mcomm);
     }
     else {
@@ -272,7 +271,7 @@ void *mstr_allreduce_send(void *arg)
       BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
     }
 
-    /* all processes have called reduce, unblock them in order to get to the second 
+    /* all processes have called reduce, unblock them in order to get to the second
        step of reduce */
     comm->counter = comm->lsize;
     for (i=0; i<comm->lsize; i++)
@@ -290,7 +289,7 @@ void *mstr_allreduce_send(void *arg)
 /*************************************************************************/
 /*! Response to a BDMPI_Allreduce - Send-to-all-slaves part.
     Protocol:
-      - Finds the header of the allreduce 
+      - Finds the header of the allreduce
       - Reads and copies the data to the slave.
     Note:
       - By construction the header of the allreduce should be there! If not,
@@ -313,18 +312,18 @@ void *mstr_allreduce_recv(void *arg)
 
   /* see if the allreduce has been posted */
   if ((hdr = pending_getallreduce(job, msg, &counter)) == NULL)
-    slvpool_abort(1, "Failed to find a header for a allreduce operation! [%d %d]\n", 
+    slvpool_abort(1, "Failed to find a header for a allreduce operation! [%d %d]\n",
         msg->myrank, (int)msg->mcomm);
 
   /* send the data to the slave */
-  xfer_out_scb(job->scbs[srank], hdr->buf, msg->count, msg->datatype); 
+  xfer_out_scb(job->scbs[srank], hdr->buf, msg->count, msg->datatype);
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
 
   /* wait for the ACK from the slave */
   bdmq_recv(job->c2mMQs[srank], &response, sizeof(int));
 
-  if (counter == 0) { 
+  if (counter == 0) {
     BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock);
     pending_freeheader(job, &hdr);
     BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock);
@@ -334,4 +333,3 @@ void *mstr_allreduce_recv(void *arg)
 
   return NULL;
 }
-

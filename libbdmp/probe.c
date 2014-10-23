@@ -15,7 +15,7 @@
 int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
           BDMPI_Status *status)
 {
-  int flag=0, response;
+  int response, flag=0;
   bdmsg_t msg, rmsg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS,
@@ -58,7 +58,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 #endif
 
     /* go to sleep... */
-    BDMPI_SLEEP(job, gomsg);
+    BDMPL_SLEEP(job, gomsg);
   }
 
   /* get the missing message info from the master */

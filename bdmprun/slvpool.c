@@ -283,14 +283,6 @@ void slvpool_route(mjob_t *job, bdmsg_t *msg)
         BDASSERT(pthread_create(&thread, NULL, mstr_comm_split, arg) == 0);
         break;
 
-      case BDMPI_MSGTYPE_MEMLOAD:
-        BDASSERT(pthread_create(&thread, NULL, mstr_mem_load, arg) == 0);
-        break;
-
-      case BDMPI_MSGTYPE_MEMSAVE:
-        BDASSERT(pthread_create(&thread, NULL, mstr_mem_save, arg) == 0);
-        break;
-
       default:
         slvpool_abort(1, "Got message: %d\n", msg->msgtype);
         return;
@@ -364,7 +356,7 @@ void slvpool_service_xcomms(mjob_t *job)
 /*************************************************************************/
 void slvpool_wakeup_some(mjob_t *job)
 {
-  int i, itogo, togo, msg=1;
+  int i, itogo, togo;
   bdmsg_t gomsg;
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
@@ -387,10 +379,9 @@ void slvpool_wakeup_some(mjob_t *job)
     job->runningmap[togo] = job->nrunning++;
 
     /* send that slave a go message */
-    //bdprintf("[MSTR%04d]  unblock %d\n", job->mynode, togo);
     M_IFSET(BDMPI_DBG_IPCM,
         bdprintf("[MSTR%04d] Telling slave [%d:%d] to go [msg:%d]\n",
-          job->mynode, togo, (int)job->spids[togo], msg));
+          job->mynode, togo, (int)job->spids[togo], gomsg.msgtype));
     if (-1 == bdmq_send(job->goMQs[togo], &gomsg, sizeof(bdmsg_t)))
       bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
   }
@@ -442,10 +433,8 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           slvpool_abort(1, "Failed to read to values from %s.\n", fname);
         if (fclose(fp) != 0)
           slvpool_abort(1, "Failed to close%s.\n", fname);
-        resident = job->slvrss[job->runnablelist[i]];
 
-        cfres = 1.0*resident/(size*sysconf(_SC_PAGESIZE));
-        //cfres = 1.0*resident/size;
+        cfres = 1.0*resident/size;
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (cfres > ifres) {
           itogo = i;
@@ -727,7 +716,6 @@ void slvpool_cblock(mjob_t *job, int rank)
   BD_GET_LOCK(job->schedule_lock);
 
   BDASSERT(rank>=0 && rank<job->ns);
-  //bdprintf("[MSTR%04d] cblocking: %d\n", job->mynode, rank);
   M_IFSET(BDMPI_DBG_IPCM,
       bdprintf("[MSTR%04d] cblocking.0: %d[%+d:%+d]; nalive: %d, nrunning: %d, nrunnable: %d, n[c:b]blocked: %d:%d, \n",
               job->mynode, rank, job->cblockedmap[rank], job->mblockedmap[rank],
@@ -793,7 +781,6 @@ void slvpool_munblock(mjob_t *job, int rank)
   BD_GET_LOCK(job->schedule_lock);
 
   BDASSERT(rank>=0 && rank<job->ns);
-  //bdprintf("mblocked %d\n", rank);
   M_IFSET(BDMPI_DBG_IPCM,
       bdprintf("[MSTR%04d] munblocking.0: %d[%+d, %+d]; nalive: %d, nrunning: %d, nrunnable: %d, n[c:m]blocked: %d:%d\n",
               job->mynode, rank, job->mblockedmap[rank], job->cblockedmap[rank],
@@ -840,7 +827,6 @@ void slvpool_cunblock(mjob_t *job, int rank)
   BD_GET_LOCK(job->schedule_lock);
 
   BDASSERT(rank>=0 && rank<job->ns);
-  //bdprintf("cblocked %d\n", rank);
   M_IFSET(BDMPI_DBG_IPCM,
       bdprintf("[MSTR%04d] cunblocking.0: %d[%+d, %+d]; nalive: %d, nrunning: %d, nrunnable: %d, n[c:m]blocked: %d:%d\n",
               job->mynode, rank, job->cblockedmap[rank], job->mblockedmap[rank],

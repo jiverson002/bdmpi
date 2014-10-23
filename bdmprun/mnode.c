@@ -9,7 +9,6 @@
 #include "bdmprun.h"
 
 
-
 /*************************************************************************/
 /*! Services any requests to the root master from the other masters. */
 /*************************************************************************/
@@ -21,33 +20,33 @@ void mnode_service_xcomms(mjob_t *job)
   bdmsg_t msg;
 
   for (;;) {
-    BDASSERT(MPI_Improbe(MPI_ANY_SOURCE, BDMPI_MRQ_TAG, job->mpi_wcomm, 
+    BDASSERT(MPI_Improbe(MPI_ANY_SOURCE, BDMPI_MRQ_TAG, job->mpi_wcomm,
                  &flag, &message, &status)
         == MPI_SUCCESS);
-  
-    if (!flag) 
+
+    if (!flag)
       break;
-    
-  
+
+
     BDASSERT(MPI_Mrecv(&msg, sizeof(bdmsg_t), MPI_BYTE, &message, &status)
         == MPI_SUCCESS);
-  
+
     switch (msg.msgtype) {
       case BDMPI_MSGTYPE_CID:
         BD_GET_LOCK(job->comm_lock);
         msg.tag = job->next_mpi_commid++;
         BD_LET_LOCK(job->comm_lock);
 
-        BDASSERT(MPI_Send(&msg, sizeof(bdmsg_t), MPI_BYTE, msg.myrank, 
-                     BDMPI_MRS_TAG, job->mpi_wcomm) 
-                 == MPI_SUCCESS); 
+        BDASSERT(MPI_Send(&msg, sizeof(bdmsg_t), MPI_BYTE, msg.myrank,
+                     BDMPI_MRS_TAG, job->mpi_wcomm)
+                 == MPI_SUCCESS);
         break;
-      
+
       default:
         slvpool_abort(1, "Got message: %d\n", msg.msgtype);
         return;
     }
-  } 
+  }
 
   return;
 }
@@ -62,7 +61,7 @@ int mnode_get_next_commid(mjob_t *job)
   bdmsg_t msg;
   MPI_Status status;
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mnode_get_next_commid: [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mnode_get_next_commid: [entering]\n",
         job->mynode));
 
   if (job->mynode == 0) {
@@ -75,8 +74,8 @@ int mnode_get_next_commid(mjob_t *job)
     msg.myrank  = job->mynode;
 
     /* send the request message to the master node */
-    BDASSERT(MPI_Send(&msg, sizeof(bdmsg_t), MPI_BYTE, 0, BDMPI_MRQ_TAG, job->mpi_wcomm) 
-             == MPI_SUCCESS); 
+    BDASSERT(MPI_Send(&msg, sizeof(bdmsg_t), MPI_BYTE, 0, BDMPI_MRQ_TAG, job->mpi_wcomm)
+             == MPI_SUCCESS);
 
     /* wait for the response */
     BDASSERT(MPI_Recv(&msg, sizeof(bdmsg_t), MPI_BYTE, 0, BDMPI_MRS_TAG, job->mpi_wcomm,
@@ -86,7 +85,7 @@ int mnode_get_next_commid(mjob_t *job)
     mpi_commid = msg.tag;
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mnode_get_next_commid: [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mnode_get_next_commid: [exiting]\n",
         job->mynode));
 
   return mpi_commid;

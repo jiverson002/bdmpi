@@ -5,7 +5,9 @@
 \author George
 */
 
+
 #include "bdmplib.h"
+
 
 /* Stores information associated with a storage-backed memory chunk */
 typedef struct sbchunk {
@@ -40,10 +42,10 @@ __thread size_t last_addr=0;
 
 
 /* constants */
-#define SBCHUNK_NONE     1
-#define SBCHUNK_READ     2
-#define SBCHUNK_WRITE    4
-#define SBCHUNK_ONDISK   8
+#define SBCHUNK_NONE    1
+#define SBCHUNK_READ    2
+#define SBCHUNK_WRITE   4
+#define SBCHUNK_ONDISK  8
 
 #define SBNOTIFY_NONE 0
 #define SBNOTIFY_LOAD 1
@@ -70,9 +72,7 @@ static int (*libc_munlockall)(void) = NULL;
 sbchunk_t *_sb_find(void *ptr);
 static void _sb_handler(int sig, siginfo_t *si, void *unused);
 void _sb_chunkload(sbchunk_t *sbchunk);
-void _sb_chunkload_internal(sbchunk_t *sbchunk);
 void _sb_chunksave(sbchunk_t *sbchunk);
-size_t _sb_chunksave_internal(sbchunk_t *sbchunk);
 void _sb_chunkfree(sbchunk_t *sbchunk);
 void _sb_chunkfreeall();
 
@@ -388,7 +388,6 @@ int sb_finalize()
   GKASSERT(pthread_mutexattr_destroy(&(sbinfo->mtx_attr)) == 0);
 
   _sb_chunkfreeall();
-
   libc_free(sbinfo->fstem);
   libc_free(sbinfo);
   sbinfo = NULL;
@@ -402,7 +401,6 @@ int sb_finalize()
 /*************************************************************************/
 void *sb_malloc(size_t nbytes)
 {
-  ssize_t ip;
   sbchunk_t *sbchunk;
 
   //printf("sb_malloc: allocating %zu bytes\n", nbytes);
@@ -421,13 +419,13 @@ void *sb_malloc(size_t nbytes)
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
 
+
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_LOAD
 {
   bdmsg_t msg, gomsg;
 
   /* notify the master that you want to load memory */
-  //printf("[%3d] get ok from master for %zu bytes\n", sbinfo->job->rank, nbytes);
   msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
   msg.source  = sbinfo->job->rank;
   msg.count   = sbchunk->npages*sbinfo->pagesize;
@@ -436,6 +434,7 @@ void *sb_malloc(size_t nbytes)
 }
 #endif
   /*----------------------------------------------------------------------*/
+
 
   /* allocate the flag array for the pages */
   sbchunk->pflags = (uint8_t *)libc_calloc(sbchunk->npages+1, sizeof(uint8_t));
@@ -457,6 +456,7 @@ void *sb_malloc(size_t nbytes)
   }
   sbchunk->eaddr = sbchunk->saddr+nbytes;
 
+
   /* create the filename for storage purposes */
   if ((sbchunk->fname = (char *)libc_malloc(100+strlen(sbinfo->fstem))) == NULL) {
     munmap((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize);
@@ -472,15 +472,7 @@ void *sb_malloc(size_t nbytes)
     return NULL;
   }
 
-  //sbchunk->flags = SBCHUNK_NONE;
-  if (mprotect((void *)sbchunk->saddr, sbchunk->npages*sbinfo->pagesize, PROT_READ) == -1) {
-    perror("sb_realloc: failed to PROT_READ");
-    exit(EXIT_FAILURE);
-  }
-
-  sbchunk->flags = SBCHUNK_READ;
-  for (ip=0; ip<sbchunk->npages; ip++)
-    sbchunk->pflags[ip] = SBCHUNK_READ;
+  sbchunk->flags = SBCHUNK_NONE;
 
   /* initialize the mutex */
   GKASSERT(pthread_mutex_init(&(sbchunk->mtx), &(sbinfo->mtx_attr)) == 0);
@@ -499,7 +491,7 @@ void *sb_malloc(size_t nbytes)
 /*************************************************************************/
 void *sb_realloc(void *oldptr, size_t nbytes)
 {
-  size_t ip, new_saddr, new_npages, count=0;
+  size_t ip, new_saddr, new_npages;
   uint8_t *new_pflags=NULL;
   sbchunk_t *sbchunk;
 
@@ -516,6 +508,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     exit(EXIT_FAILURE);
   }
   BD_LET_LOCK(&(sbinfo->mtx));
+
 
   BD_GET_LOCK(&(sbchunk->mtx));
 
@@ -535,6 +528,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     }
 #endif
     /*----------------------------------------------------------------------*/
+
 
     /* set the now unused pages as DONTNEED */
     if (madvise((void *)(sbchunk->saddr+new_npages*sbinfo->pagesize),
@@ -563,6 +557,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
 }
 #endif
     /*----------------------------------------------------------------------*/
+
 
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_calloc(new_npages+1, sizeof(uint8_t))) == NULL) {
@@ -597,7 +592,6 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->saddr  = new_saddr;
     sbchunk->eaddr  = sbchunk->saddr+nbytes;
 
-    /* TODO: does the whole chunk need to be re-written */
     /* set remapped sbchunk for writing and remove its ondisk flag */
     sbchunk->flags |= SBCHUNK_WRITE;
     if (sbchunk->flags&SBCHUNK_ONDISK)
@@ -626,6 +620,7 @@ ERROR_EXIT:
     libc_free(new_pflags);
 
   return NULL;
+
 }
 
 
@@ -634,7 +629,6 @@ ERROR_EXIT:
 /*************************************************************************/
 void sb_free(void *buf)
 {
-  size_t count=0;
   sbchunk_t *ptr, *pptr=NULL;
   size_t addr=(size_t)buf;
 
@@ -668,6 +662,9 @@ void sb_free(void *buf)
 
   /* free the chunk */
   _sb_chunkfree(ptr);
+
+
+  return;
 }
 
 
@@ -691,7 +688,6 @@ int sb_exists(void *ptr)
 /*************************************************************************/
 void sb_save(void *buf)
 {
-  size_t count=0;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -727,32 +723,6 @@ void sb_saveall()
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
-}
-
-
-/*************************************************************************/
-/*! Saves to disk all sbchunks no communication with master */
-/*************************************************************************/
-size_t sb_saveall_internal()
-{
-  size_t count=0;
-  sbchunk_t *sbchunk;
-
-  if (sbinfo == NULL)
-    return 0;
-
-  BD_GET_LOCK(&(sbinfo->mtx));
-  for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next) {
-    BD_GET_LOCK(&(sbchunk->mtx));
-    count += _sb_chunksave_internal(sbchunk);
-    BD_LET_LOCK(&(sbchunk->mtx));
-  }
-  BD_LET_LOCK(&(sbinfo->mtx));
-
-  //if (0 != count)
-  //  fprintf(stderr, "%zu)\n", count);
-
-  return count;
 }
 
 
@@ -865,6 +835,7 @@ void sb_discard(void *ptr, ssize_t size)
       sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
   }
   BD_LET_LOCK(&(sbchunk->mtx));
+
 }
 
 
@@ -923,6 +894,7 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
     last_addr = addr;
   }
   BD_LET_LOCK(&(sbchunk->mtx));
+
 }
 
 
@@ -957,6 +929,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   uint8_t *pflags;
   int fd;
 
+
   /*----------------------------------------------------------------------*/
 #if SBNOTIFY >= SBNOTIFY_LOAD
   if (sbchunk->flags&SBCHUNK_NONE) {
@@ -971,6 +944,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   }
 #endif
   /*----------------------------------------------------------------------*/
+
 
   npages = sbchunk->npages;
   pflags = sbchunk->pflags;
@@ -1029,10 +1003,6 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     perror("sb_realloc: failed to PROT_READ");
     exit(EXIT_FAILURE);
   }
-  /*if (0 != mlock((void *)sbchunk->saddr, npages*sbinfo->pagesize)) {
-    perror("_sb_chunkload: failed to mlock");
-    exit(EXIT_FAILURE);
-  }*/
 
   sbchunk->flags ^= SBCHUNK_NONE;
   sbchunk->flags |= SBCHUNK_READ;
@@ -1054,36 +1024,6 @@ void _sb_chunksave(sbchunk_t *sbchunk)
   char *buf;
   uint8_t *pflags;
   int fd;
-
-  /*----------------------------------------------------------------------*/
-#if SBNOTIFY >= SBNOTIFY_SAVE
-  if (!(sbchunk->flags&SBCHUNK_NONE)) {
-    bdmsg_t msg, gomsg;
-
-    /* notify the master that you have saved memory */
-    msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-    msg.source  = sbinfo->job->rank;
-    msg.count   = _sb_chunksave_internal(sbchunk);
-    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    BDMPI_SLEEP(sbinfo->job, gomsg);
-  }
-#endif
-  /*----------------------------------------------------------------------*/
-}
-
-
-/*************************************************************************/
-/*! Saves the supplied sbchunk to disk; this is an internal routine */
-/*************************************************************************/
-size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
-{
-  size_t ip, ifirst, npages, size, tsize, twsize=0, count=0;
-  char *buf;
-  uint8_t *pflags;
-  int fd;
-
-  if (!(sbchunk->flags&SBCHUNK_NONE))
-    count = sbchunk->npages*sbinfo->pagesize;
 
   npages = sbchunk->npages;
   pflags = sbchunk->pflags;
@@ -1137,6 +1077,12 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
     //printf("_sb_chunksave: %s, size: %zu\n", sbchunk->fname, twsize);
   }
 
+  /* set madvise */
+  if (madvise((void *)sbchunk->saddr, npages*sbinfo->pagesize, MADV_DONTNEED) == -1) {
+    perror("_sb_chunksave: failed to MADV_DONTNEED");
+    exit(EXIT_FAILURE);
+  }
+
   /* reset flags */
   if (sbchunk->flags&SBCHUNK_WRITE)
     sbchunk->flags ^= SBCHUNK_WRITE;
@@ -1152,17 +1098,6 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
       pflags[ip] ^= SBCHUNK_WRITE;
   }
 
-  /* set madvise */
-  if (madvise((void *)sbchunk->saddr, npages*sbinfo->pagesize, MADV_DONTNEED) == -1) {
-    perror("_sb_chunksave: failed to MADV_DONTNEED");
-    exit(EXIT_FAILURE);
-  }
-
-  /* unlock */
-  /*if (0 != munlock((void *)sbchunk->saddr, npages*sbinfo->pagesize)) {
-    perror("_sb_chunksave: failed to munlock");
-    exit(EXIT_FAILURE);
-  }*/
 
   /* change protection to PROT_NONE for next time */
   if (mprotect((void *)sbchunk->saddr, npages*sbinfo->pagesize, PROT_NONE) == -1) {
@@ -1170,9 +1105,21 @@ size_t _sb_chunksave_internal(sbchunk_t *sbchunk)
     exit(EXIT_FAILURE);
   }
 
-  //printf("chunk size %zu\n", count);
 
-  return count;
+  /*----------------------------------------------------------------------*/
+#if SBNOTIFY >= SBNOTIFY_SAVE
+  if (!(sbchunk->flags&SBCHUNK_NONE)) {
+    bdmsg_t msg, gomsg;
+
+    /* notify the master that you have saved memory */
+    msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
+    msg.source  = sbinfo->job->rank;
+    msg.count   = _sb_chunksave_internal(sbchunk);
+    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+    BDMPI_SLEEP(sbinfo->job, gomsg);
+  }
+#endif
+  /*----------------------------------------------------------------------*/
 }
 
 
@@ -1198,6 +1145,7 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
 #endif
   /*----------------------------------------------------------------------*/
 
+
   /* delete the file, if on disk */
   if (sbchunk->flags&SBCHUNK_ONDISK) {
     if (unlink(sbchunk->fname) == -1) {
@@ -1215,6 +1163,8 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
   libc_free(sbchunk->pflags);
   libc_free(sbchunk->fname);
   libc_free(sbchunk);
+
+  return;
 }
 
 
@@ -1232,4 +1182,6 @@ void _sb_chunkfreeall()
     ptr = nptr;
   }
   sbinfo->head = NULL;
+
+  return;
 }

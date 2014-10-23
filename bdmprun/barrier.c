@@ -57,5 +57,3 @@ void *mstr_barrier(void *arg)
 
   return NULL;
 }
-
-

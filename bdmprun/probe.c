@@ -25,7 +25,7 @@ void *mstr_probe(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_probe: source: %d, dest: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_probe: source: %d, dest: %d [entering]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
@@ -34,7 +34,7 @@ void *mstr_probe(void *arg)
 
   /* see if the send has been posted */
   pending_locksend(job, msg);
-  if ((hdr = pending_getsend(job, msg, 0)) == NULL) 
+  if ((hdr = pending_getsend(job, msg, 0)) == NULL)
     slvpool_mblock(job, srank); /* the locksend guard is for the same reason as recv */
   pending_unlocksend(job, msg);
 
@@ -52,7 +52,7 @@ void *mstr_probe(void *arg)
     xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_probe: source: %d, dest: %d, flag: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_probe: source: %d, dest: %d, flag: %d [exiting]\n",
         job->mynode, msg->myrank, msg->source, msg->dest, flag));
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -79,7 +79,7 @@ void *mstr_iprobe(void *arg)
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_iprobe: source: %d, dest: %d [entering]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_iprobe: source: %d, dest: %d [entering]\n",
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
@@ -100,7 +100,7 @@ void *mstr_iprobe(void *arg)
     xfer_out_scb(job->scbs[srank], &(hdr->msg), sizeof(bdmsg_t), BDMPI_BYTE);
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_iprobe: source: %d, dest: %d, flag: %d [exiting]\n", 
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_iprobe: source: %d, dest: %d, flag: %d [exiting]\n",
         job->mynode, msg->myrank, msg->source, msg->dest, flag));
 
   BD_LET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
@@ -109,5 +109,3 @@ void *mstr_iprobe(void *arg)
 
   return NULL;
 }
-
-

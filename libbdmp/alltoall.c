@@ -18,7 +18,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
           BDMPI_Comm comm)
 {
   int npes, mype, sleeping=1;
-  int i, p, response;
+  int i, p;
   size_t sdtsize, rdtsize;
   bdmsg_t msg, rmsg, gomsg;
   ssize_t myfnum=-1;
@@ -101,9 +101,8 @@ int bdmp_Alltoallv_node(sjob_t *job,
 #endif
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
-
   /* go to sleep until everybody has called the collective */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
 
   /*=====================================================================*/
@@ -287,14 +286,14 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
 
   /* sbdiscard the incoming buffers */
+#ifdef BDMPL_WITH_SB_DISCARD
   for (p=0; p<npes; p++)
     sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
+#endif
 
   /* save your address space before blocking */
-#ifdef BDMPL_WITH_SB_SAVEALL
   if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();
-#endif
 
   /* receive data from everybody else */
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -320,12 +319,12 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
       if (response == 1)
         break;
 
+      /* go to sleep... */
 #ifdef BDMPL_WITH_SB_SAVEALL
       if (job->jdesc->nr < job->jdesc->ns)
         sb_saveall();
 #endif
-      /* go to sleep... */
-      BDMPI_SLEEP(job, gomsg);
+      BDMPL_SLEEP(job, gomsg);
     }
 
     /* get the missing message info from the master */

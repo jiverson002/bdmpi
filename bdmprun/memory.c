@@ -27,8 +27,7 @@ void * mstr_mem_load(void * const arg)
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
 
-  //printf("[%3d] %zu / %zu\n", msg->source, job->memrss, job->memmax);
-#ifndef BDMPL_WITH_SB_SAVEALL
+#if 0
   if (job->memrss > job->memmax)
     memory_wakeup_some(job, msg->count);
 #endif
@@ -76,31 +75,45 @@ void * mstr_mem_save(void * const arg)
 /*************************************************************************/
 void memory_wakeup_some(mjob_t * const job, size_t const size)
 {
-  int i, itogo, togo=0;
+  int i, itogo, iitogo, togo=0;
   size_t count=0;
   bdmsg_t msg;
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
-  BD_GET_LOCK(job->schedule_lock);
   if (0 != job->nrunnable) {
     itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
 
     if (-1 != itogo) {
+#if 0
       if (itogo < job->nrunnable) {
-        //printf("  %d run woke up\n", togo);
-        togo = job->runnablelist[itogo];
-      } else if (itogo < job->nrunnable+job->nmblocked) {
-        //printf("  %d mblk woke up\n", togo);
-        togo = job->mblockedlist[itogo-job->nrunnable];
-      } else {
-        //printf("  %d cblk woke up\n", togo);
-        togo = job->cblockedlist[itogo-job->nrunnable-job->nmblocked];
+        iitogo = itogo;
+        togo = job->runnablelist[iitogo];
+        job->runnablelist[iitogo] = job->runnablelist[--job->nrunnable];
+        job->runnablemap[togo] = -1;
       }
-
-      /*job->runnablelist[itogo] = job->runnablelist[--job->nrunnable];
-      job->runnablemap[togo] = -1;
+      else if (itogo < job->nrunnable+job->nmblocked) {
+        iitogo = itogo - job->nrunnable;
+        togo = job->mblockedlist[iitogo];
+        job->mblockedlist[iitogo] = job->mblockedlist[--job->nmblocked];
+        job->mblockedmap[togo] = -1;
+      }
+      else {
+        iitogo = itogo - job->nrunnable - job->nmblocked;
+        togo = job->cblockedlist[iitogo];
+        job->cblockedlist[iitogo] = job->cblockedlist[--job->ncblocked];
+        job->cblockedmap[togo] = -1;
+      }
       BD_LET_LOCK(job->schedule_lock);*/
+#else
+      iitogo = itogo;
+      if (itogo < job->nrunnable)
+        togo = job->runnablelist[itogo];
+      else if (itogo < job->nrunnable+job->nmblocked)
+        togo = job->mblockedlist[itogo-job->nrunnable];
+      else
+        togo = job->cblockedlist[itogo-job->nrunnable-job->nmblocked];
+#endif
 
       /* send that slave a go free memory message */
       if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
@@ -109,15 +122,28 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
       if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
         bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
 
-      /*BD_GET_LOCK(job->schedule_lock);
-      job->runnablelist[job->nrunnable] = togo;
-      job->runnablemap[togo] = job->nrunnable++;*/
-      //printf("  and released %zu bytes\n", count);
+#if 0
+      BD_GET_LOCK(job->schedule_lock);
+      if (itogo < job->nrunnable) {
+        job->runnablelist[job->nrunnable] = togo;
+        job->runnablemap[togo] = job->nrunnable++;
+      }
+      else if (itogo < job->nrunnable+job->nmblocked) {
+        job->mblockedlist[job->nmblocked] = togo;
+        job->mblockedmap[togo] = job->nmblocked++;
+      }
+      else {
+        job->cblockedlist[job->ncblocked] = togo;
+        job->cblockedmap[togo] = job->ncblocked++;
+      }
       job->memrss -= count;
       job->slvrss[togo] -= count;
+#else
+      job->memrss -= count;
+      job->slvrss[togo] -= count;
+#endif
     }
   }
-  BD_LET_LOCK(job->schedule_lock);
 }
 
 
@@ -133,7 +159,6 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
   char fname[1024];
   FILE *fp;
 
-  BD_GET_LOCK(job->schedule_lock);
   switch (type) {
     case BDMPRUN_WAKEUP_VRSS:
       ifres = 0;
@@ -151,14 +176,12 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
         resident = job->slvrss[job->runnablelist[i]];
 
         cfres = 1.0*resident/(size*sysconf(_SC_PAGESIZE));
-        //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (0 != resident && cfres > ifres) {
           itogo = i;
           ifres = cfres;
           isize = size;
         }
       }
-#if 1
       for (i=0; i<job->nmblocked; i++) {
         sprintf(fname, "/proc/%d/statm", job->spids[job->mblockedlist[i]]);
 
@@ -171,15 +194,12 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
         resident = job->slvrss[job->mblockedlist[i]];
 
         cfres = 1.0*resident/(size*sysconf(_SC_PAGESIZE));
-        //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (0 != resident && cfres > ifres) {
           itogo = i+job->nrunnable;
           ifres = cfres;
           isize = size;
         }
       }
-#endif
-#if 1
       for (i=0; i<job->ncblocked; i++) {
         sprintf(fname, "/proc/%d/statm", job->spids[job->cblockedlist[i]]);
 
@@ -192,28 +212,17 @@ int memory_select_task_to_wakeup(mjob_t *job, int type)
         resident = job->slvrss[job->cblockedlist[i]];
 
         cfres = 1.0*resident/(size*sysconf(_SC_PAGESIZE));
-        //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (0 != resident && cfres > ifres) {
           itogo = i+job->nrunnable+job->nmblocked;
           ifres = cfres;
           isize = size;
         }
       }
-#endif
-
-      /*if (-1 != itogo) {
-        bdprintf("[%04d] memory_wakeup_some\n", job->runnablelist[itogo]);
-        bdprintf("[%04d] %10zu / %10zu / %10zu\n", job->runnablelist[itogo],
-          job->slvrss[job->runnablelist[itogo]], isize*sysconf(_SC_PAGESIZE),
-          job->memrss);
-      }*/
-
       break;
 
     default:
       itogo = 0;
   }
-  BD_LET_LOCK(job->schedule_lock);
 
   return itogo;
 }

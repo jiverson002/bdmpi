@@ -15,7 +15,7 @@
 int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm)
 {
-  int mype, response, sleeping=1;
+  int mype, sleeping=1;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS,
@@ -66,17 +66,18 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
+#ifdef BDMPL_WITH_SB_DISCARD
   if (mype == root)
     sb_discard(recvbuf, bdmp_msize(count, datatype));
+#endif
 #ifdef BDMPL_WITH_SB_SAVEALL
   if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();
 #endif
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
-
   /* go to sleep until everybody has called the reduce */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -171,7 +172,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, int root, BDMPI_Comm comm,
           BDMPI_Request *r_request)
 {
-  int mype, response;
+  int mype;
   bdmsg_t msg, gomsg;
   bdrequest_t *request = *r_request;
 
@@ -209,7 +210,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();
 #endif
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -287,7 +288,9 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
+#ifdef BDMPL_WITH_SB_DISCARD
   sb_discard(recvbuf, count*bdmp_sizeof(datatype));
+#endif
 #ifdef BDMPL_WITH_SB_SAVEALL
   if (job->jdesc->nr < job->jdesc->ns)
     sb_saveall();
@@ -295,7 +298,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPI_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg);
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLREDUCEF;

@@ -139,18 +139,15 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
-
   /* wait for a message from the master to go */
   S_IFSET(BDMPI_DBG_IPCS,
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
-  BDMPI_SLEEP(job, gomsg);
+  /* sleep... */
+  BDMPL_SLEEP(job, gomsg);
 
-  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: %d\n", gomsg.msgtype));
-
-  /* TODO NEED TO AJUST THIS FOR NEW GO MSG */
-  if (gomsg.msgtype == 0)
-    exit(EXIT_SUCCESS);
+  S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: "
+    "%d\n", gomsg.msgtype));
 
   /* create additional standard communicators */
   BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1, &BDMPI_COMM_SELF)

@@ -8,7 +8,10 @@
  *
  */
 
-#define BDMPI_SLEEP(JOB, MSG)                                   \
+#define BDMPL_WITH_SB_DISCARD /* enable sb_discard() */
+#define BDMPL_WITH_SB_SAVEALL /* enable sb_saveall() */
+
+#define BDMPL_SLEEP(JOB, MSG)                                   \
 do {                                                            \
   for (;;) {                                                    \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t)))  \
