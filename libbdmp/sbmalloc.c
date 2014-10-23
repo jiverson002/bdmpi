@@ -50,7 +50,7 @@ __thread size_t last_addr=0;
 #define SBNOTIFY_NONE 0
 #define SBNOTIFY_LOAD 1
 #define SBNOTIFY_SAVE 2
-#define SBNOTIFY SBNOTIFY_SAVE
+#define SBNOTIFY SBNOTIFY_NONE
 
 
 /* hooks to build-in function */
@@ -721,6 +721,7 @@ void sb_save(void *buf)
 /*************************************************************************/
 void sb_saveall()
 {
+  size_t count=0;
   sbchunk_t *sbchunk;
 
   if (sbinfo == NULL)
@@ -729,10 +730,14 @@ void sb_saveall()
   BD_GET_LOCK(&(sbinfo->mtx));
   for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next) {
     BD_GET_LOCK(&(sbchunk->mtx));
+    if (!(sbchunk->flags&SBCHUNK_NONE))
+      count += sbchunk->npages*sbinfo->pagesize;
     _sb_chunksave(sbchunk);
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
+
+  //bdprintf("[%3d] sb_saveall(%zu)\n", sbinfo->job->rank, count);
 }
 
 size_t sb_saveall_internal()
@@ -750,6 +755,8 @@ size_t sb_saveall_internal()
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
+
+  //bdprintf("[%3d] sb_saveall(%zu)\n", sbinfo->job->rank, count);
 
   return count;
 }

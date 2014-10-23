@@ -22,15 +22,15 @@ int bdmp_Finalize(sjob_t *job)
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
-  /* turn off sbmalloc */
-  sb_finalize();
-
   /* send a message to the slave telling it that you are leaving... */
   donemsg.msgtype = BDMPI_MSGTYPE_FINALIZE;
   donemsg.myrank  = job->rank;
 
   if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
+
+  /* turn off sbmalloc */
+  sb_finalize();
 
   /* wait for a go response from the master */
   BDMPL_SLEEP(job, gomsg);

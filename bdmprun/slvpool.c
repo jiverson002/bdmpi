@@ -441,7 +441,7 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           slvpool_abort(1, "Failed to read to values from %s.\n", fname);
         if (fclose(fp) != 0)
           slvpool_abort(1, "Failed to close%s.\n", fname);
-        //resident = job->slvrss[job->runnablelist[i]];
+        resident = job->slvrss[job->runnablelist[i]];
 
         cfres = 1.0*resident/size;
         //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
