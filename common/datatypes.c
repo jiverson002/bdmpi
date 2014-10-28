@@ -1,12 +1,13 @@
 /*!
 \file
-\brief Implements various functions dealing with datatypes 
+\brief Implements various functions dealing with datatypes
 
 \date Started 4/5/2013
 \author George
 
 \version\verbatim $Id: tch.c 6117 2012-09-25 18:14:47Z karypis $ \endverbatim
 */
+
 
 #include "common.h"
 
@@ -20,7 +21,7 @@ size_t bdmp_sizeof(BDMPI_Datatype datatype)
       case BDMPI_CHAR:
       case BDMPI_SIGNED_CHAR:
       case BDMPI_UNSIGNED_CHAR:
-      case BDMPI_BYTE:          
+      case BDMPI_BYTE:
         return sizeof(char);
 
       case BDMPI_WCHAR:
@@ -69,7 +70,7 @@ size_t bdmp_sizeof(BDMPI_Datatype datatype)
 
       case BDMPI_DOUBLE:
         return sizeof(double);
-        
+
       case BDMPI_FLOAT_INT:
         return sizeof(bdvlp_fi_t);
 
@@ -111,8 +112,8 @@ int datatype_isvalid(BDMPI_Datatype datatype)
     case BDMPI_CHAR:
     case BDMPI_SIGNED_CHAR:
     case BDMPI_UNSIGNED_CHAR:
-    case BDMPI_BYTE:          
-    case BDMPI_WCHAR:          
+    case BDMPI_BYTE:
+    case BDMPI_WCHAR:
     case BDMPI_SHORT:
     case BDMPI_UNSIGNED_SHORT:
     case BDMPI_INT:
@@ -143,4 +144,3 @@ int datatype_isvalid(BDMPI_Datatype datatype)
       return 0;
   }
 }
-

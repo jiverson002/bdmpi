@@ -264,7 +264,8 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     /* sbdiscard the incoming buffers */
 #ifdef BDMPL_WITH_SB_DISCARD
     for (p=0; p<npes; p++)
-      sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
+      sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
+        bdmp_msize(recvcounts[p], bdmp_sizeof(recvtype)));
 #endif
 
     /* receive data from everybody else */

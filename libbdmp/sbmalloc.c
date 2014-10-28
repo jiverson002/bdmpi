@@ -817,12 +817,13 @@ void sb_discard(void *ptr, ssize_t size)
   }
   else { /* discard supplied range */
     ifirst = (addr - sbchunk->saddr + sbinfo->pagesize-1)/sbinfo->pagesize;
-    iend   = (addr+size - sbchunk->saddr)/sbinfo->pagesize;
+    iend   = (addr+size - sbchunk->saddr + sbinfo->pagesize-1)/sbinfo->pagesize;
+    //iend   = (addr+size - sbchunk->saddr)/sbinfo->pagesize;
   }
 
-  /* provide only read permissions, assuming that it had read permissions; this
-     will remove the write permissions so in case we do not block, subsequent
-     writes will be intercepted correctly */
+  /* provide only read permissions, assuming that it had read permissions;
+   * this will remove the write permissions so in case we do not block,
+   * subsequent writes will be intercepted correctly */
   if (sbchunk->flags&SBCHUNK_READ) {
     if (mprotect((void *)(sbchunk->saddr+ifirst*sbinfo->pagesize),
                  (iend-ifirst)*sbinfo->pagesize, PROT_READ) == -1) {

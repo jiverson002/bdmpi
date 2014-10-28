@@ -288,7 +288,8 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   /* sbdiscard the incoming buffers */
 #ifdef BDMPL_WITH_SB_DISCARD
   for (p=0; p<npes; p++)
-    sb_discard((char *)recvbuf+rdispls[p]*rdtsize, recvcounts[p]*rdtsize);
+    sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
+      bdmp_msize(recvcounts[p], recvtype));
 #endif
 
   /* save your address space before blocking */

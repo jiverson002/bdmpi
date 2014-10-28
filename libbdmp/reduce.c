@@ -40,7 +40,6 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     return BDMPI_ERR_ROOT;
   }
 
-
   mype = comm->rank;
 
   /* notify the master that you entering a reduce */
@@ -59,7 +58,6 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   /* the root gets the copid message */
   if (mype == root)
     bdmq_recv(job->c2sMQ, &msg.copid, sizeof(int));
-
 
   /* everybody sends the data to the master */
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Reduce: Copying %zu elements.\n", count));
@@ -289,7 +287,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* prepare to go to sleep */
 #ifdef BDMPL_WITH_SB_DISCARD
-  sb_discard(recvbuf, count*bdmp_sizeof(datatype));
+  sb_discard(recvbuf, bdmp_msize(count, datatype));
 #endif
 #ifdef BDMPL_WITH_SB_SAVEALL
   if (job->jdesc->nr < job->jdesc->ns)
