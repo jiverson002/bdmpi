@@ -9,22 +9,24 @@ add_executable(commtest commtest.c)
 add_executable(alltoall alltoall.c)
 add_executable(gather gather.c)
 add_executable(scatter scatter.c)
-foreach(prog helloworld 
-             p2p 
-             pscan 
-             bcast 
-             allgather 
-             reduce 
-             commtest 
-             scatter 
-             gather 
-             alltoall 
-             ) 
+add_executable(test_MPI_ANY_SOURCE test_MPI_ANY_SOURCE.c)
+foreach(prog helloworld
+             p2p
+             pscan
+             bcast
+             allgather
+             reduce
+             commtest
+             scatter
+             gather
+             alltoall
+             test_MPI_ANY_SOURCE
+             )
   target_link_libraries(${prog} bdmpi GKlib rt dl)
   add_dependencies(${prog} ${GKlib_includes})
 endforeach(prog)
 
 # if(BDMP_INSTALL)
-#   install(TARGETS helloworld p2p 
+#   install(TARGETS helloworld p2p
 #     RUNTIME DESTINATION bin)
 # endif()
