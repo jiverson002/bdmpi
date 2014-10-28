@@ -792,7 +792,11 @@ void sb_discard(void *ptr, ssize_t size)
   size_t addr, ip, ifirst, iend;
   sbchunk_t *sbchunk;
 
-  if (sbinfo == NULL)
+  if (NULL == sbinfo)
+    return;
+  if (0 == size)
+    return;
+  if (size < -1)
     return;
 
   /* find the sbchunk */
@@ -816,28 +820,32 @@ void sb_discard(void *ptr, ssize_t size)
       sbchunk->flags ^= SBCHUNK_ONDISK;
   }
   else { /* discard supplied range */
-    ifirst = (addr - sbchunk->saddr + sbinfo->pagesize-1)/sbinfo->pagesize;
-    iend   = (addr+size - sbchunk->saddr + sbinfo->pagesize-1)/sbinfo->pagesize;
-    //iend   = (addr+size - sbchunk->saddr)/sbinfo->pagesize;
+    /* can only discard pages fully within range, thus ifirst is a ceil
+     * operation and iend is a floor operation. */
+    ifirst = 1+((addr+size-sbchunk->saddr-1)/sbinfo->pagesize);
+    iend   = (addr-sbchunk->saddr)/sbinfo->pagesize;
   }
 
-  /* provide only read permissions, assuming that it had read permissions;
-   * this will remove the write permissions so in case we do not block,
-   * subsequent writes will be intercepted correctly */
-  if (sbchunk->flags&SBCHUNK_READ) {
-    if (mprotect((void *)(sbchunk->saddr+ifirst*sbinfo->pagesize),
-                 (iend-ifirst)*sbinfo->pagesize, PROT_READ) == -1) {
-      perror("sb_discard: failed to mprotect to PROT_READ");
-      exit(EXIT_FAILURE);
+  /* some pages exist fully within range */
+  if (ifirst < iend) {
+    /* provide only read permissions, assuming that it had read permissions;
+     * this will remove the write permissions so in case we do not block,
+     * subsequent writes will be intercepted correctly */
+    if (sbchunk->flags&SBCHUNK_READ) {
+      if (mprotect((void *)(sbchunk->saddr+ifirst*sbinfo->pagesize),
+                   (iend-ifirst)*sbinfo->pagesize, PROT_READ) == -1) {
+        perror("sb_discard: failed to mprotect to PROT_READ");
+        exit(EXIT_FAILURE);
+      }
     }
-  }
 
-  /* update the corresponding pflags[] entries */
-  for (ip=ifirst; ip<iend; ip++) {
-    if (sbchunk->pflags[ip]&SBCHUNK_WRITE)
-      sbchunk->pflags[ip] ^= SBCHUNK_WRITE;
-    if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
-      sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
+    /* update the corresponding pflags[] entries */
+    for (ip=ifirst; ip<iend; ip++) {
+      if (sbchunk->pflags[ip]&SBCHUNK_WRITE)
+        sbchunk->pflags[ip] ^= SBCHUNK_WRITE;
+      if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
+        sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
+    }
   }
   BD_LET_LOCK(&(sbchunk->mtx));
 }
