@@ -29,6 +29,7 @@ file(GLOB common_sources ${COMMON_PATH}/*.c)
 # Add include directories.
 include_directories(${GKLIB_PATH})
 include_directories(include)
+
 # Recursively look for CMakeLists.txt in subdirs.
 add_subdirectory("GKlib")
 add_subdirectory("include")
