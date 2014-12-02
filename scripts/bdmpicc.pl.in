@@ -7,6 +7,6 @@ $CC     = "@CMAKE_C_COMPILER@";
 
 $args = join(' ', @ARGV);
 $cmd = "$CC -pthread $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lrt -lm -ldl";
-print "bdmpicc: $cmd\n";
+#print "bdmpicc: $cmd\n";
 `$cmd`;
 
