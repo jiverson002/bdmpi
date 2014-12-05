@@ -10,7 +10,7 @@
 
 #define BDMPL_WITH_SB_DISCARD   /* enable sb_discard() */
 //#define BDMPL_WITH_SB_SAVEALL   /* enable sb_saveall() */
-//#define BDMPL_WITH_SB_NOTIFY    /* enable memory tracking */
+#define BDMPL_WITH_SB_NOTIFY    /* enable memory tracking */
 #define BDMPL_WITH_SB_LAZYREAD  /* enable lazy reading (read on-demand) */
 
 #define BDMPL_SLEEP(JOB, MSG)                                   \

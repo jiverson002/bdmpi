@@ -79,6 +79,13 @@ void _sb_pagesave(sbchunk_t * const sbchunk, size_t const ip);
 #define BD_LET_LOCK(lock) GKASSERT(pthread_mutex_unlock(lock) == 0)
 #endif
 
+#define MPROTECT(FUNC, ...)                 \
+do {                                        \
+  if (-1 == mprotect((void*)__VA_ARGS__)) { \
+    perror(FUNC": failed to mprotect");     \
+    exit(EXIT_FAILURE);                     \
+  }                                         \
+} while (0)
 
 
 /*************************************************************************/
@@ -472,6 +479,7 @@ void *sb_malloc(size_t nbytes)
 /*************************************************************************/
 /*! Reallocates memory via anonymous mmap */
 /*************************************************************************/
+#if 1
 void *sb_realloc(void *oldptr, size_t nbytes)
 {
   size_t ip, new_saddr, new_npages;
@@ -548,7 +556,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     }
 
     /* get the new anonymous map */
-    new_saddr = (size_t) mmap(NULL, new_npages*sbinfo->pagesize, PROT_READ|PROT_WRITE,
+    new_saddr = (size_t) mmap(NULL, new_npages*sbinfo->pagesize, PROT_WRITE,
                              MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
     if ((void *)new_saddr == MAP_FAILED) {
@@ -560,6 +568,11 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     if (sbchunk->flags&SBCHUNK_NONE)
       _sb_chunkload(sbchunk);
 
+    /* error check */
+    GKASSERT(sbchunk->flags&SBCHUNK_READ);
+    for (ip=0; ip<sbchunk->npages; ip++)
+      GKASSERT(sbchunk->pflags[ip]&SBCHUNK_READ);
+
     /* copy the data */
     memcpy((void *)new_saddr, (void *)sbchunk->saddr, sbchunk->nbytes);
 
@@ -569,10 +582,8 @@ void *sb_realloc(void *oldptr, size_t nbytes)
       exit(EXIT_FAILURE);
     }
 
-    if (!(sbchunk->flags&SBCHUNK_READ)) {
-      fprintf(stderr, "sb_realloc: chunk without read permission\n");
-      exit(EXIT_FAILURE);
-    }
+    /* set permissions to read only */
+    MPROTECT("sb_realloc", new_saddr, new_npages*sbinfo->pagesize, PROT_READ);
 
     /* set remapped sbchunk for writing and remove its ondisk flag */
     if (sbchunk->flags&SBCHUNK_ONDISK) {
@@ -582,13 +593,11 @@ void *sb_realloc(void *oldptr, size_t nbytes)
 
     /* set per-page flags */
     for (ip=0; ip<sbchunk->npages; ip++) {
-      if (!(sbchunk->pflags[ip]&SBCHUNK_READ)) {
-        fprintf(stderr, "sb_realloc: page without read permission\n");
-        exit(EXIT_FAILURE);
-      }
-
       new_pflags[ip] = sbchunk->pflags[ip];
       if (new_pflags[ip]&SBCHUNK_ONDISK) {
+        MPROTECT("sb_realloc",
+          (sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize, PROT_READ|PROT_WRITE);
+
         new_pflags[ip] ^= SBCHUNK_ONDISK;
         new_pflags[ip] |= SBCHUNK_WRITE;
       }
@@ -617,7 +626,77 @@ ERROR_EXIT:
 
   return NULL;
 }
+#else
+void *sb_realloc(void *oldptr, size_t nbytes)
+{
+  size_t ip, npages, new_npages;
+  void * new_ptr=NULL;
+  sbchunk_t * sbchunk, * new_sbchunk;
 
+  if (sbinfo == NULL) {
+    perror("sb_realloc: sbinfo == NULL");
+    exit(EXIT_FAILURE);
+  }
+
+  if (NULL == (new_ptr=sb_malloc(nbytes)))
+    return NULL;
+  new_sbchunk = _sb_find(new_ptr);
+  new_npages  = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
+
+  BD_GET_LOCK(&(sbinfo->mtx));
+  if ((sbchunk = _sb_find(oldptr)) == NULL) {
+    perror("sb_realloc: failed to find the sbchunk");
+    exit(EXIT_FAILURE);
+  }
+  BD_LET_LOCK(&(sbinfo->mtx));
+
+  BD_GET_LOCK(&(sbchunk->mtx));
+
+  if (new_npages <= sbchunk->npages)
+    npages = new_npages;
+  else
+    npages = sbchunk->npages;
+
+  nbytes = npages*sbinfo->pagesize;
+
+  /*----------------------------------------------------------------------*/
+#ifdef BDMPL_WITH_SB_NOTIFY
+  bdmsg_t msg, gomsg;
+
+  /* notify the master that you want to load memory */
+  msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+  msg.source  = sbinfo->job->rank;
+  msg.count   = nbytes;
+  bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+  BDMPL_SLEEP(sbinfo->job, gomsg);
+#endif
+  /*----------------------------------------------------------------------*/
+
+  // set read/write permissions on new_npages of new_sbchunk->saddr
+  // set read permissions on new_npages of sbchunk->saddr
+  MPROTECT("sb_realloc", new_sbchunk->saddr, nbytes, PROT_READ|PROT_WRITE);
+  MPROTECT("sb_realloc", sbchunk->saddr, nbytes, PROT_READ);
+
+  // copy data from sbchunk->saddr to new_sbchunk->saddr
+  memcpy((void*)new_sbchunk->saddr, (void*)sbchunk->saddr, nbytes);
+
+  // update flags for new_sbchunk
+  new_sbchunk->flags = SBCHUNK_READ;
+  if (sbchunk->flags&SBCHUNK_ONDISK)
+    new_sbchunk->flags |= SBCHUNK_ONDISK;
+  for (ip=0; ip<npages; ++ip) {
+    new_sbchunk->pflags[ip] = SBCHUNK_READ;
+    if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
+      new_sbchunk->pflags[ip] |= SBCHUNK_WRITE;
+  }
+
+  BD_LET_LOCK(&(sbchunk->mtx));
+
+  _sb_chunkfree(sbchunk);
+
+  return new_ptr;
+}
+#endif
 
 /*************************************************************************/
 /*! Frees the allocated sbmemory */
@@ -850,11 +929,8 @@ void sb_discard(void *ptr, ssize_t size)
      * this will remove the write permissions so in case we do not block,
      * subsequent writes will be intercepted correctly */
     if (sbchunk->flags&SBCHUNK_READ) {
-      if (mprotect((void *)(sbchunk->saddr+ifirst*sbinfo->pagesize),
-                   (iend-ifirst)*sbinfo->pagesize, PROT_READ) == -1) {
-        perror("sb_discard: failed to mprotect to PROT_READ");
-        exit(EXIT_FAILURE);
-      }
+      MPROTECT("sb_discard",
+        (sbchunk->saddr+ifirst*sbinfo->pagesize), (iend-ifirst)*sbinfo->pagesize, PROT_READ);
     }
 
     /* update the corresponding pflags[] entries */
@@ -916,12 +992,8 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
     }
 
     /* on second exception, change the protection of the page to writeable */
-    if (-1 == mprotect((void *)(sbchunk->saddr+ip*sbinfo->pagesize),
-                       sbinfo->pagesize, PROT_READ|PROT_WRITE))
-    {
-      perror("_sb_handler: failed to mprotect to PROT_READ|PROT_WRITE");
-      exit(EXIT_FAILURE);
-    }
+    MPROTECT("_sb_handler",
+        (sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize, PROT_READ|PROT_WRITE);
     sbchunk->pflags[ip] |= SBCHUNK_WRITE;
     sbchunk->flags |= SBCHUNK_WRITE;
   }
@@ -985,10 +1057,8 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   /* if required, read the data from the file */
   if (sbchunk->flags&SBCHUNK_ONDISK) {
     /* make it writeable for load/clear */
-    if (mprotect((void *)sbchunk->saddr, npages*sbinfo->pagesize, PROT_WRITE) == -1) {
-      perror("_sb_chunkload: failed to PROT_WRITE");
-      exit(EXIT_FAILURE);
-    }
+    MPROTECT("_sb_chunkload", sbchunk->saddr, npages*sbinfo->pagesize, PROT_WRITE);
+
     if ((fd = open(sbchunk->fname, O_RDONLY)) == -1) {
       perror("_sb_chunkload: failed to open file");
       exit(EXIT_FAILURE);
@@ -1026,10 +1096,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     }
   }
 
-  if (-1 == mprotect((void *)sbchunk->saddr, npages*sbinfo->pagesize, PROT_READ)) {
-    perror("sb_realloc: failed to PROT_READ");
-    exit(EXIT_FAILURE);
-  }
+  MPROTECT("_sb_chunkload", sbchunk->saddr, npages*sbinfo->pagesize, PROT_READ);
 
   if (sbchunk->flags&SBCHUNK_NONE)
     sbchunk->flags ^= SBCHUNK_NONE;
@@ -1141,10 +1208,7 @@ void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
   }
 
   /* change protection to PROT_NONE for next time */
-  if (mprotect((void *)sbchunk->saddr, npages*sbinfo->pagesize, PROT_NONE) == -1) {
-    perror("_sb_chunksave: failed to PROT_NONE");
-    exit(EXIT_FAILURE);
-  }
+  MPROTECT("_sb_chunksave", sbchunk->saddr, npages*sbinfo->pagesize, PROT_NONE);
 }
 
 
@@ -1185,18 +1249,25 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
 #endif
 #endif
 
+  /* TODO: maybe instead of having to open and close the file each page load,
+           the memory could just be file-back mmaped and read from the mmap
+           into the memory buffer each page load. */
+
   ptr = (char *)(sbchunk->saddr + ip*sbinfo->pagesize);
 
   if (sbchunk->pflags[ip]&SBCHUNK_ONDISK) {
     /* make page writeable for load */
-    if (-1 == mprotect(ptr, sbinfo->pagesize, PROT_WRITE)) {
-      perror("_sb_chunkload: failed to PROT_WRITE");
-      exit(EXIT_FAILURE);
-    }
+    MPROTECT("_sb_pageload", ptr, sbinfo->pagesize, PROT_WRITE);
 
     /* load page data from file */
     if (-1 == (fd=open(sbchunk->fname, O_RDONLY))) {
-      perror("_sb_chunkload: failed to open file");
+      perror("_sb_pageload: failed to open file");
+      exit(EXIT_FAILURE);
+    }
+
+    /* need to lseek */
+    if (-1 == lseek(fd, ip*sbinfo->pagesize, SEEK_SET)) {
+      perror("_sb_pageload: failed on lseek");
       exit(EXIT_FAILURE);
     }
 
@@ -1204,7 +1275,7 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
     buf = ptr;
     do {
       if (-1 == (size=libc_read(fd, buf, tsize))) {
-        perror("_sb_chunkload: failed to read the required data");
+        perror("_sb_pageload: failed to read the required data");
         exit(EXIT_FAILURE);
       }
       buf   += size;
@@ -1212,16 +1283,13 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
     } while (tsize > 0);
 
     if (-1 == close(fd)) {
-      perror("sb_realloc: failed to close the fd");
+      perror("sb_pageload: failed to close the fd");
       exit(EXIT_FAILURE);
     }
   }
 
   /* make page readable */
-  if (-1 == mprotect(ptr, sbinfo->pagesize, PROT_READ)) {
-    perror("sb_realloc: failed to PROT_READ");
-    exit(EXIT_FAILURE);
-  }
+  MPROTECT("_sb_pageload", ptr, sbinfo->pagesize, PROT_READ);
 
   /* update flags to reflect readable */
   if (sbchunk->flags&SBCHUNK_NONE)
@@ -1290,10 +1358,7 @@ void _sb_pagesave(sbchunk_t * const sbchunk, size_t const ip)
   }
 
   /* change protection to PROT_NONE for next time */
-  if (-1 == mprotect(ptr, sbinfo->pagesize, PROT_NONE)) {
-    perror("_sb_pagesave: failed to PROT_NONE");
-    exit(EXIT_FAILURE);
-  }
+  MPROTECT("_sb_pagesave", ptr, sbinfo->pagesize, PROT_NONE);
 }
 
 
