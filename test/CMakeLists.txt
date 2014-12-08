@@ -10,6 +10,7 @@ add_executable(alltoall alltoall.c)
 add_executable(gather gather.c)
 add_executable(scatter scatter.c)
 add_executable(test_MPI_ANY_SOURCE test_MPI_ANY_SOURCE.c)
+add_executable(lazyread lazyread.c)
 foreach(prog helloworld
              p2p
              pscan
@@ -21,6 +22,7 @@ foreach(prog helloworld
              gather
              alltoall
              test_MPI_ANY_SOURCE
+             lazyread
              )
   target_link_libraries(${prog} bdmpi GKlib rt dl)
   add_dependencies(${prog} ${GKlib_includes})
