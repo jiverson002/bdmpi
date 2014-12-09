@@ -58,7 +58,7 @@ main(int argc, char* argv[])
 
 DONE:
   MPI_Reduce(&sum, &gsum, 1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
-  if (0 == rank && 0 == gsum)
+  if (0 == rank && 0 == np*2*(n/pagesize))
     ret = -1;
 
   cur = gk_getwctimer(tmr0);
