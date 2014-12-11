@@ -180,6 +180,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
     sb_saveall();
 #endif
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_COMMFREE;
   msg.mcomm   = (*comm)->mcomm;
   msg.myrank  = (*comm)->rank;
@@ -221,6 +222,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
 
   *newcomm = BDMPI_COMM_NULL;
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_COMMSPLIT;
   msg.mcomm   = comm->mcomm;
   msg.myrank  = comm->rank;

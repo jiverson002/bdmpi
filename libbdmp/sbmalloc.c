@@ -95,6 +95,9 @@ void *malloc(size_t nbytes)
 {
   if (libc_malloc == NULL)
     *((void **) &libc_malloc) = dlsym(RTLD_NEXT, "malloc");
+  // should do error check to make sure symbol was found?
+  //if (libc_malloc == NULL)
+  //  return NULL;
 
   if (sbinfo == NULL)
     return libc_malloc(nbytes);

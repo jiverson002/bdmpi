@@ -245,7 +245,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
 int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
           BDMPI_Datatype datatype, BDMPI_Op op, BDMPI_Comm comm)
 {
-  int mype, response, sleeping=1;
+  int mype, response=1, sleeping=1;
   bdmsg_t msg, gomsg;
 
   S_IFSET(BDMPI_DBG_IPCS,
@@ -270,6 +270,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   mype = comm->rank;
 
   /* notify the master that you entering a reduce */
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_ALLREDUCEI;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;

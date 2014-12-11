@@ -39,7 +39,8 @@ void slvpool_listen(mjob_t *job)
         M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] slvpool_listen: cpid: %d terminated with signal.\n",
             job->mynode, (int)cpid));
         slvpool_abort(1, "Process %d killed by signal %d.\n", (int)cpid, WTERMSIG(status));
-      } else if (WIFSTOPPED(status)) {
+      }
+      else if (WIFSTOPPED(status)) {
         M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] slvpool_listen: cpid: %d terminated with stop.\n",
             job->mynode, (int)cpid));
         slvpool_abort(1, "Process %d stopped by signal %d.\n", (int)cpid, WSTOPSIG(status));

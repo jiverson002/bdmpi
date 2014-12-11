@@ -133,6 +133,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* tell the master that you are done with init */
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Notify the master that you are done with init\n"));
 
+  memset(&donemsg, 0, sizeof(bdmsg_t));
   donemsg.msgtype = BDMPI_MSGTYPE_INIT;
   donemsg.myrank  = job->rank;
 

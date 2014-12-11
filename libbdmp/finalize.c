@@ -26,6 +26,7 @@ int bdmp_Finalize(sjob_t *job)
   sb_finalize();
 
   /* send a message to the slave telling it that you are leaving... */
+  memset(&donemsg, 0, sizeof(bdmsg_t));
   donemsg.msgtype = BDMPI_MSGTYPE_FINALIZE;
   donemsg.myrank  = job->rank;
 
@@ -55,7 +56,7 @@ int bdmp_Finalize(sjob_t *job)
   bdscb_close(job->scb);
 
   /* free communicators */
-  gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, LTERM);
+  gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
 
   return BDMPI_SUCCESS;
 }

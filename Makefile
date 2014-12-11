@@ -57,7 +57,7 @@ PKGNAME=bdmpi-$(VERNUM)
 
 define run-config
 mkdir -p $(BUILDDIR)
-cd $(BUILDDIR) && cmake $(CURDIR) $(CONFIG_FLAGS)
+cd $(BUILDDIR) && cmake $(CURDIR) -DCMAKE_BUILD_TYPE=Debug $(CONFIG_FLAGS)
 endef
 
 all clean install:
