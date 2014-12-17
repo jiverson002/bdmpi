@@ -968,8 +968,8 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
   BD_GET_LOCK(&(sbinfo->mtx));
   if ((sbchunk = _sb_find((void*)addr)) == NULL) {
     printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
-    for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next)
-      printf("%d %zu %zx - %zx\n", sbchunk->flags, sbchunk->nbytes, sbchunk->saddr, sbchunk->eaddr);
+    /*for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next)
+      printf("%d %zu %zx - %zx\n", sbchunk->flags, sbchunk->nbytes, sbchunk->saddr, sbchunk->eaddr);*/
     abort();
     exit(EXIT_FAILURE);
   }
