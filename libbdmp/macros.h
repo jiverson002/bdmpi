@@ -1,5 +1,5 @@
 /*
- * defs.h
+ * macros.h
  *
  * This file contains various macro definitions
  *
