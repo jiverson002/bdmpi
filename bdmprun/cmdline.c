@@ -23,6 +23,7 @@ static struct gk_option long_options[] = {
   {"mm",    1,      0,      BDMPRUN_CMD_MMSIZE},
   {"sb",    1,      0,      BDMPRUN_CMD_SBSIZE},
   {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
+  {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"nlm",   0,      0,      BDMPRUN_CMD_NOLOCKMEM},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
@@ -75,6 +76,9 @@ static char helpstr[][100] =
 "     bcast/reduce operations.",
 */
 " ",
+"  -pg=int [Default: 4]",
+"     Specifies the number of system pages which make a single sb_malloc page.",
+" ",
 "  -rm=int [Default: 32]",
 "     Specifies the aggregate maximum resident set size for the slave ",
 "     processes on each node. The int argument is the base two logarithm of ",
@@ -118,6 +122,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
   bdmp->sbsize   = BDMPRUN_DEFAULT_SBSIZE;
+  bdmp->pgsize   = BDMPRUN_DEFAULT_PGSIZE;
   bdmp->lockmem  = BDMPRUN_DEFAULT_LOCKMEM;
   bdmp->dbglvl   = BDMPRUN_DEFAULT_DBGLVL;
   bdmp->iwdir    = NULL;
@@ -154,6 +159,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_RMSIZE:
         if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
+        break;
+
+      case BDMPRUN_CMD_PGSIZE:
+        if (gk_optarg) bdmp->pgsize = atoi(gk_optarg);
         break;
 
       case BDMPRUN_CMD_DBGLVL:

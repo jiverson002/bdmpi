@@ -38,6 +38,9 @@ typedef struct {
 
 /* static global variables */
 static sbinfo_t *sbinfo=NULL;
+#ifndef BDMPL_WITH_SB_LAZYREAD
+__thread size_t last_addr=0;
+#endif
 
 
 /* constants */
@@ -959,6 +962,8 @@ void sb_discard(void *ptr, ssize_t size)
 /*! The SIGSEGV handler */
 /*************************************************************************/
 static void _sb_handler(int sig, siginfo_t *si, void *unused)
+#ifdef BDMPL_WITH_SB_LAZYREAD
+# if 1
 {
   size_t ip=0;
   size_t const addr=(size_t)si->si_addr;
@@ -966,32 +971,23 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
 
   /* find the sbchunk */
   BD_GET_LOCK(&(sbinfo->mtx));
-  if ((sbchunk = _sb_find((void*)addr)) == NULL) {
+  if (NULL == (sbchunk=_sb_find((void*)addr))) {
     printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
-    /*for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next)
-      printf("%d %zu %zx - %zx\n", sbchunk->flags, sbchunk->nbytes, sbchunk->saddr, sbchunk->eaddr);*/
     abort();
-    exit(EXIT_FAILURE);
   }
   BD_LET_LOCK(&(sbinfo->mtx));
 
+  /* update protection information */
   BD_GET_LOCK(&(sbchunk->mtx));
   ip = (addr - sbchunk->saddr)/sbinfo->pagesize;
-  /* update protection information */
   if (sbchunk->pflags[ip]&SBCHUNK_NONE) {
-#ifdef BDMPL_WITH_SB_LAZYREAD
     /* on first exception, load the data page into memory */
     _sb_pageload(sbchunk, ip);
-#else
-    /* on first exception, load the data in memory */
-    _sb_chunkload(sbchunk);
-#endif
   }
   else if (sbchunk->pflags[ip]&SBCHUNK_READ) {
     if (sbchunk->pflags[ip]&SBCHUNK_WRITE) {
       printf("_sb_handler: got a SIGSEGV sb-readable and sb-writeable location: %zx\n", addr);
       abort();
-      exit(EXIT_FAILURE);
     }
 
     /* on second exception, change the protection of the page to writeable */
@@ -1004,11 +1000,84 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
     printf("_sb_handler: got a SIGSEGV on memory location with unknown "
            "sb-permissions: %zx (%d)\n", addr, sbchunk->flags);
     abort();
-    exit(EXIT_FAILURE);
   }
   BD_LET_LOCK(&(sbchunk->mtx));
 }
+# else
+{
+  size_t ip=0;
+  size_t const addr=(size_t)si->si_addr;
+  sbchunk_t * sbchunk=NULL;
 
+  /* find the sbchunk */
+  BD_GET_LOCK(&(sbinfo->mtx));
+  if (NULL == (sbchunk=_sb_find((void*)addr))) {
+    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
+    abort();
+  }
+  BD_LET_LOCK(&(sbinfo->mtx));
+
+  /* update protection information */
+  BD_GET_LOCK(&(sbchunk->mtx));
+  ip = (addr - sbchunk->saddr)/sbinfo->pagesize;
+  if (sbchunk->pflags[ip]&SBCHUNK_NONE) {
+    /* on first exception, load the data page into memory */
+    _sb_pageload(sbchunk, ip);
+  }
+  else if (addr == last_addr) {
+    /* on second exception, change the protection of the page to writeable */
+    MPROTECT("_sb_handler",
+        (sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize, PROT_READ|PROT_WRITE);
+    sbchunk->pflags[ip] |= SBCHUNK_WRITE;
+    sbchunk->flags |= SBCHUNK_WRITE;
+
+    last_addr = 0;
+  }
+  else {
+    last_addr = addr;
+  }
+  BD_LET_LOCK(&(sbchunk->mtx));
+}
+# endif
+#else
+{
+  size_t ip=0;
+  size_t const addr=(size_t)si->si_addr;
+  sbchunk_t * sbchunk=NULL;
+
+  /* find the sbchunk */
+  BD_GET_LOCK(&(sbinfo->mtx));
+  if (NULL == (sbchunk=_sb_find((void *)addr))) {
+    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
+    abort();
+  }
+  BD_LET_LOCK(&(sbinfo->mtx));
+
+  BD_GET_LOCK(&(sbchunk->mtx));
+  /* update protection information */
+  if (sbchunk->flags&SBCHUNK_NONE) {
+    /* on first exception, load the data in memory */
+    _sb_chunkload(sbchunk);
+  }
+  else if (addr == last_addr) {
+    /* this happen due to a write, change the protection of the corresponding page */
+    ip = (addr - sbchunk->saddr)/sbinfo->pagesize;
+
+    MPROTECT("_sb_handler",
+        (sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize, PROT_READ|PROT_WRITE);
+
+    sbchunk->pflags[ip] |= SBCHUNK_WRITE;
+    sbchunk->flags |= SBCHUNK_WRITE;
+
+    last_addr = 0;
+  }
+  else {
+    last_addr = addr;
+  }
+  BD_LET_LOCK(&(sbchunk->mtx));
+
+}
+#endif
 
 /*************************************************************************/
 /*! Returns a pointer to an sbchunk that contains the specified address */

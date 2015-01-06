@@ -191,6 +191,7 @@ void setup_master_prefork(mjob_t *job)
   job->jdesc->smsize  = job->smsize;
   job->jdesc->imsize  = job->imsize;
   job->jdesc->sbsize  = job->sbsize;
+  job->jdesc->pgsize  = job->pgsize;
   job->jdesc->dbglvl  = job->dbglvl;
   job->jdesc->mpid    = job->mpid;
 
