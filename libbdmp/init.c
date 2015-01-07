@@ -159,7 +159,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* init the sbmalloc subsystem */
   char sbdir[2*BDMPI_WDIR_LEN];
   snprintf(sbdir, 2*BDMPI_WDIR_LEN, "%s/%d-", job->jdesc->wdir, job->mypid);
-  if (sb_init(sbdir, job, job->jdesc->sbsize, job->jdesc->pgsize) == 0)
+  if (0 == sb_init(sbdir, job))
     bdprintf("Failed on sb_init()\n");
 
   return BDMPI_SUCCESS;
