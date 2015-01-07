@@ -80,6 +80,7 @@ typedef struct {
   int ns;               /*!< The number of slave processes to fork() */
   int nr_input;         /*!< The maximum number of running processes (-nr) */
   int nc;               /*!< The maximum number of slaves in a critical section */
+  int sbopts;           /*!< The sb library options */
   size_t smsize;        /*!< The size of the shared comm buffer (-smsize*pagesize) */
   size_t imsize;        /*!< The maximum size of a message for in-memory buffering */
   size_t mmsize;        /*!< The maximum buffer size of inter-node p2p communication */

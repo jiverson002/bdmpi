@@ -64,14 +64,14 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_DISCARD
-  if (mype == root)
-    sb_discard(recvbuf, bdmp_msize(count, datatype));
-#endif
-#ifdef BDMPL_WITH_SB_SAVEALL
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_DISCARD) {
+    if (mype == root)
+      sb_discard(recvbuf, bdmp_msize(count, datatype));
+  }
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
@@ -204,10 +204,10 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   mype = comm->rank;
 
   /* go to sleep until everybody has called the reduce */
-#ifdef BDMPL_WITH_SB_SAVEALL
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
   BDMPL_SLEEP(job, gomsg);
 
   /* the root sends a REDUCE_RECV request and get the data */
@@ -287,13 +287,13 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, sendbuf, count, datatype);
 
   /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_DISCARD
-  sb_discard(recvbuf, bdmp_msize(count, datatype));
-#endif
-#ifdef BDMPL_WITH_SB_SAVEALL
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_DISCARD) {
+    sb_discard(recvbuf, bdmp_msize(count, datatype));
+  }
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */

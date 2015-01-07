@@ -30,12 +30,59 @@
 /* The maximum length of the complete working directory path */
 #define BDMPI_WDIR_LEN           1024
 
+/****************************************************************************/
+/*!
+ *  \details  Enable the use of sb_discard() throughout the BDMPI library.
+ */
+/****************************************************************************/
+#define BDMPI_SB_DISCARD   1
+
+/****************************************************************************/
+/*!
+ *  \details  Enable the use of sb_saveall() throughout the BDMPI library.
+ */
+/****************************************************************************/
+#define BDMPI_SB_SAVEALL   2
+
+/****************************************************************************/
+/*!
+ *  \details  Enable the "lazy-write" strategy in the sbmalloc library.  This
+ *            means that memory allocations controlled by the sbmalloc library
+ *            will not be written to disk until there is ``sufficient''
+ *            pressure on the total DRAM to warrant such an action.  In this
+ *            case, ``sufficient'' is determined by the resident memory
+ *            command line parameter `-rm='.
+ *
+ *  \note     While compatible, it is not recommended to use this option with
+ *            the #BDMPI_SB_SAVEALL option, since the latter will essentially
+ *            negate the advantages of this strategy.
+ */
+/****************************************************************************/
+#define BDMPI_SB_LAZYWRITE 4
+
+/****************************************************************************/
+/*!
+ *  \details  Enable the "lazy-read" strategy in the sbmalloc library.  This
+ *            means that memory allocations controlled by the sbmalloc library
+ *            will not be read from disk and read protected until the
+ *            application makes a read / write attempt to the memory location
+ *            corresponding to the allocation.  Furthermore, rather than read
+ *            the entire allocation chunk, the first time that any system page
+ *            within it is accessed, memory is read and protected at a
+ *            resolution of an sbpage, which can be any multiple of a system
+ *            page.
+ */
+/****************************************************************************/
+#define BDMPI_SB_LAZYREAD  8
+
 
 /*************************************************************************/
 /* Common macros */
 /*************************************************************************/
-#define S_IFSET(a,b) IFSET(job->jdesc->dbglvl, (a), (b))
-#define M_IFSET(a,b) IFSET(job->dbglvl, (a), (b))
+#define S_IFSET(a,b)      IFSET(job->jdesc->dbglvl, (a), (b))
+#define M_IFSET(a,b)      IFSET(job->dbglvl, (a), (b))
+#define S_SB_IFSET(FLAG)  if ((FLAG) == (job->jdesc->sbopts&(FLAG)))
+#define SB_SB_IFSET(FLAG) if ((FLAG) == (sbinfo->opts&(FLAG)))
 
 #define BDWARN(expr)\
   do {\
@@ -153,6 +200,7 @@ typedef struct {
   int ns;                   /*!< The number of slave processes for this node/master */
   int nr;                   /*!< The maximum number of slaves allowed to run */
   mdbglvl_et dbglvl;        /*!< The dbglvl of the execution */
+  int sbopts;               /*!< The sb library options */
   size_t smsize;            /*!< The size of the shared memory comm buffer */
   size_t imsize;            /*!< The maximum size for in-memory buffering */
   size_t sbsize;            /*!< The minimum size for storage-backed allocation */

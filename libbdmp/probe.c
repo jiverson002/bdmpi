@@ -28,11 +28,11 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   }
 
   /* save the state in case you go to sleep */
-#ifdef BDMPL_WITH_SB_SAVEALL
-  bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
-  if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
+    if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
 
   msg.msgtype  = BDMPI_MSGTYPE_PROBE;
   msg.mcomm    = comm->mcomm;
@@ -52,10 +52,10 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_SAVEALL
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
-#endif
+    S_SB_IFSET(BDMPI_SB_SAVEALL) {
+      if (job->jdesc->nr < job->jdesc->ns)
+        sb_saveall();
+    }
 
     /* go to sleep... */
     BDMPL_SLEEP(job, gomsg);

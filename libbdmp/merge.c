@@ -135,10 +135,10 @@ int bdmp_Merge(sjob_t *job, void *sendbuf, int *sendids, int sendcount,
   xfer_out_scb(job->scb, sendids, sendcount, BDMPI_INT);
 
   /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_SAVEALL
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */

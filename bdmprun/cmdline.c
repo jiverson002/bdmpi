@@ -26,6 +26,11 @@ static struct gk_option long_options[] = {
   {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"nlm",   0,      0,      BDMPRUN_CMD_NOLOCKMEM},
 
+  {"sbd",   0,      0,      BDMPRUN_CMD_SBDISCARD},
+  {"sbs",   0,      0,      BDMPRUN_CMD_SBSAVEALL},
+  {"sblw",  0,      0,      BDMPRUN_CMD_SBLAZYWRITE},
+  {"sblr",  0,      0,      BDMPRUN_CMD_SBLAZYREAD},
+
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
   {0,       0,      0,      0}
@@ -92,6 +97,33 @@ static char helpstr[][100] =
 "  -wd=string [Default: "BDMPRUN_DEFAULT_WDIR"]",
 "     Specifies where working files will be stored.",
 " ",
+"  -sbd [Default: no]",
+"     Enables the use of sb_discard() throughout the BDMPI library.",
+" ",
+"  -sbs [Default: no]",
+"     Enables the use of sb_saveall() throughout the BDMPI library.",
+" ",
+"  -sblw [Default: no]",
+"     Enables the ``lazy-write'' strategy in the sbmalloc library.  This",
+"     means that memory allocations controlled by the sbmalloc library will",
+"     not be written to disk until there is ``sufficient'' pressure on the",
+"     total DRAM to warrant such an action.  In this case, ``sufficient'' is",
+"     determined by the resident memory command line parameter `-rm='.",
+" ",
+"     While compatible, it is not recommended to use this option with the ",
+"     `-sbs' option, since the latter will essentially negate the advantages",
+"     of this strategy.",
+" ",
+"  -sblr [Default: no]",
+"     Enables the ``lazy-read'' strategy in the sbmalloc library.  This",
+"     means that memory allocations controlled by the sbmalloc library will",
+"     not be read from disk and read protected until the application makes a",
+"     read / write attempt to the memory location corresponding to the",
+"     allocation.  Furthermore, rather than read the entire allocation",
+"     chunk, the first time that any system page within it is accessed,",
+"     memory is read and protected at a resolution of an sbpage, which can",
+"     be any multiple of a system page.",
+" ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
 " ",
@@ -118,6 +150,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->ns       = BDMPRUN_DEFAULT_NS;
   bdmp->nr_input = BDMPRUN_DEFAULT_NR;
   bdmp->nc       = BDMPRUN_DEFAULT_NC;
+  bdmp->sbopts   = BDMPRUN_DEFAULT_SBOPTS;
   bdmp->smsize   = BDMPRUN_DEFAULT_SMSIZE;
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
@@ -139,6 +172,22 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_NR:
         if (gk_optarg) bdmp->nr_input = atoi(gk_optarg);
+        break;
+
+      case BDMPRUN_CMD_SBDISCARD:
+        bdmp->sbopts |= BDMPI_SB_DISCARD;
+        break;
+
+      case BDMPRUN_CMD_SBSAVEALL:
+        bdmp->sbopts |= BDMPI_SB_SAVEALL;
+        break;
+
+      case BDMPRUN_CMD_SBLAZYWRITE:
+        bdmp->sbopts |= BDMPI_SB_LAZYWRITE;
+        break;
+
+      case BDMPRUN_CMD_SBLAZYREAD:
+        bdmp->sbopts |= BDMPI_SB_LAZYREAD;
         break;
 
       case BDMPRUN_CMD_SMSIZE:

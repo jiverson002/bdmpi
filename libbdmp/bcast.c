@@ -65,14 +65,14 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
 
   /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_DISCARD
-  if (mype != root)
-    sb_discard(buf, bdmp_msize(count, datatype));
-#endif
-#ifdef BDMPL_WITH_SB_SAVEALL
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-#endif
+  S_SB_IFSET(BDMPI_SB_DISCARD) {
+    if (mype != root)
+      sb_discard(buf, bdmp_msize(count, datatype));
+  }
+  S_SB_IFSET(BDMPI_SB_SAVEALL) {
+    if (job->jdesc->nr < job->jdesc->ns)
+      sb_saveall();
+  }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the bcast */

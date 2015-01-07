@@ -42,13 +42,13 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   /* save the state in case you go to sleep */
   bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
-#ifdef BDMPL_WITH_SB_DISCARD
-    sb_discard(buf, bdmp_msize(count, datatype));
-#endif
-#ifdef BDMPL_WITH_SB_SAVEALL
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
-#endif
+    S_SB_IFSET(BDMPI_SB_DISCARD) {
+      sb_discard(buf, bdmp_msize(count, datatype));
+    }
+    S_SB_IFSET(BDMPI_SB_SAVEALL) {
+      if (job->jdesc->nr < job->jdesc->ns)
+        sb_saveall();
+    }
   }
 
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
@@ -73,10 +73,10 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       break;  /* we got the go-ahead */
 
     /* prepare to go to sleep */
-#ifdef BDMPL_WITH_SB_SAVEALL
-    if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
-#endif
+    S_SB_IFSET(BDMPI_SB_SAVEALL) {
+      if (job->jdesc->nr < job->jdesc->ns)
+        sb_saveall();
+    }
 
     /* go to sleep... */
     BDMPL_SLEEP(job, gomsg);

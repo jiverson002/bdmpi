@@ -188,6 +188,7 @@ void setup_master_prefork(mjob_t *job)
   job->jdesc->soffset = job->slvdist[job->mynode];
   job->jdesc->ns      = job->ns;
   job->jdesc->nr      = job->nr_input;
+  job->jdesc->sbopts  = job->sbopts;
   job->jdesc->smsize  = job->smsize;
   job->jdesc->imsize  = job->imsize;
   job->jdesc->sbsize  = job->sbsize;
