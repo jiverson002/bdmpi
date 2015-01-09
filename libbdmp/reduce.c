@@ -43,6 +43,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   mype = comm->rank;
 
   /* notify the master that you entering a reduce */
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_REDUCEI;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;

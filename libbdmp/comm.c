@@ -132,6 +132,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
     return BDMPI_ERR_COMM;
   }
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_COMMDUP;
   msg.mcomm   = comm->mcomm;
   msg.myrank  = comm->rank;

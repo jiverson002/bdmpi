@@ -17,7 +17,7 @@ int bdmp_Allgatherv(sjob_t *job,
           void *recvbuf, size_t *recvcounts,  size_t *displs,
           BDMPI_Datatype recvtype, BDMPI_Comm comm)
 {
-  int p, response, sleeping=1;
+  int p, response=0, sleeping=1;
   bdmsg_t msg, rmsg, gomsg;
   size_t rdtsize;
 
@@ -42,6 +42,7 @@ int bdmp_Allgatherv(sjob_t *job,
   rdtsize = bdmp_sizeof(recvtype);
 
   /* notify the master that you entering an allgather */
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_ALLGATHERI;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = comm->rank;

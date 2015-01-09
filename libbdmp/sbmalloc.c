@@ -38,7 +38,7 @@ typedef struct {
 
 /* static global variables */
 static sbinfo_t *sbinfo=NULL;
-__thread size_t last_addr=0;
+/*__thread size_t last_addr=0;*/
 
 
 /* constants */
@@ -439,8 +439,8 @@ void *sb_malloc(size_t nbytes)
     return NULL;
   }
 
-  sbchunk->saddr = (size_t) mmap(NULL, sbchunk->npages*sbinfo->pagesize, PROT_NONE,
-                                MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+  sbchunk->saddr = (size_t) mmap(NULL, sbchunk->npages*sbinfo->pagesize,  \
+    PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
   if ((void *)sbchunk->saddr == MAP_FAILED) {
     perror("sbmalloc.2 failure");
@@ -518,6 +518,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
         bdmsg_t msg, gomsg;
 
         /* notify the master that you want to load memory */
+        memset(&msg, 0, sizeof(bdmsg_t));
         msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
         msg.source  = sbinfo->job->rank;
         msg.count   = (sbchunk->npages-new_npages)*sbinfo->pagesize;
@@ -547,6 +548,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
       bdmsg_t msg, gomsg;
 
       /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
       msg.source  = sbinfo->job->rank;
       msg.count   = (new_npages-sbchunk->npages)*sbinfo->pagesize;
@@ -599,6 +601,8 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     }
 
     /* set permissions to read only */
+    //fprintf(stderr, "+++:%d: %zx %zx %d\n", __LINE__, new_saddr,
+    //  new_saddr+new_npages*sbinfo->pagesize, PROT_READ);
     MPROTECT(new_saddr, new_npages*sbinfo->pagesize, PROT_READ);
 
     /* set remapped sbchunk for writing and remove its ondisk flag */
@@ -610,11 +614,16 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     /* set per-page flags */
     for (ip=0; ip<sbchunk->npages; ip++) {
       new_pflags[ip] = sbchunk->pflags[ip];
-      if (new_pflags[ip]&SBCHUNK_ONDISK) {
-        MPROTECT((new_saddr+ip*sbinfo->pagesize), sbinfo->pagesize, \
+      if (SBCHUNK_WRITE == (new_pflags[ip]&SBCHUNK_WRITE) ||
+          SBCHUNK_ONDISK == (new_pflags[ip]&SBCHUNK_ONDISK))
+      {
+        //fprintf(stderr, "+++:%d: %zx %d\n", __LINE__,
+        //  new_saddr+ip*sbinfo->pagesize, PROT_READ|PROT_WRITE);
+        MPROTECT(new_saddr+ip*sbinfo->pagesize, sbinfo->pagesize, \
           PROT_READ|PROT_WRITE);
 
-        new_pflags[ip] ^= SBCHUNK_ONDISK;
+        if (SBCHUNK_ONDISK == (new_pflags[ip]&SBCHUNK_ONDISK))
+          new_pflags[ip] ^= SBCHUNK_ONDISK;
         new_pflags[ip] |= SBCHUNK_WRITE;
       }
     }
@@ -622,12 +631,12 @@ void *sb_realloc(void *oldptr, size_t nbytes)
       new_pflags[ip] = SBCHUNK_READ;
     new_pflags[new_npages] = 0;
 
+    libc_free(sbchunk->pflags);
+
     sbchunk->nbytes = nbytes;
     sbchunk->npages = new_npages;
     sbchunk->saddr  = new_saddr;
     sbchunk->eaddr  = sbchunk->saddr+nbytes;
-
-    libc_free(sbchunk->pflags);
     sbchunk->pflags = new_pflags;
   }
 
@@ -685,6 +694,7 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     bdmsg_t msg, gomsg;
 
     /* notify the master that you want to load memory */
+    memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
     msg.source  = sbinfo->job->rank;
     msg.count   = nbytes;
@@ -693,9 +703,9 @@ void *sb_realloc(void *oldptr, size_t nbytes)
   }
   /*----------------------------------------------------------------------*/
 
-  // set read/write permissions on new_npages of new_sbchunk->saddr
+  // set write permissions on new_npages of new_sbchunk->saddr
   // set read permissions on new_npages of sbchunk->saddr
-  MPROTECT(new_sbchunk->saddr, nbytes, PROT_READ|PROT_WRITE);
+  MPROTECT(new_sbchunk->saddr, nbytes, PROT_WRITE);
   MPROTECT(sbchunk->saddr, nbytes, PROT_READ);
 
   // copy data from sbchunk->saddr to new_sbchunk->saddr
@@ -711,9 +721,12 @@ void *sb_realloc(void *oldptr, size_t nbytes)
       new_sbchunk->pflags[ip] |= SBCHUNK_WRITE;
   }
 
+  // set read permissions on new_npages of sbchunk->saddr
+  MPROTECT(new_sbchunk->saddr, nbytes, PROT_READ|PROT_WRITE);
+
   BD_LET_LOCK(&(sbchunk->mtx));
 
-  _sb_chunkfree(sbchunk);
+  sb_free(sbchunk->saddr);
 
   return new_ptr;
 }
@@ -866,8 +879,13 @@ void sb_load(void *buf)
     return;
 
   BD_GET_LOCK(&(sbchunk->mtx));
-  if (sbchunk->flags&SBCHUNK_NONE)
+  SB_SB_IFSET(BDMPI_SB_LAZYREAD) {
     _sb_chunkload(sbchunk);
+  }
+  else {
+    if (sbchunk->flags&SBCHUNK_NONE)
+      _sb_chunkload(sbchunk);
+  }
   BD_LET_LOCK(&(sbchunk->mtx));
 }
 
@@ -885,8 +903,13 @@ void sb_loadall()
   BD_GET_LOCK(&(sbinfo->mtx));
   for (sbchunk=sbinfo->head; sbchunk!=NULL; sbchunk=sbchunk->next) {
     BD_GET_LOCK(&(sbchunk->mtx));
-    if (sbchunk->flags&SBCHUNK_NONE)
+    SB_SB_IFSET(BDMPI_SB_LAZYREAD) {
       _sb_chunkload(sbchunk);
+    }
+    else {
+      if (sbchunk->flags&SBCHUNK_NONE)
+        _sb_chunkload(sbchunk);
+    }
     BD_LET_LOCK(&(sbchunk->mtx));
   }
   BD_LET_LOCK(&(sbinfo->mtx));
@@ -950,7 +973,11 @@ void sb_discard(void *ptr, ssize_t size)
      * this will remove the write permissions so in case we do not block,
      * subsequent writes will be intercepted correctly */
     if (sbchunk->flags&SBCHUNK_READ) {
-      MPROTECT((sbchunk->saddr+ifirst*sbinfo->pagesize),  \
+      //fprintf(stderr, "+++:%d: %zx %zx %d\n", __LINE__,
+      //  sbchunk->saddr+ifirst*sbinfo->pagesize,
+      //  sbchunk->saddr+ifirst*sbinfo->pagesize+(iend-ifirst)*sbinfo->pagesize,
+      //  PROT_READ);
+      MPROTECT(sbchunk->saddr+ifirst*sbinfo->pagesize,  \
         (iend-ifirst)*sbinfo->pagesize, PROT_READ);
     }
 
@@ -960,6 +987,7 @@ void sb_discard(void *ptr, ssize_t size)
         sbchunk->pflags[ip] ^= SBCHUNK_WRITE;
       if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
         sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
+      GKASSERT(SBCHUNK_READ == (sbchunk->pflags[ip]^SBCHUNK_READ));
     }
   }
   BD_LET_LOCK(&(sbchunk->mtx));
@@ -977,7 +1005,7 @@ void sb_discard(void *ptr, ssize_t size)
 /*! The SIGSEGV handler */
 /*************************************************************************/
 static void _sb_handler(int sig, siginfo_t *si, void *unused)
-#if 0
+#if 1
 {
   size_t ip=0;
   size_t const addr=(size_t)si->si_addr;
@@ -985,8 +1013,9 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
 
   /* find the sbchunk */
   BD_GET_LOCK(&(sbinfo->mtx));
-  if ((sbchunk = _sb_find((void*)addr)) == NULL) {
-    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
+  if (NULL == (sbchunk=_sb_find((void*)addr))) {
+    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: " \
+      "%zx\n", addr);
     abort();
   }
   BD_LET_LOCK(&(sbinfo->mtx));
@@ -994,7 +1023,7 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
   /* update protection information */
   BD_GET_LOCK(&(sbchunk->mtx));
   ip = (addr-sbchunk->saddr)/sbinfo->pagesize;
-  if (sbchunk->pflags[ip]&SBCHUNK_NONE) {
+  if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE)) {
     SB_SB_IFSET(BDMPI_SB_LAZYREAD) {
       /* on first exception, load the data page into memory */
       _sb_pageload(sbchunk, ip);
@@ -1003,19 +1032,23 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
       /* on first exception, load the data chunk into memory */
       _sb_chunkload(sbchunk);
     }
+    GKASSERT(SBCHUNK_WRITE != (sbchunk->pflags[ip]&SBCHUNK_WRITE));
   }
-  else if (sbchunk->pflags[ip]&SBCHUNK_READ) {
-    if (sbchunk->pflags[ip]&SBCHUNK_WRITE) {
+  else if (SBCHUNK_READ == (sbchunk->pflags[ip]&SBCHUNK_READ)) {
+    //fprintf(stderr, "***: %zx %zx\n", addr, sbchunk->saddr+ip*sbinfo->pagesize);
+    if (SBCHUNK_WRITE == (sbchunk->pflags[ip]&SBCHUNK_WRITE)) {
       fprintf(stderr, "_sb_handler: got a SIGSEGV at a sb-readable and "  \
-        "sb-writeable location: %zx\n", addr);
+        "sb-writeable location: %zx (%d)\n", addr, sbchunk->pflags[ip]);
       abort();
     }
 
     /* on second exception, change the protection of the page to writeable */
-    MPROTECT((sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize,  \
+    //fprintf(stderr, "+++:%d: %zx %d\n", __LINE__, addr, PROT_READ|PROT_WRITE);
+    MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,        \
       PROT_READ|PROT_WRITE);
+
+    sbchunk->flags      |= SBCHUNK_WRITE;
     sbchunk->pflags[ip] |= SBCHUNK_WRITE;
-    sbchunk->flags |= SBCHUNK_WRITE;
   }
   else {
     fprintf(stderr, "_sb_handler: got a SIGSEGV at memory location with " \
@@ -1034,7 +1067,8 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
   /* find the sbchunk */
   BD_GET_LOCK(&(sbinfo->mtx));
   if ((sbchunk = _sb_find((void *)addr)) == NULL) {
-    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: %zx\n", addr);
+    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: " \
+      "%zx\n", addr);
     abort();
   }
   BD_LET_LOCK(&(sbinfo->mtx));
@@ -1042,7 +1076,7 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
   /* update protection information */
   BD_GET_LOCK(&(sbchunk->mtx));
   ip = (addr-sbchunk->saddr)/sbinfo->pagesize;
-  if (sbchunk->pflags[ip]&SBCHUNK_NONE) {
+  if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE)) {
     SB_SB_IFSET(BDMPI_SB_LAZYREAD) {
       /* on first exception, load the data page into memory */
       _sb_pageload(sbchunk, ip);
@@ -1053,8 +1087,9 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
     }
   }
   else if (addr == last_addr) {
-    /* this happen due to a write, change the protection of the corresponding page */
-    MPROTECT((sbchunk->saddr+ip*sbinfo->pagesize), sbinfo->pagesize,  \
+    /* this happen due to a write, change the protection of the corresponding
+     * page */
+    MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,        \
       PROT_READ|PROT_WRITE);
 
     sbchunk->pflags[ip] |= SBCHUNK_WRITE;
@@ -1106,6 +1141,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
       bdmsg_t msg, gomsg;
 
       /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
       msg.source  = sbinfo->job->rank;
       msg.count   = sbchunk->npages*sbinfo->pagesize;
@@ -1120,6 +1156,8 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   /* if required, read the data from the file */
   if (sbchunk->flags&SBCHUNK_ONDISK) {
     /* make it writeable for load/clear */
+    //fprintf(stderr, "+++: %zx %zx %d\n", sbchunk->saddr,
+    //  sbchunk->saddr+npages*sbinfo->pagesize, PROT_WRITE);
     MPROTECT(sbchunk->saddr, npages*sbinfo->pagesize, PROT_WRITE);
 
     if ((fd = open(sbchunk->fname, O_RDONLY)) == -1) {
@@ -1128,7 +1166,10 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     }
 
     for (ifirst=-1, ip=0; ip<=npages; ip++) {
-      if (pflags[ip]&SBCHUNK_ONDISK) {
+      if (0 == (pflags[ip]&SBCHUNK_READ)  &&
+          0 == (pflags[ip]&SBCHUNK_WRITE) &&
+          SBCHUNK_ONDISK == (pflags[ip]&SBCHUNK_ONDISK))
+      {
         if (ifirst == -1)
           ifirst = ip;
       }
@@ -1159,6 +1200,8 @@ void _sb_chunkload(sbchunk_t *sbchunk)
     }
   }
 
+  //fprintf(stderr, "+++:%d: %zx %zx %d\n", __LINE__, sbchunk->saddr,
+  //  sbchunk->saddr+npages*sbinfo->pagesize, PROT_READ);
   MPROTECT(sbchunk->saddr, npages*sbinfo->pagesize, PROT_READ);
 
   if (sbchunk->flags&SBCHUNK_NONE)
@@ -1166,8 +1209,13 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   sbchunk->flags |= SBCHUNK_READ;
 
   for (ip=0; ip<npages; ip++) {
-    if (pflags[ip]&SBCHUNK_NONE)
+    if (SBCHUNK_NONE == (pflags[ip]&SBCHUNK_NONE))
       pflags[ip] ^= SBCHUNK_NONE;
+    else if (SBCHUNK_WRITE == (pflags[ip]&SBCHUNK_WRITE))
+      //fprintf(stderr, "+++:%d: %zx %zx %d\n", __LINE__, sbchunk->saddr,
+      //  sbchunk->saddr+ip*sbinfo->pagesize, PROT_READ|PROT_WRITE);
+      MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,  \
+        PROT_READ|PROT_WRITE);
     pflags[ip] |= SBCHUNK_READ;
   }
 }
@@ -1186,10 +1234,11 @@ void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 
   /*----------------------------------------------------------------------*/
   SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
-    if (1 == flag && !(sbchunk->flags&SBCHUNK_NONE)) {
+    if (1 == flag && 0 == (sbchunk->flags&SBCHUNK_NONE)) {
       bdmsg_t msg, gomsg;
 
       /* notify the master that you have saved memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
       msg.source  = sbinfo->job->rank;
       msg.count   = sbchunk->npages*sbinfo->pagesize;
@@ -1271,6 +1320,8 @@ void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
   }
 
   /* change protection to PROT_NONE for next time */
+  //fprintf(stderr, "+++: %zx %zx %d\n", sbchunk->saddr,
+  //  sbchunk->saddr+npages*sbinfo->pagesize, PROT_NONE);
   MPROTECT(sbchunk->saddr, npages*sbinfo->pagesize, PROT_NONE);
 }
 
@@ -1291,6 +1342,7 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
       bdmsg_t msg, gomsg;
 
       /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
       msg.source  = sbinfo->job->rank;
       msg.count   = sbchunk->npages*sbinfo->pagesize;
@@ -1303,6 +1355,7 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
       bdmsg_t msg, gomsg;
 
       /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
       msg.source  = sbinfo->job->rank;
       msg.count   = sbinfo->pagesize;
@@ -1319,7 +1372,10 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
   ptr = (char *)(sbchunk->saddr + ip*sbinfo->pagesize);
 
   if (sbchunk->pflags[ip]&SBCHUNK_ONDISK) {
+    GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_READ));
+
     /* make page writeable for load */
+    //fprintf(stderr, "+++: %zx %d\n", (size_t)ptr, PROT_WRITE);
     MPROTECT(ptr, sbinfo->pagesize, PROT_WRITE);
 
     /* load page data from file */
@@ -1352,6 +1408,7 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
   }
 
   /* make page readable */
+  //fprintf(stderr, "+++:%d: %zx %d\n", __LINE__, (size_t)ptr, PROT_READ);
   MPROTECT(ptr, sbinfo->pagesize, PROT_READ);
 
   /* update flags to reflect readable */
@@ -1362,6 +1419,8 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
   if (sbchunk->pflags[ip]&SBCHUNK_NONE)
     sbchunk->pflags[ip] ^= SBCHUNK_NONE;
   sbchunk->pflags[ip] |= SBCHUNK_READ;
+
+  GKASSERT(SBCHUNK_WRITE != (sbchunk->pflags[ip]&SBCHUNK_WRITE));
 }
 
 
@@ -1421,6 +1480,7 @@ void _sb_pagesave(sbchunk_t * const sbchunk, size_t const ip)
   }
 
   /* change protection to PROT_NONE for next time */
+  //fprintf(stderr, "+++: %zx %d\n", (size_t)ptr, PROT_NONE);
   MPROTECT(ptr, sbinfo->pagesize, PROT_NONE);
 }
 
@@ -1436,6 +1496,7 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
       bdmsg_t msg, gomsg;
 
       /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
       msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
       msg.source  = sbinfo->job->rank;
       msg.count   = sbchunk->npages*sbinfo->pagesize;
@@ -1459,6 +1520,9 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
     perror("Failed to unmap for for _sb_chunkfree");
     exit(EXIT_FAILURE);
   }
+
+  //fprintf(stderr, "---: %zx %zx\n", sbchunk->saddr,
+  //  sbchunk->saddr+sbchunk->npages+sbinfo->pagesize);
 
   libc_free(sbchunk->pflags);
   libc_free(sbchunk->fname);

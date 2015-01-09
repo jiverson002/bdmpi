@@ -49,6 +49,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
   rdtsize = bdmp_sizeof(recvtype);
 
   /* notify the master that you entering an allgather */
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_ALLTOALLI;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;

@@ -15,7 +15,7 @@
 int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
           int root, BDMPI_Comm comm)
 {
-  int mype, response, sleeping=1;
+  int mype, response=0, sleeping=1;
   bdmsg_t msg, gomsg;
 
   if (bdmq_length(job->goMQ) != 0)
@@ -43,6 +43,7 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   mype = comm->rank;
 
   /* notify the master that you entering a bcast */
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_BCASTI;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;

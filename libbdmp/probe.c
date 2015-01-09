@@ -97,6 +97,7 @@ int bdmp_Iprobe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   }
 
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_IPROBE;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = comm->rank;

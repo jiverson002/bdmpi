@@ -26,6 +26,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
     return BDMPI_ERR_COMM;
   }
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_BARRIER;
   msg.mcomm   = comm->mcomm;
   msg.myrank  = comm->rank;

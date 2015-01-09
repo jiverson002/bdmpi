@@ -51,6 +51,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     }
   }
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_RECV;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;
@@ -146,6 +147,7 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
   mype = comm->rank;
 
+  memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype  = BDMPI_MSGTYPE_IRECV;
   msg.mcomm    = comm->mcomm;
   msg.myrank   = mype;
