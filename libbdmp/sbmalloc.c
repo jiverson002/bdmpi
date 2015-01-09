@@ -1344,6 +1344,9 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
     GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_READ));
 
     /* make page writeable for load */
+    /* have reason to believe that for big enough files and small enough sb
+     * parameters `-sb=' and `-pg=', mprotect'ing each page causes the kernel
+     * to return a resource shortage error on the call to mprotect. */
     MPROTECT(ptr, sbinfo->pagesize, PROT_WRITE);
 
     /* load page data from file */
