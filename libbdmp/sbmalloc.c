@@ -1246,6 +1246,11 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 /*************************************************************************/
 static void * mtio_start(void * arg)
 {
+#if 0
+  int fd;
+  ssize_t i, ip, iend, ifirst, size, tsize, npages, pgsize;
+  char *buf;
+  uint8_t *pflags;
   sbchunk_t * sbchunk;
 
   BD_GET_LOCK(&(sbmtio->mtx));
@@ -1255,8 +1260,111 @@ static void * mtio_start(void * arg)
 
   BD_GET_LOCK(&(sbchunk->mtx));
   // read and catch signals
-  BD_LET_LOCK(&(sbchunk->mtx));
 
+  npages = sbchunk->npages;
+  pflags = sbchunk->pflags;
+  pgsize = sbinfo->pagesize;
+
+  /* if required, read the data from the file */
+  if (sbchunk->flags&SBCHUNK_ONDISK) {
+    if ((fd = open(sbchunk->fname, O_RDONLY)) == -1) {
+      perror("_sb_chunkload: failed to open file");
+      exit(EXIT_FAILURE);
+    }
+
+    for (i=0; i<npages; i+=32) {
+      iend = i+32 < npages ? i+32 : npages;
+
+      /***************************************************/
+      /* read any required pages                         */
+      /***************************************************/
+      MPROTECT(sbchunk->saddr+(i*pgsize), 32*pgsize, PROT_WRITE);
+
+      for (ifirst=-1, ip=i; ip<=iend; ip++) {
+        if (0 == (pflags[ip]&SBCHUNK_READ)  &&
+            0 == (pflags[ip]&SBCHUNK_WRITE) &&
+            SBCHUNK_ONDISK == (pflags[ip]&SBCHUNK_ONDISK))
+        {
+          if (ifirst == -1)
+            ifirst = ip;
+        }
+        else if (ifirst != -1) {
+          if (lseek(fd, ifirst*pgsize, SEEK_SET) == -1) {
+            perror("_sb_chunkload: failed on lseek");
+            exit(EXIT_FAILURE);
+          }
+
+          tsize = (ip-ifirst)*pgsize;
+          buf = (char *)(sbchunk->saddr + ifirst*pgsize);
+          do {
+            if ((size = libc_read(fd, buf, tsize)) == -1) {
+              perror("_sb_chunkload: failed to read the required data");
+              exit(EXIT_FAILURE);
+            }
+            buf   += size;
+            tsize -= size;
+          } while (tsize > 0);
+
+          ifirst = -1;
+        }
+      }
+
+
+      /***************************************************/
+      /* give final protection and set appropriate flags */
+      /***************************************************/
+      MPROTECT(sbchunk->saddr+(i*pgsize), npages*pgsize, PROT_READ);
+
+      for (ip=i; ip<iend; ip++) {
+        if (SBCHUNK_NONE == (pflags[ip]&SBCHUNK_NONE))
+          pflags[ip] ^= SBCHUNK_NONE;
+        else if (SBCHUNK_WRITE == (pflags[ip]&SBCHUNK_WRITE))
+          MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,  \
+            PROT_READ|PROT_WRITE);
+        pflags[ip] |= SBCHUNK_READ;
+      }
+
+      sbchunk->ldpages += (iend-ip);
+
+
+      /***************************************************/
+      /* handle any received ``signals''                 */
+      /***************************************************/
+      switch (sbchunk->signal) {
+      case SBMTIO_SIG_LOAD:
+        BD_LET_LOCK(&(sbchunk->mtx));
+        // wait somehow
+        BD_GET_LOCK(&(sbchunk->mtx));
+        break;
+
+      default:
+        perror("mtio_start: received invalid signal");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    if (close(fd) == -1) {
+      perror("mtio_start: failed to close the fd");
+      exit(EXIT_FAILURE);
+    }
+  }
+  else {
+    MPROTECT(sbchunk->saddr, npages*sbinfo->pagesize, PROT_READ);
+
+    for (ip=0; ip<npages; ip++) {
+      if (SBCHUNK_NONE == (pflags[ip]&SBCHUNK_NONE))
+        pflags[ip] ^= SBCHUNK_NONE;
+      else if (SBCHUNK_WRITE == (pflags[ip]&SBCHUNK_WRITE))
+        MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,  \
+          PROT_READ|PROT_WRITE);
+      pflags[ip] |= SBCHUNK_READ;
+    }
+
+    sbchunk->ldpages = sbchunk->npages;
+  }
+
+  BD_LET_LOCK(&(sbchunk->mtx));
+#endif
   return NULL;
 }
 
@@ -1267,6 +1375,20 @@ static void * mtio_start(void * arg)
 void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip)
 {
   int haslock=0;
+
+  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
+    if (sbchunk->flags&SBCHUNK_NONE) {
+      bdmsg_t msg, gomsg;
+
+      /* notify the master that you want to load memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
+      msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
+      msg.source  = sbinfo->job->rank;
+      msg.count   = sbchunk->npages*sbinfo->pagesize;
+      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+      BDMPL_SLEEP(sbinfo->job, gomsg);
+    }
+  }
 
   BD_TRY_LOCK(&(sbchunk->mtx), haslock);
   if (0 == haslock) {
