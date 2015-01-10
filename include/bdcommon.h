@@ -183,6 +183,19 @@
   }                                                                       \
 }
 
+#define BD_COND_WAIT(cond, mtx)                                             \
+{                                                                         \
+  int retval;                                                             \
+  char hostname[9];                                                       \
+  if (0 != (retval=pthread_cond_wait(cond, mtx))) {                       \
+    gethostname(hostname, 9);                                             \
+    fprintf(stderr, "[%8s:%5d] Error: Semaphore post failed on line %d "  \
+      "of file %s. [retval: %d %s]\n", hostname, (int)getpid(), __LINE__, \
+      __FILE__, retval, strerror(retval));                                \
+    abort();                                                              \
+  }                                                                       \
+}
+
 #define BD_GET_RDLOCK(lock)\
   do {\
     int i, retval;\

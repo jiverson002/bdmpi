@@ -50,8 +50,11 @@ typedef struct {
 typedef struct {
   int hd, tl, sz;                     /* queue variables for mtioq */
   struct sbchunk * q[SBMTIO_SIZE];    /* queue mtio work is put */
+
   sem_t sem;                          /* the sem limiting q */
   pthread_mutex_t mtx;                /* the mutex guarding it */
+  pthread_cond_t cond;                /* the conditional variable */
+
   pthread_t threads[SBMTIO_NUM_THRD]; /* I/O threads */
 } sbmtio_t;
 
@@ -115,18 +118,21 @@ do {                                                                        \
   }                                                                         \
 } while (0)
 
-#define SBMTIOENQ(SBCHUNK)            \
-do {                                  \
-  if (sbmtio->hd == sbmtio->sz)       \
-    sbmtio->hd = 0;                   \
-  sbmtio->q[sbmtio->hd++] = SBCHUNK;  \
+#define SBMTIOENQ(SBCHUNK)              \
+do {                                    \
+  if (sbmtio->hd == sbmtio->sz)         \
+    sbmtio->hd = 0;                     \
+  sbmtio->q[sbmtio->hd++] = (SBCHUNK);  \
 } while (0)
 
-#define SBMTIODEQ(SBCHUNK)            \
-do {                                  \
-  if (sbmtio->tl == sbmtio->sz)       \
-    sbmtio->tl = 0;                   \
-  SBCHUNK = sbmtio->q[sbmtio->tl++];  \
+#define SBMTIODEQ(SBCHUNK)                \
+do {                                      \
+  if (sbmtio->tl == sbmtio->sz)           \
+    sbmtio->tl = 0;                       \
+  if (sbmtio->tl != sbmtio->hd)           \
+    (SBCHUNK) = sbmtio->q[sbmtio->tl++];  \
+  else                                    \
+    (SBCHUNK) = NULL;                     \
 } while (0)
 
 /*************************************************************************/
@@ -424,8 +430,9 @@ int sb_init(char *fstem, sjob_t * const job)
     sbmtio->sz = SBMTIO_SIZE;
     sbmtio->hd = 0;
     sbmtio->tl = 0;
-    GKASSERT(0 == pthread_mutex_init(&(sbmtio->mtx), NULL));
     GKASSERT(0 == sem_init(&(sbmtio->sem), 0, sbmtio->sz));
+    GKASSERT(0 == pthread_mutex_init(&(sbmtio->mtx), NULL));
+    GKASSERT(0 == pthread_cond_init(&(sbmtio->cond), NULL));
 
     for (i=0; i<SBMTIO_NUM_THRD; ++i) {
       if (0 != pthread_create(&(sbmtio->threads[i]), NULL, mtio_start, NULL)) {
@@ -487,8 +494,9 @@ int sb_finalize()
       exit(EXIT_FAILURE);
     }
 
-    GKASSERT(0 == pthread_mutex_destroy(&(sbmtio->mtx)));
     GKASSERT(0 == sem_destroy(&(sbmtio->sem)));
+    GKASSERT(0 == pthread_mutex_destroy(&(sbmtio->mtx)));
+    GKASSERT(0 == pthread_cond_destroy(&(sbmtio->cond)));
 
     for (i=0; i<SBMTIO_NUM_THRD; ++i) {
       (void)pthread_cancel(sbmtio->threads[i]);
@@ -1246,16 +1254,23 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 /*************************************************************************/
 static void * mtio_start(void * arg)
 {
-#if 0
+#if 1
   int fd;
   ssize_t i, ip, iend, ifirst, size, tsize, npages, pgsize;
   char *buf;
   uint8_t *pflags;
   sbchunk_t * sbchunk;
 
-  BD_GET_LOCK(&(sbmtio->mtx));
-  SBMTIODEQ(sbchunk);
-  BD_LET_LOCK(&(sbmtio->mtx));
+  for (;;) {
+    BD_COND_WAIT(&(sbmtio->cond), &(sbmtio->mtx));
+
+    SBMTIODEQ(sbchunk);
+
+    BD_LET_LOCK(&(sbmtio->mtx));
+
+    if (NULL != sbchunk)
+      break;
+  }
   BD_LET_SEM(&(sbmtio->sem));
 
   BD_GET_LOCK(&(sbchunk->mtx));
