@@ -9,8 +9,18 @@
 #include "bdmplib.h"
 
 
+/* Multi-threaded I/O constants */
+#define SBMTIO_NUM_THRD 4
+#define SBMTIO_SIZE     4096
+#define SBMTIO_SIG_NONE 0
+#define SBMTIO_SIG_LOAD 1
+
+
 /* Stores information associated with a storage-backed memory chunk */
 typedef struct sbchunk {
+  int signal;            /* shared variable for signaling between threads */
+  int mtio;              /* set/unset variable signifying mtio status */
+
   size_t saddr, eaddr;   /* starting/ending address of the anonymous mapping */
   size_t npages;         /* number of pages allocated */
   size_t ldpages;        /* number of loaded pages */
@@ -36,10 +46,19 @@ typedef struct {
   struct sigaction act, oldact;  /* for the SIGSEGV signal handler */
 } sbinfo_t;
 
+/* Stores global information for multi-threaded I/O */
+typedef struct {
+  int hd, tl, sz;                     /* queue variables for mtioq */
+  struct sbchunk * q[SBMTIO_SIZE];    /* queue mtio work is put */
+  sem_t sem;                          /* the sem limiting q */
+  pthread_mutex_t mtx;                /* the mutex guarding it */
+  pthread_t threads[SBMTIO_NUM_THRD]; /* I/O threads */
+} sbmtio_t;
+
 
 /* static global variables */
 static sbinfo_t *sbinfo=NULL;
-/*__thread size_t last_addr=0;*/
+static sbmtio_t *sbmtio=NULL;
 
 
 /* constants */
@@ -68,6 +87,8 @@ static int (*libc_munlockall)(void) = NULL;
 sbchunk_t *_sb_find(void *ptr);
 static void _sb_handler(int sig, siginfo_t *si, void *unused);
 void _sb_chunkload(sbchunk_t *sbchunk);
+static void * mtio_start(void * arg);
+void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip);
 void _sb_chunksave(sbchunk_t *sbchunk, int const flag);
 void _sb_chunkfree(sbchunk_t *sbchunk);
 void _sb_chunkfreeall();
@@ -94,6 +115,19 @@ do {                                                                        \
   }                                                                         \
 } while (0)
 
+#define SBMTIOENQ(SBCHUNK)            \
+do {                                  \
+  if (sbmtio->hd == sbmtio->sz)       \
+    sbmtio->hd = 0;                   \
+  sbmtio->q[sbmtio->hd++] = SBCHUNK;  \
+} while (0)
+
+#define SBMTIODEQ(SBCHUNK)            \
+do {                                  \
+  if (sbmtio->tl == sbmtio->sz)       \
+    sbmtio->tl = 0;                   \
+  SBCHUNK = sbmtio->q[sbmtio->tl++];  \
+} while (0)
 
 /*************************************************************************/
 /*! Hook: malloc */
@@ -318,6 +352,8 @@ int munlockall(void)
 /*************************************************************************/
 int sb_init(char *fstem, sjob_t * const job)
 {
+  int i, j;
+
   if (sbinfo != NULL) {
     perror("sb_init: sbinfo != NULL");
     exit(EXIT_FAILURE);
@@ -369,6 +405,40 @@ int sb_init(char *fstem, sjob_t * const job)
   GKASSERT(pthread_mutexattr_settype(&(sbinfo->mtx_attr), PTHREAD_MUTEX_RECURSIVE) == 0);
   GKASSERT(pthread_mutex_init(&(sbinfo->mtx), &(sbinfo->mtx_attr)) == 0);
 
+
+  /***************************************/
+  /* setup the multi-threaded I/O struct */
+  /***************************************/
+  SB_SB_IFSET(BDMPI_SB_MTIO) {
+    if (sbmtio != NULL) {
+      perror("sb_init: sbmtio != NULL");
+      exit(EXIT_FAILURE);
+    }
+
+    if (NULL == (sbmtio=libc_malloc(sizeof(sbmtio_t)))) {
+      perror("Failed to allocate sbmtio\n");
+      goto ERROR_EXIT;
+    }
+    memset(sbmtio, 0, sizeof(sbmtio_t));
+
+    sbmtio->sz = SBMTIO_SIZE;
+    sbmtio->hd = 0;
+    sbmtio->tl = 0;
+    GKASSERT(0 == pthread_mutex_init(&(sbmtio->mtx), NULL));
+    GKASSERT(0 == sem_init(&(sbmtio->sem), 0, sbmtio->sz));
+
+    for (i=0; i<SBMTIO_NUM_THRD; ++i) {
+      if (0 != pthread_create(&(sbmtio->threads[i]), NULL, mtio_start, NULL)) {
+        perror("Failed to create I/O threads\n");
+        for (j=0; j<i; ++j) {
+          GKASSERT(0 == pthread_cancel(sbmtio->threads[j]));
+        }
+        goto ERROR_EXIT;
+      }
+    }
+  }
+
+
   return 1;
 
 ERROR_EXIT:
@@ -377,6 +447,13 @@ ERROR_EXIT:
 
   libc_free(sbinfo);
   sbinfo = NULL;
+
+  SB_SB_IFSET(BDMPI_SB_MTIO) {
+    if (NULL != sbmtio) {
+      libc_free(sbmtio);
+      sbmtio = NULL;
+    }
+  }
 
   return 0;
 }
@@ -387,6 +464,8 @@ ERROR_EXIT:
 /*************************************************************************/
 int sb_finalize()
 {
+  int i;
+
   if (sbinfo == NULL) {
     perror("sbfinalize: sbinfo -= NULL");
     exit(EXIT_FAILURE);
@@ -401,6 +480,24 @@ int sb_finalize()
   GKASSERT(pthread_mutexattr_destroy(&(sbinfo->mtx_attr)) == 0);
 
   _sb_chunkfreeall();
+
+  SB_SB_IFSET(BDMPI_SB_MTIO) {
+    if (NULL == sbmtio) {
+      perror("sbfinalize: sbmtio -= NULL");
+      exit(EXIT_FAILURE);
+    }
+
+    GKASSERT(0 == pthread_mutex_destroy(&(sbmtio->mtx)));
+    GKASSERT(0 == sem_destroy(&(sbmtio->sem)));
+
+    for (i=0; i<SBMTIO_NUM_THRD; ++i) {
+      (void)pthread_cancel(sbmtio->threads[i]);
+      GKASSERT(0 == pthread_join(sbmtio->threads[i], NULL));
+    }
+    libc_free(sbmtio);
+    sbmtio = NULL;
+  }
+
   libc_free(sbinfo->fstem);
   libc_free(sbinfo);
   sbinfo = NULL;
@@ -426,8 +523,9 @@ void *sb_malloc(size_t nbytes)
   if (sbchunk == NULL)
     return NULL;
 
+  sbchunk->signal  = SBMTIO_SIG_NONE;
   sbchunk->ldpages = 0;
-  sbchunk->nbytes = nbytes;
+  sbchunk->nbytes  = nbytes;
 
   /* determine the allocation size in terms of pagesize */
   sbchunk->npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
@@ -980,7 +1078,6 @@ void sb_discard(void *ptr, ssize_t size)
 /*! The SIGSEGV handler */
 /*************************************************************************/
 static void _sb_handler(int sig, siginfo_t *si, void *unused)
-#if 1
 {
   size_t ip=0;
   size_t const addr=(size_t)si->si_addr;
@@ -1030,53 +1127,7 @@ static void _sb_handler(int sig, siginfo_t *si, void *unused)
   }
   BD_LET_LOCK(&(sbchunk->mtx));
 }
-#else
-{
-  sbchunk_t *sbchunk;
-  size_t ip, addr;
 
-  addr = (size_t)si->si_addr;
-
-  /* find the sbchunk */
-  BD_GET_LOCK(&(sbinfo->mtx));
-  if ((sbchunk = _sb_find((void *)addr)) == NULL) {
-    printf("_sb_handler: got a SIGSEGV on an unhandled memory location: " \
-      "%zx\n", addr);
-    abort();
-  }
-  BD_LET_LOCK(&(sbinfo->mtx));
-
-  /* update protection information */
-  BD_GET_LOCK(&(sbchunk->mtx));
-  ip = (addr-sbchunk->saddr)/sbinfo->pagesize;
-  if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE)) {
-    SB_SB_IFSET(BDMPI_SB_LAZYREAD) {
-      /* on first exception, load the data page into memory */
-      _sb_pageload(sbchunk, ip);
-    }
-    else {
-      /* on first exception, load the data chunk into memory */
-      _sb_chunkload(sbchunk);
-    }
-  }
-  else if (addr == last_addr) {
-    /* this happen due to a write, change the protection of the corresponding
-     * page */
-    MPROTECT(sbchunk->saddr+ip*sbinfo->pagesize, sbinfo->pagesize,        \
-      PROT_READ|PROT_WRITE);
-
-    sbchunk->pflags[ip] |= SBCHUNK_WRITE;
-    sbchunk->flags      |= SBCHUNK_WRITE;
-
-    last_addr = 0;
-  }
-  else {
-    last_addr = addr;
-  }
-  BD_LET_LOCK(&(sbchunk->mtx));
-
-}
-#endif
 
 /*************************************************************************/
 /*! Returns a pointer to an sbchunk that contains the specified address */
@@ -1187,6 +1238,61 @@ void _sb_chunkload(sbchunk_t *sbchunk)
   }
 
   sbchunk->ldpages = sbchunk->npages;
+}
+
+
+/*************************************************************************/
+/*! Thread code for multi-threaded I/O */
+/*************************************************************************/
+static void * mtio_start(void * arg)
+{
+  sbchunk_t * sbchunk;
+
+  BD_GET_LOCK(&(sbmtio->mtx));
+  SBMTIODEQ(sbchunk);
+  BD_LET_LOCK(&(sbmtio->mtx));
+  BD_LET_SEM(&(sbmtio->sem));
+
+  BD_GET_LOCK(&(sbchunk->mtx));
+  // read and catch signals
+  BD_LET_LOCK(&(sbchunk->mtx));
+
+  return NULL;
+}
+
+
+/*************************************************************************/
+/*! Loads the supplied sbchunk and makes it readable via multi-threading */
+/*************************************************************************/
+void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip)
+{
+  int haslock=0;
+
+  BD_TRY_LOCK(&(sbchunk->mtx), haslock);
+  if (0 == haslock) {
+    // send signal
+    sbchunk->signal = SBMTIO_SIG_LOAD;
+
+    // wait for lock
+    BD_GET_LOCK(&(sbchunk->mtx));
+  }
+
+  // if page is still not read, read it
+  if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE)) {
+    _sb_pageload(sbchunk, ip);
+  }
+
+  // if chunk is not already being threaded i/o, add it to thread queue
+  if (0 == sbchunk->mtio) {
+    sbchunk->mtio = 1;
+
+    BD_GET_SEM(&(sbmtio->sem));
+    BD_GET_LOCK(&(sbmtio->mtx));
+    SBMTIOENQ(sbchunk);
+    BD_LET_LOCK(&(sbinfo->mtx));
+  }
+
+  BD_LET_LOCK(&(sbchunk->mtx));
 }
 
 

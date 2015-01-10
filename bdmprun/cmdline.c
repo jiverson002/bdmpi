@@ -30,6 +30,7 @@ static struct gk_option long_options[] = {
   {"sbs",   0,      0,      BDMPRUN_CMD_SBSAVEALL},
   {"sblw",  0,      0,      BDMPRUN_CMD_SBLAZYWRITE},
   {"sblr",  0,      0,      BDMPRUN_CMD_SBLAZYREAD},
+  {"sbmt",  0,      0,      BDMPRUN_CMD_SBMTIO},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -124,6 +125,13 @@ static char helpstr[][100] =
 "     memory is read and protected at a resolution of an sbpage, which can",
 "     be any multiple of a system page.",
 " ",
+"  -sbmt [Default: no]",
+"     Enable the ``multi-threaded I/O'' strategy in the sbmalloc library.",
+"     This means that when a memory request is made for a page, the page",
+"     will be read if it is not already and returned immediately. Then, in",
+"     the background, an `I/O thread' will continue reading the rest of the",
+"     chunk that the page was from.",
+" ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
 " ",
@@ -188,6 +196,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_SBLAZYREAD:
         bdmp->sbopts |= BDMPI_SB_LAZYREAD;
+        break;
+
+      case BDMPRUN_CMD_SBMTIO:
+        bdmp->sbopts |= BDMPI_SB_MTIO;
         break;
 
       case BDMPRUN_CMD_SMSIZE:
