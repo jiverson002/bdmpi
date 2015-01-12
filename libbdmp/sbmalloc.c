@@ -1426,7 +1426,7 @@ void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip)
     BD_GET_SEM(&(sbmtio->sem));
     BD_GET_LOCK(&(sbmtio->mtx));
     SBMTIOENQ(sbchunk);
-    BD_LET_LOCK(&(sbinfo->mtx));
+    BD_LET_LOCK(&(sbmtio->mtx));
   }
 
   BD_LET_LOCK(&(sbchunk->mtx));
