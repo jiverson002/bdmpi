@@ -117,6 +117,7 @@
     }\
   } while(0)
 
+#if 0
 #define BD_GET_LOCK(lock)\
   {\
     int retval;\
@@ -128,6 +129,29 @@
       abort();\
     }\
   }
+#else
+#define BD_GET_LOCK(lock)\
+  {\
+    int retval;\
+    char hostname[9];\
+    struct timespec ts;\
+    clock_gettime(CLOCK_REALTIME, &ts);\
+    ts.tv_sec += 10;\
+    if (ETIMEDOUT == (retval=pthread_mutex_timedlock(lock, &ts))) {\
+      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for mutex\n",\
+        syscall(SYS_gettid), __FILE__, __LINE__);\
+      pthread_mutex_lock(lock);\
+      fprintf(stderr, "[%6ld:%s,%4d]: locked mutex\n", syscall(SYS_gettid),\
+        __FILE__, __LINE__);\
+    }\
+    else if (0 != retval) {\
+      gethostname(hostname, 9);\
+      fprintf(stderr, "[%8s:%5d] Error: Mutex lock failed on line %d of file %s. [retval: %d %s]\n", \
+         hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
+      abort();\
+    }\
+  }
+#endif
 
 #define BD_LET_LOCK(lock)\
   {\
@@ -159,6 +183,7 @@
     }\
   }
 
+#if 0
 #define BD_GET_SEM(sem)                                                   \
 {                                                                         \
   char hostname[9];                                                       \
@@ -170,6 +195,30 @@
     abort();                                                              \
   }                                                                       \
 }
+#else
+#define BD_GET_SEM(sem)\
+  {\
+    char hostname[9];\
+    struct timespec ts;\
+    clock_gettime(CLOCK_REALTIME, &ts);\
+    ts.tv_sec += 10;\
+    if (0 != sem_timedwait(sem, &ts)) {\
+      if (ETIMEDOUT == errno) {\
+        fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for semahore\n",\
+          syscall(SYS_gettid), __FILE__, __LINE__);\
+        sem_wait(sem);\
+        fprintf(stderr, "[%6ld:%s,%4d]: locked semahore\n",\
+          syscall(SYS_gettid), __FILE__, __LINE__);\
+      }\
+      else {\
+        gethostname(hostname, 9);\
+        fprintf(stderr, "[%8s:%5d] Error: Mutex lock failed on line %d of file %s. [errno: %d %s]\n", \
+           hostname, (int)getpid(), __LINE__, __FILE__, errno, strerror(errno));\
+        abort();\
+      }\
+    }\
+  }
+#endif
 
 #define BD_LET_SEM(sem)                                                   \
 {                                                                         \

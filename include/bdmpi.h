@@ -10,6 +10,11 @@
 #ifndef _BDMPI_H_
 #define _BDMPI_H_
 
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+
 
 /* Uniform definitions for various compilers */
 #if defined(_MSC_VER)
