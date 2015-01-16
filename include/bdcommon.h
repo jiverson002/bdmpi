@@ -78,14 +78,14 @@
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "multi-threaded I/O" strategy in the sbmalloc
- *            library.  This means that when a memory request is made for a
- *            page, the page will be read if it is not already and returned
- *            immediately. Then, in the background, an `I/O thread' will
- *            continue reading the rest of the chunk that the page was from.
+ *  \details  Enable the "asynchronous I/O" strategy in the sbmalloc library.
+ *            This means that when a memory request is made for a page, the
+ *            page will be read if it is not already and returned immediately.
+ *            Then, in the background, an `I/O thread' will continue reading
+ *            the rest of the chunk that the page was from.
  */
 /****************************************************************************/
-#define BDMPI_SB_MTIO      16
+#define BDMPI_SB_ASIO      16
 
 
 /*************************************************************************/
@@ -165,7 +165,7 @@
   if (-1 == sem_wait(sem)) {                                              \
     gethostname(hostname, 9);                                             \
     fprintf(stderr, "[%8s:%5d] Error: Semaphore wait failed on line %d "  \
-      "of file %s. [retval: %d %s]\n", hostname, (int)getpid(), __LINE__, \
+      "of file %s. [errno: %d %s]\n", hostname, (int)getpid(), __LINE__,  \
       __FILE__, errno, strerror(errno));                                  \
     abort();                                                              \
   }                                                                       \
@@ -177,11 +177,29 @@
   if (-1 == sem_post(sem)) {                                              \
     gethostname(hostname, 9);                                             \
     fprintf(stderr, "[%8s:%5d] Error: Semaphore post failed on line %d "  \
-      "of file %s. [retval: %d %s]\n", hostname, (int)getpid(), __LINE__, \
+      "of file %s. [errno: %d %s]\n", hostname, (int)getpid(), __LINE__,  \
       __FILE__, errno, strerror(errno));                                  \
     abort();                                                              \
   }                                                                       \
 }
+
+#define BD_TRY_SEM(SEM, BOOL)                                             \
+do {                                                                      \
+  char hostname[9];                                                       \
+  if (0 == sem_trywait(SEM)) {                                            \
+    (BOOL) = 1;                                                           \
+  }                                                                       \
+  else if (EAGAIN == errno) {                                             \
+    (BOOL) = 0;                                                           \
+  }                                                                       \
+  else {                                                                  \
+    gethostname(hostname, 9);                                             \
+    fprintf(stderr, "[%8s:%5d] Error: Semaphore try lock failed on line " \
+      "%d of file %s. [errno: %d %s]\n", hostname, (int)getpid(),         \
+      __LINE__, __FILE__, errno, strerror(errno));                        \
+    abort();                                                              \
+  }                                                                       \
+} while (0)
 
 #define BD_COND_WAIT(cond, mtx)                                             \
 {                                                                         \
