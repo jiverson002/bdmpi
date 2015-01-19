@@ -117,7 +117,7 @@
     }\
   } while(0)
 
-#if 0
+#if 1
 #define BD_GET_LOCK(lock)\
   {\
     int retval;\
@@ -183,7 +183,7 @@
     }\
   }
 
-#if 0
+#if 1
 #define BD_GET_SEM(sem)                                                   \
 {                                                                         \
   char hostname[9];                                                       \
@@ -204,11 +204,11 @@
     ts.tv_sec += 10;\
     if (0 != sem_timedwait(sem, &ts)) {\
       if (ETIMEDOUT == errno) {\
-        fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for semahore\n",\
-          syscall(SYS_gettid), __FILE__, __LINE__);\
+        fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for semahore (%p)\n",\
+          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)sbchunk->saddr);\
         sem_wait(sem);\
-        fprintf(stderr, "[%6ld:%s,%4d]: locked semahore\n",\
-          syscall(SYS_gettid), __FILE__, __LINE__);\
+        fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
+          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)sbchunk->saddr);\
       }\
       else {\
         gethostname(hostname, 9);\
@@ -216,6 +216,11 @@
            hostname, (int)getpid(), __LINE__, __FILE__, errno, strerror(errno));\
         abort();\
       }\
+    }\
+    else {\
+      /*fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
+        syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+        (void*)sbchunk->saddr);*/\
     }\
   }
 #endif
@@ -230,6 +235,9 @@
       __FILE__, errno, strerror(errno));                                  \
     abort();                                                              \
   }                                                                       \
+  /*fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
+    syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+    (void*)sbchunk->saddr);*/\
 }
 
 #define BD_TRY_SEM(SEM, BOOL)                                             \
@@ -237,6 +245,9 @@ do {                                                                      \
   char hostname[9];                                                       \
   if (0 == sem_trywait(SEM)) {                                            \
     (BOOL) = 1;                                                           \
+    /*fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
+      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+      (void*)sbchunk->saddr);*/\
   }                                                                       \
   else if (EAGAIN == errno) {                                             \
     (BOOL) = 0;                                                           \
@@ -256,7 +267,7 @@ do {                                                                      \
   char hostname[9];                                                       \
   if (0 != (retval=pthread_cond_wait(cond, mtx))) {                       \
     gethostname(hostname, 9);                                             \
-    fprintf(stderr, "[%8s:%5d] Error: Semaphore post failed on line %d "  \
+    fprintf(stderr, "[%8s:%5d] Error: Condition wait failed on line %d "  \
       "of file %s. [retval: %d %s]\n", hostname, (int)getpid(), __LINE__, \
       __FILE__, retval, strerror(retval));                                \
     abort();                                                              \

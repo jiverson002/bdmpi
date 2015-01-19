@@ -1082,6 +1082,7 @@ static int _sb_quit_sbchunk(sbchunk_t * const sbchunk)
   }
 
   BD_GET_LOCK(&(sbchunk->mtx));
+  BD_LET_SEM(&(sbchunk->sem));
 
   return 0;
 }
@@ -1412,6 +1413,7 @@ sbchunk_t *_sb_find(void *ptr)
 /*************************************************************************/
 /*! Loads the supplied sbchunk and makes it readable */
 /*************************************************************************/
+#if 1
 void _sb_chunkload(sbchunk_t *sbchunk)
 {
   ssize_t ip, ifirst, size, tsize, npages;
@@ -1498,7 +1500,15 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 
   sbchunk->ldpages = sbchunk->npages;
 }
-
+#else
+void _sb_chunkload(sbhcunk_t *sbchunk)
+{
+  if (-1 == madvise(sbchunk->saddr, sbchunk->nbytes, MADV_WILLNEED)) {
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
+    abort();
+  }
+}
+#endif
 
 /*************************************************************************/
 /*! Loads the supplied sbchunk and makes it readable via multi-threading */
@@ -1530,6 +1540,7 @@ void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip)
 /*************************************************************************/
 /*! Saves the supplied sbchunk to disk; this is an internal routine */
 /*************************************************************************/
+#if 1
 void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 {
   size_t ip, ifirst, npages, size, tsize, count=0;
@@ -1633,7 +1644,19 @@ void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 
   sbchunk->ldpages = 0;
 }
+#else
+void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
+  if (-1 == msync(sbchunk->saddr, sbchunk->nbytes, MS_SYNC)) {
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
+    abort();
+  }
 
+  if (-1 == madvise(sbchunk->saddr, sbchunk->nbytes, MADV_DONTNEED)) {
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
+    abort();
+  }
+}
+#endif
 
 /*************************************************************************/
 /*! Loads the supplied ip from sbchunk and makes it readable */
