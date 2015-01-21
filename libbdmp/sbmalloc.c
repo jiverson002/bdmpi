@@ -923,8 +923,9 @@ void sb_discard(void *ptr, ssize_t size)
   else { /* discard supplied range */
     /* can only discard pages fully within range, thus ifirst is a ceil
      * operation and iend is a floor operation. */
-    ifirst = 1+((addr+size-sbchunk->saddr-1)/sbinfo->pagesize);
-    iend   = (addr-sbchunk->saddr)/sbinfo->pagesize;
+    ifirst = (addr == sbchunk->saddr) ? 0 : 1+((addr-sbchunk->saddr-1)/sbinfo->pagesize); /* ceiling */
+    iend   = (addr+size == sbchunk->saddr+sbchunk->nbytes) ? sbchunk->npages :
+      (addr+size-sbchunk->saddr)/sbinfo->pagesize;  /* floor */
   }
 
   /* some pages exist fully within range */
@@ -932,19 +933,23 @@ void sb_discard(void *ptr, ssize_t size)
     /* provide only read permissions, assuming that it had read permissions;
      * this will remove the write permissions so in case we do not block,
      * subsequent writes will be intercepted correctly */
-    if (sbchunk->flags&SBCHUNK_READ) {
-      MPROTECT(sbchunk->saddr+ifirst*sbinfo->pagesize,  \
-        (iend-ifirst)*sbinfo->pagesize, PROT_READ);
-    }
+    MPROTECT(sbchunk->saddr+ifirst*sbinfo->pagesize,  \
+      (iend-ifirst)*sbinfo->pagesize, PROT_READ);
 
     /* update the corresponding pflags[] entries */
     for (ip=ifirst; ip<iend; ip++) {
+      if (sbchunk->pflags[ip]&SBCHUNK_NONE)
+        sbchunk->pflags[ip] ^= SBCHUNK_NONE;
       if (sbchunk->pflags[ip]&SBCHUNK_WRITE)
         sbchunk->pflags[ip] ^= SBCHUNK_WRITE;
       if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
         sbchunk->pflags[ip] ^= SBCHUNK_ONDISK;
-      GKASSERT(SBCHUNK_READ == (sbchunk->pflags[ip]^SBCHUNK_READ));
+      sbchunk->pflags[ip] |= SBCHUNK_READ;
+      GKASSERT(SBCHUNK_READ == (sbchunk->pflags[ip]&SBCHUNK_READ));
     }
+    if (sbchunk->flags&SBCHUNK_NONE)
+      sbchunk->flags ^= SBCHUNK_NONE;
+    sbchunk->flags |= SBCHUNK_READ;
   }
   BD_LET_LOCK(&(sbchunk->mtx));
 }
