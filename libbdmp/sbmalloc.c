@@ -546,10 +546,10 @@ void *sb_malloc(size_t nbytes)
   return (void *)sbchunk->saddr;
 }
 
+
 /*************************************************************************/
 /*! Reallocates memory via anonymous mmap */
 /*************************************************************************/
-#if 1
 void *sb_realloc(void *oldptr, size_t nbytes)
 {
   size_t ip, new_saddr, new_npages;
@@ -700,86 +700,7 @@ ERROR_EXIT:
 
   return NULL;
 }
-#else
-void *sb_realloc(void *oldptr, size_t nbytes)
-{
-  size_t ip, npages, new_npages;
-  void * new_ptr=NULL;
-  sbchunk_t * sbchunk, * new_sbchunk;
 
-  if (sbinfo == NULL) {
-    perror("sb_realloc: sbinfo == NULL");
-    exit(EXIT_FAILURE);
-  }
-
-  if (NULL == (new_ptr=sb_malloc(nbytes)))
-    return NULL;
-
-  new_npages = (nbytes+sbinfo->pagesize-1)/sbinfo->pagesize;
-
-  BD_GET_LOCK(&(sbinfo->mtx));
-  if (NULL == (new_sbchunk=_sb_find(new_ptr))) {
-    perror("sb_realloc: failed to find the new_sbchunk");
-    exit(EXIT_FAILURE);
-  }
-
-  if (NULL == (sbchunk=_sb_find(oldptr))) {
-    perror("sb_realloc: failed to find the sbchunk");
-    exit(EXIT_FAILURE);
-  }
-  BD_LET_LOCK(&(sbinfo->mtx));
-
-  BD_GET_LOCK(&(sbchunk->mtx));
-
-  if (new_npages <= sbchunk->npages)
-    npages = new_npages;
-  else
-    npages = sbchunk->npages;
-
-  nbytes = npages*sbinfo->pagesize;
-
-  /*----------------------------------------------------------------------*/
-  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
-    bdmsg_t msg, gomsg;
-
-    /* notify the master that you want to load memory */
-    memset(&msg, 0, sizeof(bdmsg_t));
-    msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-    msg.source  = sbinfo->job->rank;
-    msg.count   = nbytes;
-    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    BDMPL_SLEEP(sbinfo->job, gomsg);
-  }
-  /*----------------------------------------------------------------------*/
-
-  // set write permissions on new_npages of new_sbchunk->saddr
-  // set read permissions on new_npages of sbchunk->saddr
-  MPROTECT(new_sbchunk->saddr, nbytes, PROT_WRITE);
-  MPROTECT(sbchunk->saddr, nbytes, PROT_READ);
-
-  // copy data from sbchunk->saddr to new_sbchunk->saddr
-  memcpy((void*)new_sbchunk->saddr, (void*)sbchunk->saddr, nbytes);
-
-  // update flags for new_sbchunk
-  new_sbchunk->flags = SBCHUNK_READ;
-  if (sbchunk->flags&SBCHUNK_ONDISK)
-    new_sbchunk->flags |= SBCHUNK_ONDISK;
-  for (ip=0; ip<npages; ++ip) {
-    new_sbchunk->pflags[ip] = SBCHUNK_READ;
-    if (sbchunk->pflags[ip]&SBCHUNK_ONDISK)
-      new_sbchunk->pflags[ip] |= SBCHUNK_WRITE;
-  }
-
-  // set read permissions on new_npages of sbchunk->saddr
-  MPROTECT(new_sbchunk->saddr, nbytes, PROT_READ|PROT_WRITE);
-
-  BD_LET_LOCK(&(sbchunk->mtx));
-
-  sb_free(sbchunk->saddr);
-
-  return new_ptr;
-}
-#endif
 
 /*************************************************************************/
 /*! Frees the allocated sbmemory */
@@ -1257,7 +1178,7 @@ static void _sb_asio_cb(void * const arg)
     }
 #endif
 
-#if 0
+#if 1
     if (SBCHUNK_ONDISK != (sbchunk->flags&SBCHUNK_ONDISK)) {
     /***************************************************/
     /* give final protection and set appropriate flags */
@@ -1274,7 +1195,6 @@ static void _sb_asio_cb(void * const arg)
       }
       pflags[ip] |= SBCHUNK_READ;
     }
-
     }
 #endif
   }
@@ -1413,7 +1333,6 @@ sbchunk_t *_sb_find(void *ptr)
 /*************************************************************************/
 /*! Loads the supplied sbchunk and makes it readable */
 /*************************************************************************/
-#if 1
 void _sb_chunkload(sbchunk_t *sbchunk)
 {
   ssize_t ip, ifirst, size, tsize, npages;
@@ -1500,15 +1419,7 @@ void _sb_chunkload(sbchunk_t *sbchunk)
 
   sbchunk->ldpages = sbchunk->npages;
 }
-#else
-void _sb_chunkload(sbhcunk_t *sbchunk)
-{
-  if (-1 == madvise(sbchunk->saddr, sbchunk->nbytes, MADV_WILLNEED)) {
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
-    abort();
-  }
-}
-#endif
+
 
 /*************************************************************************/
 /*! Loads the supplied sbchunk and makes it readable via multi-threading */
@@ -1540,7 +1451,6 @@ void _sb_chunkload_mt(sbchunk_t * const sbchunk, size_t const ip)
 /*************************************************************************/
 /*! Saves the supplied sbchunk to disk; this is an internal routine */
 /*************************************************************************/
-#if 1
 void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 {
   size_t ip, ifirst, npages, size, tsize, count=0;
@@ -1644,19 +1554,7 @@ void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 
   sbchunk->ldpages = 0;
 }
-#else
-void _sb_chunksave(sbchunk_t *sbchunk, int const flag)
-  if (-1 == msync(sbchunk->saddr, sbchunk->nbytes, MS_SYNC)) {
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
-    abort();
-  }
 
-  if (-1 == madvise(sbchunk->saddr, sbchunk->nbytes, MADV_DONTNEED)) {
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, strerror(errno));
-    abort();
-  }
-}
-#endif
 
 /*************************************************************************/
 /*! Loads the supplied ip from sbchunk and makes it readable */
