@@ -10,7 +10,9 @@
 #ifndef _BDMPI_H_
 #define _BDMPI_H_
 
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
