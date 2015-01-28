@@ -332,7 +332,7 @@ void setup_master_postfork(mjob_t *job)
     errexit("Invalid rmsize: %d\n", job->rmsize);
   job->memrss = 0;
   //job->memmax = 1LLU<<job->rmsize;
-  job->memmax = 3758096384;
+  job->memmax = 3221225472;
   job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
   job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
   memset(job->slvrss, 0, job->ns*sizeof(size_t));
@@ -355,13 +355,13 @@ void cleanup_master(mjob_t *job)
   sleep(1);
   bdprintf("------------------------------------------------\n");
   bdprintf("Master %d is done.\n", job->mynode);
-  //bdprintf("Memory stats [%zu / %zu]\n", job->memrss, job->memmax);
+  bdprintf("Memory stats [%zu / %zu]\n", job->memrss, job->memmax);
 
   gk_rmpath(job->jdesc->wdir);
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
-    //bdprintf("       [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
+    bdprintf("       [%3d] [%zu / %zu]\n", i, job->slvrss[i], job->slvtot[i]);
     bdscb_destroy(job->scbs[i]);
     bdmq_destroy(job->goMQs[i]);
     bdmq_destroy(job->c2sMQs[i]);

@@ -26,10 +26,8 @@ void * mstr_mem_load(void * const arg)
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
 
-#ifndef BDMPL_WITH_SB_SAVEALL
   if (job->memrss > job->memmax)
     memory_wakeup_some(job, msg->count);
-#endif
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
@@ -73,8 +71,8 @@ void * mstr_mem_save(void * const arg)
 /*************************************************************************/
 void memory_wakeup_some(mjob_t * const job, size_t const size)
 {
-  int i, itogo, iitogo, togo=0;
-  size_t count=0;
+  int i, itogo, iitogo, togo=0, type=0;
+  size_t count=0, resident, ires;
   bdmsg_t msg;
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
@@ -82,77 +80,112 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
   while (job->memrss > job->memmax &&
          0 != job->nrunnable+job->nmblocked+job->ncblocked)
   {
-    itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
-
-    if (-1 != itogo) {
 #if 0
-      if (itogo < job->nrunnable) {
-        iitogo = itogo;
-        togo = job->runnablelist[iitogo];
-        job->runnablelist[iitogo] = job->runnablelist[--job->nrunnable];
-        job->runnablemap[togo] = -1;
-      }
-      else if (itogo < job->nrunnable+job->nmblocked) {
-        iitogo = itogo - job->nrunnable;
-        togo = job->mblockedlist[iitogo];
-        job->mblockedlist[iitogo] = job->mblockedlist[--job->nmblocked];
-        job->mblockedmap[togo] = -1;
-      }
-      else {
-        iitogo = itogo - job->nrunnable - job->nmblocked;
-        togo = job->cblockedlist[iitogo];
-        job->cblockedlist[iitogo] = job->cblockedlist[--job->ncblocked];
-        job->cblockedmap[togo] = -1;
-      }
-      BD_LET_LOCK(job->schedule_lock);
+    itogo = memory_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
 #else
-      if (itogo < job->nrunnable) {
-        iitogo = itogo;
-        togo = job->runnablelist[iitogo];
+    for (itogo=-1,ires=0,i=0; i<job->nrunnable; i++) {
+      resident = job->slvrss[job->runnablelist[i]];
+
+      if (resident > ires) {
+        itogo = i;
+        ires = resident;
       }
-      else if (itogo < job->nrunnable+job->nmblocked) {
-        iitogo = itogo - job->nrunnable;
-        togo = job->mblockedlist[iitogo];
+    }
+    for (itogo=-1,ires=0,i=0; i<job->nmblocked; i++) {
+      resident = job->slvrss[job->mblockedlist[i]];
+
+      if (resident > ires) {
+        itogo = i+job->nrunnable;
+        ires = resident;
       }
-      else {
-        iitogo = itogo - job->nrunnable - job->nmblocked;
-        togo = job->cblockedlist[iitogo];
+    }
+    for (itogo=-1,ires=0,i=0; i<job->ncblocked; i++) {
+      resident = job->slvrss[job->cblockedlist[i]];
+
+      if (resident > ires) {
+        itogo = i+job->nrunnable+job->nmblocked;
+        ires = resident;
       }
+    }
+#endif
+
+    if (-1 == itogo)
+      break;
+
+#if 0
+    if (itogo < job->nrunnable) {
+      iitogo = itogo;
+      togo = job->runnablelist[iitogo];
+      job->runnablelist[iitogo] = job->runnablelist[--job->nrunnable];
+      job->runnablemap[togo] = -1;
+      type = 0;
+    }
+    else if (itogo < job->nrunnable+job->nmblocked) {
+      iitogo = itogo - job->nrunnable;
+      togo = job->mblockedlist[iitogo];
+      job->mblockedlist[iitogo] = job->mblockedlist[--job->nmblocked];
+      job->mblockedmap[togo] = -1;
+      type = 1;
+    }
+    else {
+      iitogo = itogo - job->nrunnable - job->nmblocked;
+      togo = job->cblockedlist[iitogo];
+      job->cblockedlist[iitogo] = job->cblockedlist[--job->ncblocked];
+      job->cblockedmap[togo] = -1;
+      type = 2;
+    }
+    BD_LET_LOCK(job->schedule_lock);
+#else
+    //for (i=0; i<4; ++i)
+    //  printf("[%zu] ", job->slvrss[i]);
+    if (itogo < job->nrunnable) {
+      iitogo = itogo;
+      togo = job->runnablelist[iitogo];
+    }
+    else if (itogo < job->nrunnable+job->nmblocked) {
+      iitogo = itogo - job->nrunnable;
+      togo = job->mblockedlist[iitogo];
+    }
+    else {
+      iitogo = itogo - job->nrunnable - job->nmblocked;
+      togo = job->cblockedlist[iitogo];
+    }
 #endif
 
 #if 1
-      /* send that slave a go free memory message */
-      if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
-        bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
-      /* recv from slave a done message */
-      if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
-        bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
-
-      if (0 == count)
-        break;
+    //printf("telling %d to free memory\n", togo);
+    /* send that slave a go free memory message */
+    if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
+      bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
+    /* recv from slave a done message */
+    if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
+      bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
+    //printf("%d free'd %zu bytes of memory\n", togo, count);
 #endif
 
 #if 0
-      BD_GET_LOCK(job->schedule_lock);
-      if (itogo < job->nrunnable) {
-        job->runnablelist[job->nrunnable] = togo;
-        job->runnablemap[togo] = job->nrunnable++;
-      }
-      else if (itogo < job->nrunnable+job->nmblocked) {
-        job->mblockedlist[job->nmblocked] = togo;
-        job->mblockedmap[togo] = job->nmblocked++;
-      }
-      else {
-        job->cblockedlist[job->ncblocked] = togo;
-        job->cblockedmap[togo] = job->ncblocked++;
-      }
+    BD_GET_LOCK(job->schedule_lock);
+    if (0 == type) {
+      job->runnablelist[job->nrunnable] = togo;
+      job->runnablemap[togo] = job->nrunnable++;
+    }
+    else if (1 == type) {
+      job->mblockedlist[job->nmblocked] = togo;
+      job->mblockedmap[togo] = job->nmblocked++;
+    }
+    else if (2 == type) {
+      job->cblockedlist[job->ncblocked] = togo;
+      job->cblockedmap[togo] = job->ncblocked++;
+    }
 #endif
-      job->memrss -= count;
-      job->slvrss[togo] -= count;
-    }
-    else {
+
+#if 1
+    if (0 == count)
       break;
-    }
+#endif
+
+    job->memrss -= count;
+    job->slvrss[togo] -= count;
   }
 }
 
