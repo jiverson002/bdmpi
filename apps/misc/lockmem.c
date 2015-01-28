@@ -19,7 +19,8 @@
 /*************************************************************************/
 int main(int argc, char *argv[])
 {
-  int nbytes, sleeptime;
+  size_t nbytes;
+  int sleeptime;
   char *buf;
 
   setbuf(stdout, NULL);
@@ -30,10 +31,10 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  nbytes    = atoi(argv[1]);
+  nbytes    = atol(argv[1]);
   sleeptime = atoi(argv[2]);
 
-  printf("Allocating %d bytes\n", nbytes);
+  printf("Allocating %zu bytes\n", nbytes);
 
   buf = gk_cmalloc(nbytes, "buf");
   mlock(buf, nbytes);
