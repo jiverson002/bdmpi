@@ -572,7 +572,7 @@ void *sb_malloc(size_t nbytes)
 /*************************************************************************/
 void *sb_realloc(void *oldptr, size_t nbytes)
 {
-  size_t ip, new_saddr, new_npages, count;
+  size_t ip, npages, new_saddr, new_npages, count;
   uint8_t *new_pflags=NULL;
   sbchunk_t *sbchunk;
 
@@ -592,6 +592,8 @@ void *sb_realloc(void *oldptr, size_t nbytes)
 
   BD_GET_LOCK(&(sbchunk->mtx));
 
+  npages = sbchunk->npages;
+
   /* see if we are shrinking */
   if (nbytes <= sbchunk->nbytes) { /* easy case */
     for (count=0,ip=new_npages; ip<sbchunk->npages; ++ip) {
@@ -600,25 +602,6 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     }
     GKASSERT(sbchunk->ldpages >= count);
     sbchunk->ldpages -= count;
-
-    /*----------------------------------------------------------------------*/
-    SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
-      if (0 == (sbchunk->flags&SBCHUNK_NONE)) {
-        bdmsg_t msg, gomsg;
-
-        /* notify the master that you want to load memory */
-        memset(&msg, 0, sizeof(bdmsg_t));
-        msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-        msg.source  = sbinfo->job->rank;
-        msg.count   = (sbchunk->npages-new_npages)*sbinfo->pagesize;
-        bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-        BDMPL_SLEEP(sbinfo->job, gomsg);
-        //printf("[%d, %d] (%p: -%zu)\n", getpid(), __LINE__, (void*)sbchunk,
-        //  msg.count);
-        //fflush(stdout);
-      }
-    }
-    /*----------------------------------------------------------------------*/
 
     /* set the now unused pages as DONTNEED */
     if (madvise((void *)(sbchunk->saddr+new_npages*sbinfo->pagesize),
@@ -632,6 +615,25 @@ void *sb_realloc(void *oldptr, size_t nbytes)
     sbchunk->npages = new_npages;
     sbchunk->eaddr  = sbchunk->saddr+nbytes;
     sbchunk->pflags[new_npages] = 0;  /* this is for the +1 reset */
+
+    /*----------------------------------------------------------------------*/
+    SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
+      if (0 == (sbchunk->flags&SBCHUNK_NONE)) {
+        bdmsg_t msg, gomsg;
+
+        /* notify the master that you want to save memory */
+        memset(&msg, 0, sizeof(bdmsg_t));
+        msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
+        msg.source  = sbinfo->job->rank;
+        msg.count   = (npages-new_npages)*sbinfo->pagesize;
+        bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+        BDMPL_SLEEP(sbinfo->job, gomsg);
+        //printf("[%d, %d] (%p: -%zu)\n", getpid(), __LINE__, (void*)sbchunk,
+        //  msg.count);
+        //fflush(stdout);
+      }
+    }
+    /*----------------------------------------------------------------------*/
   }
   else {
     /*----------------------------------------------------------------------*/
@@ -650,7 +652,6 @@ void *sb_realloc(void *oldptr, size_t nbytes)
       //fflush(stdout);
     }
     /*----------------------------------------------------------------------*/
-
 
     /* allocate the new pflags */
     if ((new_pflags = (uint8_t *)libc_malloc((new_npages+1)*sizeof(uint8_t))) == NULL) {
@@ -914,6 +915,7 @@ void sb_loadall()
 /*************************************************************************/
 void sb_discard(void *ptr, ssize_t size)
 {
+#if 0
   size_t addr, ip, ifirst, iend, count;
   sbchunk_t *sbchunk;
 
@@ -967,7 +969,7 @@ void sb_discard(void *ptr, ssize_t size)
       SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
         //printf("DISCARD (%p) %zu / %zu / %zu\n", (void*)sbchunk, count,
         //  sbchunk->ldpages, sbchunk->npages);
-#if 0
+#if 1
         bdmsg_t msg, gomsg;
 
         /* notify the master that you want to save memory */
@@ -976,12 +978,14 @@ void sb_discard(void *ptr, ssize_t size)
         msg.source  = sbinfo->job->rank;
         msg.count   = count*sbinfo->pagesize;
         bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+        BD_LET_LOCK(&(sbchunk->mtx));
         BDMPL_SLEEP(sbinfo->job, gomsg);
+        BD_GET_LOCK(&(sbchunk->mtx));
 #endif
       }
       /*------------------------------------------------------------------*/
 
-#if 0
+#if 1
       /* provide no permissions this will remove the write permissions so in
        * case we do not block, subsequent writes will be intercepted correctly
        * */
@@ -1011,6 +1015,7 @@ void sb_discard(void *ptr, ssize_t size)
     }
   }
   BD_LET_LOCK(&(sbchunk->mtx));
+#endif
 }
 
 
@@ -1400,28 +1405,15 @@ sbchunk_t *_sb_find(void *ptr)
 /*************************************************************************/
 void _sb_chunkload(sbchunk_t *sbchunk)
 {
+  size_t count;
   ssize_t ip, ifirst, size, tsize, npages;
   char *buf;
   uint8_t *pflags;
   int fd;
 
-  size_t count;
-  for (count=0,ip=0; ip<sbchunk->npages; ++ip) {
-    if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE))
-      count++;
-  }
-  GKASSERT(sbchunk->ldpages+count == sbchunk->npages);
-
   SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
     if (SBCHUNK_NONE == (sbchunk->flags&SBCHUNK_NONE)) {
       bdmsg_t msg, gomsg;
-
-      for (ip=0; ip<sbchunk->npages; ++ip) {
-        GKASSERT(SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE));
-        GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_READ));
-        GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_WRITE));
-      }
-      GKASSERT(0 == sbchunk->ldpages);
 
       /* notify the master that you want to load memory */
       memset(&msg, 0, sizeof(bdmsg_t));
@@ -1435,6 +1427,12 @@ void _sb_chunkload(sbchunk_t *sbchunk)
       //fflush(stdout);
     }
   }
+
+  for (count=0,ip=0; ip<sbchunk->npages; ++ip) {
+    if (SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE))
+      count++;
+  }
+  GKASSERT(sbchunk->ldpages+count == sbchunk->npages);
 
   npages = sbchunk->npages;
   pflags = sbchunk->pflags;
@@ -1547,22 +1545,6 @@ size_t _sb_chunksave(sbchunk_t *sbchunk, int const flag)
   if (SBCHUNK_NONE == (sbchunk->flags&SBCHUNK_NONE))
     return 0;
 
-  /*----------------------------------------------------------------------*/
-  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
-    if (1 == flag) {
-      bdmsg_t msg, gomsg;
-
-      /* notify the master that you have saved memory */
-      memset(&msg, 0, sizeof(bdmsg_t));
-      msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-      msg.source  = sbinfo->job->rank;
-      msg.count   = sbchunk->npages*sbinfo->pagesize;
-      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-      BDMPL_SLEEP(sbinfo->job, gomsg);
-    }
-  }
-  /*----------------------------------------------------------------------*/
-
   SB_SB_IFSET(BDMPI_SB_ASIO) {
     _sb_quit_sbchunk(sbchunk);
   }
@@ -1643,6 +1625,22 @@ size_t _sb_chunksave(sbchunk_t *sbchunk, int const flag)
 
   sbchunk->ldpages = 0;
 
+  /*----------------------------------------------------------------------*/
+  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
+    if (1 == flag) {
+      bdmsg_t msg, gomsg;
+
+      /* notify the master that you have saved memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
+      msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
+      msg.source  = sbinfo->job->rank;
+      msg.count   = sbchunk->npages*sbinfo->pagesize;
+      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+      BDMPL_SLEEP(sbinfo->job, gomsg);
+    }
+  }
+  /*----------------------------------------------------------------------*/
+
   return sbchunk->npages*sbinfo->pagesize;
 }
 
@@ -1660,15 +1658,7 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
 #if 1
     /* notify master for each chunk */
     if (SBCHUNK_NONE == (sbchunk->flags&SBCHUNK_NONE)) {
-      size_t ip;
       bdmsg_t msg, gomsg;
-
-      for (ip=0; ip<sbchunk->npages; ++ip) {
-        GKASSERT(SBCHUNK_NONE == (sbchunk->pflags[ip]&SBCHUNK_NONE));
-        GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_READ));
-        GKASSERT(0 == (sbchunk->pflags[ip]&SBCHUNK_WRITE));
-      }
-      GKASSERT(0 == sbchunk->ldpages);
 
       /* notify the master that you want to load memory */
       memset(&msg, 0, sizeof(bdmsg_t));
@@ -1822,25 +1812,8 @@ void _sb_pagesave(sbchunk_t * const sbchunk, size_t const ip)
 /*************************************************************************/
 void _sb_chunkfree(sbchunk_t *sbchunk)
 {
-  /*----------------------------------------------------------------------*/
-  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
-    if (0 == (sbchunk->flags&SBCHUNK_NONE)) {
-      bdmsg_t msg, gomsg;
-
-      /* notify the master that you want to save memory */
-      memset(&msg, 0, sizeof(bdmsg_t));
-      msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-      msg.source  = sbinfo->job->rank;
-      msg.count   = sbchunk->npages*sbinfo->pagesize;
-      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-      BDMPL_SLEEP(sbinfo->job, gomsg);
-      //printf("[%d, %d] (%p: -%zu)\n", getpid(), __LINE__, (void*)sbchunk,
-      //  msg.count);
-      //fflush(stdout);
-    }
-  }
-  /*----------------------------------------------------------------------*/
-
+  uint8_t flags=sbchunk->flags;
+  size_t npages=sbchunk->npages;
 
   /* delete the file, if on disk */
   if (sbchunk->flags&SBCHUNK_ONDISK) {
@@ -1860,7 +1833,24 @@ void _sb_chunkfree(sbchunk_t *sbchunk)
   libc_free(sbchunk->fname);
   libc_free(sbchunk);
 
-  return;
+  /*----------------------------------------------------------------------*/
+  SB_SB_IFSET(BDMPI_SB_LAZYWRITE) {
+    if (0 == (flags&SBCHUNK_NONE)) {
+      bdmsg_t msg, gomsg;
+
+      /* notify the master that you want to save memory */
+      memset(&msg, 0, sizeof(bdmsg_t));
+      msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
+      msg.source  = sbinfo->job->rank;
+      msg.count   = npages*sbinfo->pagesize;
+      bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
+      BDMPL_SLEEP(sbinfo->job, gomsg);
+      //printf("[%d, %d] (%p: -%zu)\n", getpid(), __LINE__, (void*)sbchunk,
+      //  msg.count);
+      //fflush(stdout);
+    }
+  }
+  /*----------------------------------------------------------------------*/
 }
 
 

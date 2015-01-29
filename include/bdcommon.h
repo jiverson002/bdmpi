@@ -138,8 +138,8 @@
     clock_gettime(CLOCK_REALTIME, &ts);\
     ts.tv_sec += 10;\
     if (ETIMEDOUT == (retval=pthread_mutex_timedlock(lock, &ts))) {\
-      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for mutex\n",\
-        syscall(SYS_gettid), __FILE__, __LINE__);\
+      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for mutex (%p)\n",\
+        syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)(lock));\
       pthread_mutex_lock(lock);\
       fprintf(stderr, "[%6ld:%s,%4d]: locked mutex\n", syscall(SYS_gettid),\
         __FILE__, __LINE__);\
@@ -150,6 +150,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
+    fprintf(stderr, "[%6ld:%s,%4d]: get lock (%p)\n",\
+      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+      (void*)(lock));\
   }
 #endif
 
@@ -163,6 +166,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
+    /*fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
+      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+      (void*)(lock));*/\
   }
 
 #define BD_TRY_LOCK(lock, haslock)\
@@ -171,6 +177,9 @@
     char hostname[9];\
     if (0 == (retval=pthread_mutex_trylock(lock))) {\
       haslock = 1;\
+      /*fprintf(stderr, "[%6ld:%s,%4d]: get lock (%p)\n",\
+        syscall(SYS_gettid), basename(__FILE__), __LINE__,\
+        (void*)(lock));*/\
     }\
     else if (EBUSY == retval) {\
       haslock = 0;\
@@ -205,10 +214,10 @@
     if (0 != sem_timedwait(sem, &ts)) {\
       if (ETIMEDOUT == errno) {\
         fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for semahore (%p)\n",\
-          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)sbchunk->saddr);\
+          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)(sem));\
         sem_wait(sem);\
         fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
-          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)sbchunk->saddr);\
+          syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)(sem));\
       }\
       else {\
         gethostname(hostname, 9);\
@@ -218,9 +227,9 @@
       }\
     }\
     else {\
-      /*fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
+      fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
         syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-        (void*)sbchunk->saddr);*/\
+        (void*)(sem));\
     }\
   }
 #endif
@@ -237,7 +246,7 @@
   }                                                                       \
   /*fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
     syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-    (void*)sbchunk->saddr);*/\
+    (void*)(sem));*/\
 }
 
 #define BD_TRY_SEM(SEM, BOOL)                                             \
@@ -247,7 +256,7 @@ do {                                                                      \
     (BOOL) = 1;                                                           \
     /*fprintf(stderr, "[%6ld:%s,%4d]: get semahore (%p)\n",\
       syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)sbchunk->saddr);*/\
+      (void*)(SEM));*/\
   }                                                                       \
   else if (EAGAIN == errno) {                                             \
     (BOOL) = 0;                                                           \

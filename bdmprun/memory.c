@@ -60,6 +60,9 @@ void * mstr_mem_save(void * const arg)
   job->memrss -= msg->count;
   job->slvrss[msg->source] -= msg->count;
 
+  //printf("SAVE (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count, job->memrss, job->memmax);
+  //fflush(stdout);
+
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
     bdprintf("Failed to send a go message to %d: %s\n", msg->source, strerror(errno));
@@ -116,8 +119,8 @@ void memory_wakeup_some(mjob_t * const job, int const source,
     }
 #endif
 
-    /*if (-1 == itogo) {
-      printf("  NOMEM [");
+    if (-1 == itogo) {
+      /*printf("  NOMEM [");
       for (i=0; i<job->nrunnable; ++i)
         printf("%d ", job->runnablelist[i]);
       printf("| ");
@@ -130,9 +133,9 @@ void memory_wakeup_some(mjob_t * const job, int const source,
       for (i=0; i<4; ++i)
         printf("%zu ", job->slvrss[i]);
       printf(")\n");
-      fflush(stdout);
+      fflush(stdout);*/
       break;
-    }*/
+    }
 
 #if 0
     if (itogo < job->nrunnable) {
@@ -165,16 +168,19 @@ void memory_wakeup_some(mjob_t * const job, int const source,
       togo = job->runnablelist[iitogo];
     }
     else if (itogo < job->nrunnable+job->nmblocked) {
-      iitogo = itogo - job->nrunnable;
+      iitogo = itogo-job->nrunnable;
       togo = job->mblockedlist[iitogo];
     }
     else {
-      iitogo = itogo - job->nrunnable - job->nmblocked;
+      iitogo = itogo-job->nrunnable-job->nmblocked;
       togo = job->cblockedlist[iitogo];
     }
 #endif
 
 #if 1
+    //printf("WAKE (%d) %d %d %d\n", togo, source, itogo, iitogo);
+    //fflush(stdout);
+
     //printf("telling %d to free memory\n", togo);
     /* send that slave a go free memory message */
     if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
