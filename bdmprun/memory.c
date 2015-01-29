@@ -26,8 +26,14 @@ void * mstr_mem_load(void * const arg)
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
 
-  if (job->memrss > job->memmax)
-    memory_wakeup_some(job, msg->count);
+  //printf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count, job->memrss, job->memmax);
+  //fflush(stdout);
+
+  if (job->memrss > job->memmax) {
+    //printf("  WAKE (%d)\n", msg->source);
+    //fflush(stdout);
+    memory_wakeup_some(job, msg->source, msg->count);
+  }
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
@@ -69,7 +75,8 @@ void * mstr_mem_save(void * const arg)
 /*! If the number of running slaves is less that nr, then some runnable
     slaves are told to go ahead and execute. */
 /*************************************************************************/
-void memory_wakeup_some(mjob_t * const job, size_t const size)
+void memory_wakeup_some(mjob_t * const job, int const source,
+                        size_t const size)
 {
   int i, itogo, iitogo, togo=0, type=0;
   size_t count=0, resident, ires;
@@ -86,31 +93,46 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
     for (itogo=-1,ires=0,i=0; i<job->nrunnable; i++) {
       resident = job->slvrss[job->runnablelist[i]];
 
-      if (resident > ires) {
+      if (source != job->runnablelist[i] && resident > ires) {
         itogo = i;
         ires = resident;
       }
     }
-    for (itogo=-1,ires=0,i=0; i<job->nmblocked; i++) {
+    for (i=0; i<job->nmblocked; i++) {
       resident = job->slvrss[job->mblockedlist[i]];
 
-      if (resident > ires) {
+      if (source != job->mblockedlist[i] && resident > ires) {
         itogo = i+job->nrunnable;
         ires = resident;
       }
     }
-    for (itogo=-1,ires=0,i=0; i<job->ncblocked; i++) {
+    for (i=0; i<job->ncblocked; i++) {
       resident = job->slvrss[job->cblockedlist[i]];
 
-      if (resident > ires) {
+      if (source != job->cblockedlist[i] && resident > ires) {
         itogo = i+job->nrunnable+job->nmblocked;
         ires = resident;
       }
     }
 #endif
 
-    if (-1 == itogo)
+    /*if (-1 == itogo) {
+      printf("  NOMEM [");
+      for (i=0; i<job->nrunnable; ++i)
+        printf("%d ", job->runnablelist[i]);
+      printf("| ");
+      for (i=0; i<job->nmblocked; ++i)
+        printf("%d ", job->mblockedlist[i]);
+      printf("| ");
+      for (i=0; i<job->ncblocked; ++i)
+        printf("%d ", job->cblockedlist[i]);
+      printf("] (");
+      for (i=0; i<4; ++i)
+        printf("%zu ", job->slvrss[i]);
+      printf(")\n");
+      fflush(stdout);
       break;
+    }*/
 
 #if 0
     if (itogo < job->nrunnable) {
@@ -186,6 +208,9 @@ void memory_wakeup_some(mjob_t * const job, size_t const size)
 
     job->memrss -= count;
     job->slvrss[togo] -= count;
+
+    //printf("SAVE (%d) %10zu / %10zu / %10zu\n", togo, count, job->memrss, job->memmax);
+    //fflush(stdout);
   }
 }
 
