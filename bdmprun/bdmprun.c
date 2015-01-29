@@ -328,11 +328,10 @@ void setup_master_postfork(mjob_t *job)
   job->nR = job->ns; /* initially, no co-operating scheduling */
 
   /* populate the various memory statistics */
-  if (job->rmsize > 63)
-    errexit("Invalid rmsize: %d\n", job->rmsize);
   job->memrss = 0;
-  //job->memmax = 1LLU<<job->rmsize;
-  job->memmax = 3221225472;
+  //job->memmax = job->rmsize*sysconf(_SC_PAGESIZE);
+  //job->memmax = 3221225472;
+  job->memmax = 3758096384;
   job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
   job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
   memset(job->slvrss, 0, job->ns*sizeof(size_t));
