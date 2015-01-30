@@ -21,6 +21,7 @@ else()
 endif(SHARED)
 
 include(${GKLIB_PATH}/GKlibSystem.cmake)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -p")
 
 # Collect the source files in the common directory
 set(COMMON_PATH "common" CACHE PATH "path to common")
