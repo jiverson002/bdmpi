@@ -8,6 +8,7 @@
 
 #include "bdmplib.h"
 #include "asio.h"
+#include "klmalloc.h"
 
 
 /* Stores information associated with a storage-backed memory chunk */
@@ -141,7 +142,7 @@ void *malloc(size_t nbytes)
     if (sbinfo->minsize == 0 || nbytes <= sbinfo->minsize)
       return libc_malloc(nbytes);
     else
-      return sb_malloc(nbytes);
+      return klmalloc(nbytes);
   }
 
   return NULL;
@@ -184,13 +185,12 @@ void *realloc(void *ptr, size_t size)
     return libc_realloc(ptr, size);
   else {
     if (sb_exists(ptr))
-      return sb_realloc(ptr, size);
+      return klrealloc(ptr, size);
     else
       return libc_realloc(ptr, size);
   }
 
   return NULL;
-
 }
 
 
@@ -207,7 +207,7 @@ void free(void *ptr)
   }
   else {
     if (sb_exists(ptr))
-      sb_free(ptr);
+      klfree(ptr);
     else
       libc_free(ptr);
   }
