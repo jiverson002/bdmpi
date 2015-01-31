@@ -125,185 +125,11 @@ do {                                                                        \
 } while (0)
 
 
+#define __cplusplus
 #ifdef __cplusplus
-typedef struct mblock
-{
-  size_t cap;
-  size_t off;
-  size_t size;
-  struct mblock * next;
-  pthread_mutex_t mtx;
-} mblock;
-
-typedef struct mchunk
-{
-  mblock * blk;
-  size_t size;
-} mchunk;
-
-static struct cppinfo
-{
-  pthread_mutex_t mtx;
-  mblock * head;
-} cppinfo=
-{
-  .mtx  = PTHREAD_MUTEX_INITIALIZER,
-  .head = NULL
-};
-
-#define MBLOCK_SIZE (1024*1024) /* 1MiB */
-
-
-mblock *cpp_find(void *ptr)
-{
-  size_t mem;
-  mblock *mblk;
-
-  if (sbinfo == NULL)
-    return NULL;
-
-  /* find the mblock */
-  BD_GET_LOCK(&(cppinfo.mtx));
-  for (mblk=cppinfo.head; NULL!=mblk; mblk=mblk->next) {
-    BD_GET_LOCK(&(mblk->mtx));
-    mem = (size_t)((char*)mblk+sizeof(mblock));
-    if ((size_t)ptr>=mem && (size_t)ptr<mem+mblk->cap) {
-      BD_LET_LOCK(&(mblk->mtx));
-      break;
-    }
-    BD_LET_LOCK(&(mblk->mtx));
-  }
-  BD_LET_LOCK(&(cppinfo.mtx));
-
-  return mblk;
-}
-
-
-int cpp_exists(void *ptr)
-{
-  return (NULL == cpp_find(ptr) ? 0 : 1);
-}
-
-
-/*************************************************************************/
-/*! Special malloc for c++ */
-/*************************************************************************/
-void *cpp_malloc(size_t nbytes)
-{
-  size_t size;
-  mchunk * chnk;
-  mblock * mblk=cppinfo.head;
-
-  if (nbytes+sizeof(mchunk) > MBLOCK_SIZE ||
-      NULL == mblk                        ||
-      mblk->off+nbytes+sizeof(mchunk) > MBLOCK_SIZE)
-  {
-    if (nbytes+sizeof(mchunk) <= MBLOCK_SIZE)
-      size = MBLOCK_SIZE+sizeof(mblock);
-    else
-      size = nbytes+sizeof(mchunk)+sizeof(mblock);
-
-    if (NULL == (mblk=(mblock*)sb_malloc(size)))
-      return NULL;
-
-    mblk->cap  = size;
-    mblk->off  = 0;
-    mblk->size = 0;
-    pthread_mutex_init(&(mblk->mtx), NULL);
-
-    BD_GET_LOCK(&(cppinfo.mtx));
-    mblk->next   = cppinfo.head;
-    cppinfo.head = mblk;
-    BD_LET_LOCK(&(cppinfo.mtx));
-  }
-
-  BD_GET_LOCK(&(mblk->mtx));
-  chnk       = (mchunk*)((char*)mblk+sizeof(mblock)+mblk->off);
-  chnk->size = nbytes;
-  chnk->blk  = mblk;
-
-  mblk->off  += nbytes+sizeof(mchunk);
-  mblk->size += nbytes+sizeof(mchunk);
-  BD_LET_LOCK(&(mblk->mtx));
-
-  return (char*)chnk+sizeof(mchunk);
-}
-
-
-/*************************************************************************/
-/*! Special free for c++ */
-/*************************************************************************/
-void cpp_free(void *ptr)
-{
-  mchunk * chnk;
-  mblock * mblk;
-
-  if (NULL == ptr)
-    return;
-
-  if (0 == cpp_exists(ptr))
-    return;
-
-  chnk = (mchunk*) ((char*)ptr-sizeof(mchunk));
-
-  BD_GET_LOCK(&(chnk->blk->mtx));
-  if (0 == (chnk->blk->size-=(chnk->size+sizeof(mchunk)))) {
-    pthread_mutex_destroy(&(chnk->blk->mtx));
-    for (mblk=cppinfo.head; NULL!=mblk; mblk=mblk->next) {
-      if (mblk->next == chnk->blk)
-        break;
-    }
-    if (NULL == mblk)
-      cppinfo.head = chnk->blk->next;
-    else
-      mblk->next = chnk->blk->next;
-
-    sb_free(chnk->blk);
-  }
-  else {
-    BD_LET_LOCK(&(chnk->blk->mtx));
-  }
-}
-
-
-/*************************************************************************/
-/*! Special calloc for c++ */
-/*************************************************************************/
-void *cpp_calloc(size_t num, size_t size)
-{
-  void * ptr;
-
-  if (NULL == (ptr=cpp_malloc(num*size)))
-    return NULL;
-
-  memset(ptr, 0, num*size);
-
-  return ptr;
-}
-
-
-/*************************************************************************/
-/*! Special realloc for c++ */
-/*************************************************************************/
-void *cpp_realloc(void *ptr, size_t size)
-{
-  void * nptr;
-  mchunk * chnk;
-
-  if (NULL == (nptr=cpp_malloc(size)))
-    return NULL;
-
-  if (NULL == ptr)
-    return nptr;
-
-  chnk = (mchunk*) ((char*)ptr-sizeof(mchunk));
-
-  memcpy(nptr, ptr, chnk->size < size ? chnk->size : size);
-
-  cpp_free(ptr);
-
-  return nptr;
-}
+void *dlmalloc(size_t nbytes);
+void *dlrealloc(void *ptr, size_t nbytes);
+void *dlfree(void *ptr);
 #endif
 
 
@@ -318,16 +144,18 @@ void *malloc(size_t nbytes)
   //if (libc_malloc == NULL)
   //  return NULL;
 
+  //printf("%zu\n", nbytes);
+
   if (sbinfo == NULL)
     return libc_malloc(nbytes);
   else {
-#ifdef __cplusplus
-    return cpp_malloc(nbytes);
-#else
+#ifndef __cplusplus
     if (sbinfo->minsize == 0 || nbytes <= sbinfo->minsize)
       return libc_malloc(nbytes);
     else
       return sb_malloc(nbytes);
+#else
+      return dlmalloc(nbytes);
 #endif
   }
 
@@ -349,14 +177,10 @@ void *calloc_no(size_t nmemb, size_t size)
   if (sbinfo == NULL)
     return libc_calloc(nmemb, size);
   else {
-#ifdef __cplusplus
-    return cpp_calloc(nmemb, size);
-#else
     if (sbinfo->minsize == 0 || nmemb*size <= sbinfo->minsize)
       return libc_calloc(nmemb, size);
     else
       return sb_malloc(nmemb*size);
-#endif
   }
 
   return NULL;
@@ -374,14 +198,14 @@ void *realloc(void *ptr, size_t size)
   if (sbinfo == NULL)
     return libc_realloc(ptr, size);
   else {
-#ifdef __cplusplus
-    return cpp_realloc(ptr, size);
-#else
     if (sb_exists(ptr))
+#ifndef __cplusplus
       return sb_realloc(ptr, size);
+#else
+      return dlrealloc(ptr, size);
+#endif
     else
       return libc_realloc(ptr, size);
-#endif
   }
 
   return NULL;
@@ -400,14 +224,14 @@ void free(void *ptr)
     libc_free(ptr);
   }
   else {
-#ifdef __cplusplus
-    cpp_free(ptr);
-#else
     if (sb_exists(ptr))
+#ifndef __cplusplus
       sb_free(ptr);
+#else
+      dlfree(ptr);
+#endif
     else
       libc_free(ptr);
-#endif
   }
 
   return;
