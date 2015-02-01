@@ -356,7 +356,7 @@ void cleanup_master(mjob_t *job)
   bdprintf("Master %d is done.\n", job->mynode);
   bdprintf("Memory stats [%10zu / %10zu]\n", job->memrss, job->memmax);
 
-  gk_rmpath(job->jdesc->wdir);
+  //gk_rmpath(job->jdesc->wdir);
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {

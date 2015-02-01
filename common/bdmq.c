@@ -43,14 +43,14 @@ bdmq_t *bdmq_create(char *tag, int num)
   mq->mqdes = mq_open(name, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR, &attr);
   //mq->mqdes = mq_open(name, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR, NULL);
   if (mq->mqdes == -1)
-    errexit("Failed on mq_open(mq->mqdes) for %s: %s\n", name, strerror(errno));
+    errexit("!! Failed on mq_open(mq->mqdes) for %s: %s\n", name, strerror(errno));
 
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
   mq->buf = gk_cmalloc(mq->msgsize, "mq->buf");
 
-//  printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
-//      attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
+  //printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
+  //    attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
 
   return mq;
 }

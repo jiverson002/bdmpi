@@ -131,7 +131,7 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 int slv_printf(char *f_str,...);
 
 /* sbmalloc.c */
-int sb_init(char *fstem, sjob_t * const job);
+int sb_init(char const * const fstem, sjob_t * const job);
 int sb_finalize();
 void *sb_malloc(size_t nbytes);
 void *sb_realloc(void *ptr, size_t nbytes);
@@ -140,9 +140,9 @@ int sb_exists(void *ptr);
 void sb_save(void *buf);
 void sb_saveall();
 size_t sb_saveall_internal();
-void sb_load(void *buf);
+void sb_load(void const *buf);
 void sb_loadall();
-void sb_discard(void *ptr, ssize_t size);
+void sb_discard(void *ptr, size_t size);
 
 /* route.c */
 void slv_route(sjob_t * const job, bdmsg_t const * const gomsg);

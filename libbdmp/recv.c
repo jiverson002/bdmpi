@@ -92,10 +92,12 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
         bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(count, datatype));
 
   /* copy the data */
-  if (rmsg.fnum == -1)
+  if (rmsg.fnum == -1) {
     xfer_in_scb(job->scb, buf, rmsg.count, rmsg.datatype);
-  else
+  }
+  else {
     xfer_in_disk(rmsg.fnum, buf, rmsg.count, rmsg.datatype, 1);
+  }
 
   if (status != BDMPI_STATUS_IGNORE) {
     status->BDMPI_SOURCE = rmsg.source;

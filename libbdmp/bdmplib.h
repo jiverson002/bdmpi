@@ -7,8 +7,12 @@
  * George
  */
 
-#define _BSD_SOURCE
-#define _GNU_SOURCE
+#ifndef _BSD_SOURCE
+# define _BSD_SOURCE
+#endif
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 
 #include <GKlib.h>
 #include <malloc.h>

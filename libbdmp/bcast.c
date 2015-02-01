@@ -39,7 +39,6 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_ROOT;
   }
 
-
   mype = comm->rank;
 
   /* notify the master that you entering a bcast */
@@ -63,7 +62,6 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Bcast: Copying %zu elements.\n", count));
     xfer_out_scb(job->scb, buf, count, datatype);
   }
-
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
