@@ -44,3 +44,6 @@ add_subdirectory("apps/bdmp-oc")        # DISTRM
 add_subdirectory("apps/oc")             # DISTRM
 add_subdirectory("apps/mpi")            # DISTRM
 add_subdirectory("apps/misc")           # DISTRM
+
+add_subdirectory("bench/graphcoloring")
+add_subdirectory("bench/graphdiameter")

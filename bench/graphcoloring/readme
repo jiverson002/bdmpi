@@ -1,0 +1,63 @@
+To compile and build executables do
+
+make
+
+Code for problem 1 first part (sorting random numbers) is in samplesort.c
+
+Run it with
+
+mpirun -np xyz ./samplesort n weak/strong 
+
+where n is the number of random numbers and weak means each of the np processes will sort n numbers, while strong (scalability) means the n numbers will be
+equally divided among the np processes.
+
+Code for problem 1 second part (reading from disk, sorting and writing to disk) is 
+in samplesortdisk.c
+
+Run it with 
+
+mpirun -np xyz ./samplesortdisk input_filename output_filename
+
+The input_filename is one of the files provided without the path. For example
+to sort the data in sort_data_alt.dat just type
+
+mpirun -np xyx ./samplesortdisk sort_data_alt.dat someoutputfilename
+
+The paths to the input and output filenames are hardcoded as constants at
+the top of samplesortdisk.c. By default the output file (with the sorted numbers)
+will be written into my
+folder in ciwater4-0 but that can be changed by editing the OUTPUT_PATH constant
+at the top of samplesortdisk.c
+
+The jobs used to obtain runtimes are called samplesortxyz.pbs where xyz is the 
+number of cores they pass as an argument to mpirun above.
+
+Code for problem 2 is in graphcoloring.c
+
+Run it with
+
+mpirun -np xyz ./graphcoloring input_filename output_filename
+
+where the input_filename is one of the given files representing a graph and
+the output_filename contains the color assigned by Jones-Plassmann to each
+vertex as well as the largest color assigned.
+
+Notice that some of the files are in a binary format. I used the translation code
+provided by cmu to translate those to the normal format.
+
+For example DSJC1000.9.col.b was converted to DSJC1000.9.col and similarly
+flat1000.76.col.b was converted to flat1000.76.col.
+
+The input_filename is just the filename and is relative to my directory containing 
+all these graph files. Change INPUT_PATH at the top of graphcoloring.c to point to
+a different location. Similarly the OUTPUT_PATH constant at the top point to a
+location somewhere in my account but it can be changed.
+
+Jobs to compute strong scaling are in files called gcgraphfilenp.pbs. 
+For example gcle450_5a8.pbs (8 cores). Jobs to compute weak scaling are in 
+files called gcle450_5aorborcversusqueensnp.pbs.
+
+One note about debugging: At the top of each of the .c files there are a 
+series of directives that start with DEBUG_XYZ. If defined to be 1 they will
+allow for debugging throughout the code. I set them to 0 after testing.
+
