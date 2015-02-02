@@ -1,26 +1,13 @@
-add_executable ( serial
-      hll_counter.c
-      parser.c
-      graph.c
-      hyper_anf_serial.c
-      serial.c
-)
-
-add_executable ( parallel
+add_executable ( graphdiameter
       hll_counter.c
       parser.c
       graph.c
       hyper_anf_mpi.c
       parallel.c
 )
+target_link_libraries(graphdiameter bdmpi GKlib rt dl)
+add_dependencies(graphdiameter ${GKlib_includes})
 
-add_executable ( mpiHello
-      mpi_hello.c
-)
-
-foreach(prog mpiHello
-             parallel
-             )
-  target_link_libraries(${prog} bdmpi GKlib rt dl)
-  add_dependencies(${prog} ${GKlib_includes})
-endforeach(prog)
+if(BDMP_INSTALL)
+  install(TARGETS graphdiameter RUNTIME DESTINATION bin)
+endif()

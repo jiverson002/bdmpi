@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
   int rc = MPI_Init(&argc,&argv);
   if (rc != MPI_SUCCESS) {
     printf ("Error starting MPI program. Terminating.\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
+    exit(EXIT_FAILURE);
   }
 
   int rank;

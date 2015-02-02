@@ -5,7 +5,8 @@
  * @file hyper_anf_mpi.h
  */
 
-#include <mpi.h>
+#include "GKlib.h"
+#include "bdmpi.h"
 #include "graph.h"
 #include "hll_counter.h"
 

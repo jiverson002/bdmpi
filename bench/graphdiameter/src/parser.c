@@ -138,7 +138,7 @@ char * read_file (char * filename) {
     fprintf(stderr, "ERROR: Not enough memory to load file %s in memory\n",
             filename);
   }
-  fread(bytes, pos, 1, f);
+  if (fread(bytes, pos, 1, f)) {}
   fclose(f);
 
   return bytes;

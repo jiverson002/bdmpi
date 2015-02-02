@@ -125,7 +125,7 @@ do {                                                                        \
 } while (0)
 
 
-//#define __cplusplus
+#define __cplusplus
 #ifdef __cplusplus
 void *dlmalloc(size_t nbytes);
 void *dlrealloc(void *ptr, size_t nbytes);
@@ -224,14 +224,18 @@ void free(void *ptr)
     libc_free(ptr);
   }
   else {
-    if (sb_exists(ptr))
+    if (sb_exists(ptr)) {
+      /* For some reason, the system successfully frees memory without this
+       * call... so leave it out for now */
 #ifndef __cplusplus
       sb_free(ptr);
 #else
       dlfree(ptr);
 #endif
-    else
+    }
+    else {
       libc_free(ptr);
+    }
   }
 
   return;

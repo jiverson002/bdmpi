@@ -1,4 +1,6 @@
-#include "mpi.h"
+#include "GKlib.h"
+#include "bdmpi.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -11,7 +13,7 @@ int main(int argc, char** argv) {
   rc = MPI_Init(&argc,&argv);
   if (rc != MPI_SUCCESS) {
     printf ("Error starting MPI program. Terminating.\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
+    exit(EXIT_FAILURE);
   }
 
   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);

@@ -3,20 +3,20 @@
 
 #include <stdio.h>
 
-//#ifndef NDEBUG
-//#define printd(args...)\
-//  fprintf(stderr, "%s:%d: ",__FILE__,__LINE__);\
-//  fprintf(stderr, args)
-//#endif
+/*#ifndef NDEBUG
+#define printd(args...)\
+  fprintf(stderr, "%s:%d: ",__FILE__,__LINE__);\
+  fprintf(stderr, args)
+#endif*/
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 #define printd(args...)\
   fprintf(stderr, args)
-#endif
+#endif*/
 
-#ifdef NDEBUG
-#define printd(args...)
-#endif
+//#ifdef NDEBUG
+#define printd(...)
+//#endif
 
 
 #endif // _DEBUG_H_

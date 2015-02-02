@@ -1,7 +1,9 @@
+#include <GKlib.h>
+#include <bdmpi.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mpi.h>
 
 typedef int bool;
 #define true 1

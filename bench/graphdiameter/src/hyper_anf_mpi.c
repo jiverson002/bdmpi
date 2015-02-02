@@ -1,9 +1,11 @@
+#include "GKlib.h"
+#include "bdmpi.h"
+
 #include "hyper_anf_mpi.h"
 #include "check_ptr.h"
 #include "graph.h"
 #include "parser.h"
 #include "debug.h"
-#include <mpi.h>
 #include <limits.h>
 #include <assert.h>
 #include <string.h>
