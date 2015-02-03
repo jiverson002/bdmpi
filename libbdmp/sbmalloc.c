@@ -125,7 +125,7 @@ do {                                                                        \
 } while (0)
 
 
-#define __cplusplus
+//#define __cplusplus
 #ifdef __cplusplus
 void *dlmalloc(size_t nbytes);
 void *dlrealloc(void *ptr, size_t nbytes);
