@@ -114,10 +114,11 @@ void read_graph(char * filename)
       token = (char *)strtok(NULL," ");
       E = atoi(token);
 
-      if (V%2 == 0)
+      /*if (V%2 == 0)
         chromaticity_upper = V-1;
       else
-        chromaticity_upper = V;
+        chromaticity_upper = V;*/
+      chromaticity_upper = 256;
 
       if (npes > 1) {
         num_v_per_p = V/npes;
@@ -364,12 +365,12 @@ int main(int argc, char * argv[])
     }
     free(map);
   }
-  for (i=0; i<lV; ++i) {
+  /*for (i=0; i<lV; ++i) {
     for (j=ia[i]; j<ia[i+1]; ++j) {
       if (colors[off[rank]+i] == colors[ja[j]])
         abort();
     }
-  }
+  }*/
 
   free(input_filename);
   free(ia);
