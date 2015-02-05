@@ -54,27 +54,16 @@ int parse_node_descr_to (char *descr, node_t *node) {
   inserted = populate_adjacency(out_s, node->out, n_out);
   if (inserted != n_out) {
     error_message(descr);
-    node_free(node);
     return 3;
   }
 
   inserted = populate_adjacency(in_s, node->in, n_in);
   if (inserted != n_in) {
     error_message(descr);
-    node_free(node);
     return 4;
   }
 
   return 0;
-}
-
-node_t * parse_node_descr (char *descr) {
-  node_t * node = malloc(sizeof(node_t));
-  check_ptr(node);
-
-  parse_node_descr_to(descr, node);
-
-  return node;
 }
 
 int count_numbers (char *str) {
@@ -158,23 +147,39 @@ int count_lines (char *str) {
   return count;
 }
 
-int parse_graph_file (char *filename, node_t **nodes, int *n) {
+int count_words (char *str) {
+  int count = 0;
+  int len = strlen(str);
+  for (int i=0; i < len; ++i) {
+    if (str[i] == '\n' || str[i] == ' ') {
+      ++count;
+    }
+  }
+  if(str[len-1] != '\n' || str[len-1] == ' ') {
+    ++count;
+  }
+  return count;
+}
+
+int parse_graph_file (char *filename, node_t **nodes, int *n, int *ne) {
   char * file_contents = read_file(filename);
 
-  int num_parsed = parse_graph_string(file_contents, nodes, n);
+  int num_parsed = parse_graph_string(file_contents, nodes, n, ne);
 
   free(file_contents);
   return num_parsed;
 }
 
-int parse_graph_string (char *str, node_t **nodes, int *n) {
+int parse_graph_string (char *str, node_t **nodes, int *n, int *ne) {
   *n = count_lines(str);
+  *ne = count_words(str);
   int i = 0;
   int rc = 0;
 
   if (*n != 0) {
     *nodes = malloc(*n * sizeof(node_t));
     check_ptr(nodes);
+    init_edges(*ne);
   } else {
     fprintf(stderr, "%s:%d: ERROR: trying to allocate 0 bytes.\n",
             __FILE__, __LINE__);

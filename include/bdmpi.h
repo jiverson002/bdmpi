@@ -528,6 +528,9 @@ MPI_API(double) MPI_Wtime(void);
 }
 #endif
 
+//void* _malloc(size_t, char*, int);
+//#define malloc(SIZE) _malloc(SIZE, __FILE__, __LINE__)
+
 
 #endif
 

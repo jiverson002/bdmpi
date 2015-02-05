@@ -136,6 +136,7 @@ void *dlfree(void *ptr);
 /*************************************************************************/
 /*! Hook: malloc */
 /*************************************************************************/
+//void *_malloc(size_t nbytes, char * file, int line)
 void *malloc(size_t nbytes)
 {
   if (libc_malloc == NULL)
@@ -150,6 +151,8 @@ void *malloc(size_t nbytes)
     return libc_malloc(nbytes);
   else {
 #ifndef __cplusplus
+    //printf("malloc: %s:%d: %zu\n", file, line, nbytes);
+    //printf("malloc: %zu\n", nbytes);
     if (sbinfo->minsize == 0 || nbytes <= sbinfo->minsize)
       return libc_malloc(nbytes);
     else
@@ -949,7 +952,6 @@ void sb_loadall()
 /*************************************************************************/
 void sb_discard(void *ptr, ssize_t size)
 {
-#if 0
   size_t addr, ip, ifirst, iend, count;
   sbchunk_t *sbchunk;
 
@@ -1049,7 +1051,6 @@ void sb_discard(void *ptr, ssize_t size)
     }
   }
   BD_LET_LOCK(&(sbchunk->mtx));
-#endif
 }
 
 

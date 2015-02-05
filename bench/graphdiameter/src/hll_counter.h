@@ -159,7 +159,7 @@ struct hll_counter {
   /**
    * The array of registers of this counter.
    */
-  hll_reg_t *registers;
+  hll_reg_t registers[16];
 };
 
 /**
@@ -170,41 +170,6 @@ typedef struct hll_counter hll_counter_t;
 // ----------------------------------------------------------------------------
 //   Memory Management for counters
 // ----------------------------------------------------------------------------
-
-/**
- * @brief Creates a new hyperLogLog counter, with the specified number of
- * bits to index the registers.
- *
- * The number of registers is m = 2^bits.
- *
- * **Attention**: the memory for the registers of the counter is dynamically
- * allocated. Hence, once used, the counter _must_ be deallocated with the
- * function hll_cnt_delete(hll_counter_t).
- *
- * @param bits: the bits to index the registers.
- * @return a new hll_counter_t instance
- */
-hll_counter_t * hll_cnt_new(size_t bits);
-
-/**
- * @brief Deletes a counter.
- *
- * This functions is responsible of deallocating the right amount of memory.
- *
- * @param counter the counter to be deallocated.
- */
-void hll_cnt_delete(hll_counter_t * counter);
-
-/**
- * @brief Copies a counter.
- *
- * A deep copy of the counter is performed: the pointer ot the registers array
- * is not shared.
- *
- * @param counter the counter to copy
- * @return the new copy of the counter.
- */
-hll_counter_t * hll_cnt_copy(hll_counter_t * counter);
 
 /**
  * @brief Copies the values of the registers of from in the registers of to
@@ -222,11 +187,6 @@ void hll_cnt_copy_to(hll_counter_t * from, hll_counter_t * to);
  * @param bits the number of bits to index the registers
  */
 void hll_cnt_init(hll_counter_t * counter, size_t bits);
-
-/**
- * @brief Deallocates the memory of the registers of the counter.
- */
-void hll_cnt_free(hll_counter_t * counter);
 
 // ----------------------------------------------------------------------------
 //   Counter operations
@@ -261,17 +221,6 @@ void hll_cnt_add(hll_hash_t elem, hll_counter_t * counter);
 hll_cardinality_t hll_cnt_size(hll_counter_t * counter);
 
 /**
- * @brief Performs the union of two counters.
- *
- * The union of two counters is defined as the register by register maximum.
- *
- * @param a the first counter
- * @param b the second counter
- * @return the union of the two counters
- */
-hll_counter_t * hll_cnt_union(hll_counter_t * a, hll_counter_t * b);
-
-/**
  * @brief Performs the inplace union of two counters.
  *
  * This is the same as hll_cnt_union(hll_counter_t, hll_counter_t) but instead
@@ -294,17 +243,5 @@ void hll_cnt_union_i(hll_counter_t * firstAndResult, hll_counter_t * second);
  * @return `0` if the counters are not equals.
  */
 int hll_cnt_equals(hll_counter_t * a, hll_counter_t * b);
-
-/**
- * @brief replaces the array of registers with the given one
- *
- * Frees the memory allocated to the old registers.
- * Note that it is your responsibility to ensure that the new array has the same
- * size fo the old one
- *
- * @param cnt the counter
- * @param reg the array of registers we want to inject
- */
-void hll_cnt_replace_registers(hll_counter_t * cnt, hll_reg_t * reg);
 
 #endif // _HLL_COUNTER_H_

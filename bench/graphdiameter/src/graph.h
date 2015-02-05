@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include "hll_counter.h"
 
 // ----------------------------------------------------------------------------
 //    Data structures
@@ -22,24 +23,11 @@ typedef struct _node {
 // ----------------------------------------------------------------------------
 //    Memory management routines
 // ----------------------------------------------------------------------------
+void init_edges(size_t);
+void free_edges(void);
 
-/**
- * @brief Dynamically allocates a new node.
- *
- * @see node_init(node_t *, node_id_t, size_t, size_t);
- *
- * @param id the id of the node
- * @param out_n the cardinality of the forward star of the node
- * @param in_n the cardinality of the reverse star
- * @return a pointer to the heap-allocated node.
- */
-node_t * node_new(node_id_t id, size_t out_n, size_t in_n);
-
-/**
- * @brief Deletes a heap-allocated node.
- * @param node the node to delete.
- */
-void node_delete(node_t * node);
+void init_neighbourhood(size_t ne);
+void free_neighbourhood(void);
 
 /**
  * @brief Initializes an already allocated node_t struct
@@ -64,17 +52,6 @@ void node_delete(node_t * node);
  */
 void node_init(node_t * node, node_id_t id, size_t out_n, size_t in_n);
 
-/**
- * @brief Frees the resources associated to a node.
- *
- * To be used with nodes allocated with
- * node_init(node_t * , node_id_t , size_t , size_t )
- *
- * This function will free the arrays associated with the nodes and that live
- * on the heap. It will _not_ free the memory associated with the node itself.
- *
- * @param node the node to free
- */
-void node_free(node_t * node);
+void neighbour_init (hll_counter_t ** counters, size_t n);
 
 #endif // _GRAPH_H_

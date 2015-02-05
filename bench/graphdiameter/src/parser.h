@@ -92,7 +92,7 @@ int parse_node_descr_to(char * descr, node_t * node);
  * @param n pointer to the int that will hold the size of the array.
  * @return the number of parsed nodes on success, -1 otherwise
  */
-int parse_graph_file(char *filename, node_t **nodes, int *n);
+int parse_graph_file(char *filename, node_t **nodes, int *n, int *ne);
 
 /**
  * @brief Parses a string description of a graph, possibly loaded from a file.
@@ -104,7 +104,7 @@ int parse_graph_file(char *filename, node_t **nodes, int *n);
  * @param n pointer to the int that will hold the size of the nodes array
  * @return the number of nodes parsed.
  */
-int parse_graph_string(char *str, node_t **nodes, int *n);
+int parse_graph_string(char *str, node_t **nodes, int *n, int *ne);
 
 /*
  * Given a string, counts the number of distinct numbers in it.

@@ -133,6 +133,6 @@ void mpi_neighbourhood_free(mpi_neighbourhood_t *neigh);
 void load_partial_graph( int rank,
                          char * basename,
                          node_t **nodes,
-                         int *n);
+                         int *n, int *ne);
 
 #endif // _HYPER_ANF_MPI_H_

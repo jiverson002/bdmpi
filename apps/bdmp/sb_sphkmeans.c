@@ -7,6 +7,9 @@
 
 #define _SVID_SOURCE
 
+#if 0
+int main() {}
+#else
 #include <GKlib.h>
 #include <bdmpi.h>
 #include <sys/types.h>
@@ -534,3 +537,4 @@ void printInCoreInfo(char *msg, int mype, gk_csr_t *mat)
         usage.ru_maxrss, usage.ru_minflt, usage.ru_majflt);
   }
 }
+#endif

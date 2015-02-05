@@ -67,8 +67,7 @@ options_t parse_options(int argc, char **argv) {
     }
   }
 
-  if(!bits_set)
-    opts.bits = 1;
+  opts.bits = 4;
   if(!max_iter_set)
     opts.max_iter = 10;
   if(!basename_set)
@@ -92,12 +91,13 @@ int main(int argc, char **argv) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   node_t * nodes = 0;
-  int n;
-  load_partial_graph(rank, opts.basename, &nodes, &n);
+  int n, ne;
+  load_partial_graph(rank, opts.basename, &nodes, &n, &ne);
   printf("(Process %d) loaded %d nodes\n", rank, n);
 
 
   context_t context;
+  init_neighbourhood(ne);
   init_context(&context, nodes, n, opts.bits, opts.max_iter, opts.alpha);
 
   double diameter = mpi_diameter(&context);
@@ -106,12 +106,12 @@ int main(int argc, char **argv) {
     printf("Effective diameter at %f = %f\n", opts.alpha, diameter);
   }
 
-  if(nodes != 0) {
+  /*if(nodes != 0) {
     free(nodes);
   }
+  free_edges();
   free_context(&context);
-
-  printf("Done!!\n");
+  free_neighbourhood();*/
 
   MPI_Finalize();
 
