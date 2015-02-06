@@ -2,23 +2,27 @@
 #include "xmmalloc.h"
 
 
+static sjob_t * _job=NULL;
+
+
 /****************************************************************************/
 /*! Charge an allocation to the system */
 /****************************************************************************/
 static void
 _sb_charge(size_t const len)
 {
-  if (0 == len) {}
 #if 0
+  if (0 == len) {}
+#else
   bdmsg_t msg, gomsg;
 
-  if (XMOPT_LAZY == xmmallopts[XMOPT_WRITE]) {
+  if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-    msg.source  = sbinfo->job->rank;
-    msg.count   = len;
-    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    BDMPL_SLEEP(sbinfo->job, gomsg);
+    msg.source  = _job->rank;
+    msg.count   = len*sysconf(_SC_PAGESIZE);
+    bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
+    BDMPL_SLEEP(_job, gomsg);
   }
 #endif
 }
@@ -30,17 +34,18 @@ _sb_charge(size_t const len)
 static void
 _sb_discharge(size_t const len)
 {
-  if (0 == len) {}
 #if 0
+  if (0 == len) {}
+#else
   bdmsg_t msg, gomsg;
 
-  if (XMOPT_LAZY == xmmallopts[XMOPT_WRITE]) {
+  if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-    msg.source  = sbinfo->job->rank;
-    msg.count   = len;
-    bdmq_send(sbinfo->job->reqMQ, &msg, sizeof(bdmsg_t));
-    BDMPL_SLEEP(sbinfo->job, gomsg);
+    msg.source  = _job->rank;
+    msg.count   = len*sysconf(_SC_PAGESIZE);
+    bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
+    BDMPL_SLEEP(_job, gomsg);
   }
 #endif
 }
@@ -50,11 +55,21 @@ _sb_discharge(size_t const len)
 /*! API: sb_init */
 /*************************************************************************/
 extern int
-sb_init(char const * const fstem, sjob_t * const const job)
+sb_init(sjob_t * const const job)
 {
-  xmfstem(fstem);
+  _job = job;
+
+  xmfstem(job->jdesc->wdir);
+
   if (-1 == xmmallopt(XMOPT_DEBUG, XMDBG_INFO))
     fprintf(stderr, "sb_init: could not set XMOPT_DEBUG\n");
+
+  if (-1 == xmmallopt(XMOPT_MINPAGES, job->jdesc->sbsize))
+    fprintf(stderr, "sb_init: could not set XMOPT_PAGESIZE\n");
+
+  if (-1 == xmmallopt(XMOPT_NUMPAGES, job->jdesc->pgsize))
+    fprintf(stderr, "sb_init: could not set XMOPT_PAGESIZE\n");
+
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD)) {
     if (-1 == xmmallopt(XMOPT_READ, XMREAD_LAZY))
       fprintf(stderr, "sb_init: could not set XMOPT_READ\n");
@@ -80,8 +95,9 @@ sb_finalize(void)
 extern void *
 sb_malloc(size_t const len)
 {
-  // charge
-  return xmmalloc(len);
+  void * newptr=xmmalloc(len);
+  _sb_charge(xmprobe(newptr, XMPAGE_SYNC));
+  return newptr;
 }
 
 
@@ -91,8 +107,9 @@ sb_malloc(size_t const len)
 extern void *
 sb_calloc(size_t const num, size_t const size)
 {
-  // charge
-  return xmcalloc(num, size);
+  void * newptr=xmcalloc(num, size);
+  _sb_charge(xmprobe(newptr, XMPAGE_SYNC));
+  return newptr;
 }
 
 
@@ -102,10 +119,19 @@ sb_calloc(size_t const num, size_t const size)
 extern void *
 sb_realloc(void * const oldptr, size_t const len)
 {
-  // discharge
-  //   or
-  // charge
-  return xmrealloc(oldptr, len);
+  size_t oldnum, newnum;
+  void * newptr;
+
+  oldnum = xmprobe(oldptr, XMPAGE_SYNC|XMPAGE_DIRTY);
+  newptr = xmrealloc(oldptr, len);
+  newnum = xmprobe(newptr, XMPAGE_SYNC|XMPAGE_DIRTY);
+
+  if (oldnum > newnum)
+    _sb_discharge(oldnum-newnum);
+  else if (oldnum < newnum)
+    _sb_charge(newnum-oldnum);
+
+  return newptr;
 }
 
 
@@ -115,7 +141,8 @@ sb_realloc(void * const oldptr, size_t const len)
 extern void
 sb_free(void * const addr)
 {
-  // discharge
+  _sb_discharge(xmprobe(addr, XMPAGE_SYNC|XMPAGE_DIRTY));
+
   xmfree(addr);
 }
 
@@ -136,8 +163,7 @@ sb_exists(void * const ptr)
 extern void
 sb_save(void * const buf)
 {
-  // discharge
-  (void)xmsync(buf, SIZE_MAX);
+  _sb_discharge(xmsync(buf, SIZE_MAX));
 }
 
 
@@ -147,8 +173,7 @@ sb_save(void * const buf)
 extern void
 sb_saveall(void)
 {
-  // discharge
-  (void)xmsyncall();
+  _sb_discharge(xmsyncall());
 }
 
 
@@ -168,8 +193,7 @@ sb_saveall_internal(void)
 extern void
 sb_load(void const * const buf)
 {
-  // charge
-  (void)xmload(buf, SIZE_MAX, XMPAGE_SYNC);
+  _sb_charge(xmload(buf, SIZE_MAX, XMPAGE_SYNC));
 }
 
 
@@ -179,8 +203,7 @@ sb_load(void const * const buf)
 extern void
 sb_loadall(void)
 {
-  // charge
-  (void)xmloadall(XMPAGE_SYNC);
+  _sb_charge(xmloadall(XMPAGE_SYNC));
 }
 
 
@@ -190,6 +213,5 @@ sb_loadall(void)
 extern void
 sb_discard(void * const ptr, size_t const len)
 {
-  // discharge
-  (void)xmdump(ptr, len);
+  _sb_discharge(xmdump(ptr, len));
 }

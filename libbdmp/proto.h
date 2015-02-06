@@ -131,7 +131,7 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 int slv_printf(char *f_str,...);
 
 /* sbmalloc.c */
-int sb_init(char const * const fstem, sjob_t * const job);
+int sb_init(sjob_t * const job);
 int sb_finalize();
 void *sb_malloc(size_t nbytes);
 void *sb_realloc(void *ptr, size_t nbytes);
