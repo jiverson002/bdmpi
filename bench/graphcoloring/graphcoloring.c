@@ -23,7 +23,7 @@ int V;  /* number of global vertices */
 int E;  /* number of global edges */
 
 // chromaticity= minimum number of colors required to color the graph
-int chromaticity_upper = -1;  // upper bound on the chromaticity of the graph
+int chromaticity_upper = 5; // upper bound on the chromaticity of the graph
 
 
 /* todo: this code should be fixed so that it does not require the whole V
@@ -118,7 +118,6 @@ void read_graph(char * filename)
         chromaticity_upper = V-1;
       else
         chromaticity_upper = V;*/
-      chromaticity_upper = 256;
 
       if (npes > 1) {
         num_v_per_p = V/npes;
@@ -200,18 +199,22 @@ void jones_plassmann(void)
   // The minimum number of colors, i.e. the chromaticity of the graph
   // can not be larger than chromaticity_upper so only iterate that many times
 
-  if (NULL == (i_colors=(int *) calloc(lV, sizeof(int))))
+  if (NULL == (i_colors=(int *) malloc(lV*sizeof(int))))
     abort();
+  memset(i_colors, 0, lV*sizeof(int));
 
   for (k=0; k<chromaticity_upper; ++k) {
+    if (root == rank)
+      printf("[%d] iter %d\n", (int)time(NULL), k);
+
+    if (NULL == (neighbor_colors=(int *) malloc(V*sizeof(int))))
+      abort();
+
     for (i=0; i<lV; ++i) {
       //get the vertex weight
       i_weight        = weights[off[rank]+i];
       i_weight_is_max = 1;
       num_colors      = 0;
-
-      if (NULL == (neighbor_colors=(int *) calloc(V, sizeof(int))))
-        abort();
 
       // compare vertex weight to weights of its non-colored neighbors to see
       // if it is a maximum. Also gather the colors of all neighbors of the
@@ -259,9 +262,8 @@ void jones_plassmann(void)
 
         i_colors[i] = min_color;
       }
-
-      free(neighbor_colors);
     }
+    free(neighbor_colors);
 
     MPI_Allgatherv(i_colors, lV, MPI_INT, colors, cnt, off, MPI_INT,
       MPI_COMM_WORLD);
@@ -310,19 +312,6 @@ int main(int argc, char * argv[])
     distribute(rank);
   }
 
-#if 0
-  for (i=0; i<npes; ++i) {
-    if (rank == i) {
-      for (j=0; j<lV; ++j) {
-        for (k=ia[j]; k<ia[j+1]; ++k)
-          printf("e %d %d\n", off[rank]+j+1, ja[k]+1);
-      }
-    }
-    fflush(stdout);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-#endif
-
   printf("p[%d] gets %d,%d vertices and %d edges starting at vertex "
     "%d\n", rank, lV, cnt[rank], lE, off[rank]);
 
@@ -334,18 +323,21 @@ int main(int argc, char * argv[])
     weights[i] = rand()%(V*1000);
 
   /* initialize colors to 0 */
-  if (NULL == (colors=(int *)calloc(V, sizeof(int))))
+  if (NULL == (colors=(int *)malloc(V*sizeof(int))))
     abort();
+  memset(colors, 0, V*sizeof(int));
 
   /* Jones-Plassman algorithm */
   jones_plassmann();
 
+#if 0
   /* find out how many vertices are uncolered */
   if (rank == root) {
     int num_uncolored=0;
-    int * map = (int *) calloc(V, sizeof(int));
+    int * map;
     if (NULL == map)
       abort();
+    memset(map, 0, V*sizeof(int));
     for (i=0; i<V; ++i) {
       if (0 == colors[i])
         num_uncolored++;
@@ -365,12 +357,13 @@ int main(int argc, char * argv[])
     }
     free(map);
   }
-  /*for (i=0; i<lV; ++i) {
+  for (i=0; i<lV; ++i) {
     for (j=ia[i]; j<ia[i+1]; ++j) {
       if (colors[off[rank]+i] == colors[ja[j]])
         abort();
     }
-  }*/
+  }
+#endif
 
   free(input_filename);
   free(ia);
