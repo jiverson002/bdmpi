@@ -12,10 +12,10 @@ static sjob_t * _job=NULL;
 static void
 _sb_charge(size_t const syspages)
 {
-#if 0
-  if (0 == len) {}
-#else
   bdmsg_t msg, gomsg;
+
+  if (NULL == _job)
+    return;
 
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
@@ -28,7 +28,6 @@ _sb_charge(size_t const syspages)
       BDMPL_SLEEP(_job, gomsg);
     }
   }
-#endif
 }
 
 
@@ -38,10 +37,10 @@ _sb_charge(size_t const syspages)
 static void
 _sb_discharge(size_t const syspages)
 {
-#if 0
-  if (0 == len) {}
-#else
   bdmsg_t msg, gomsg;
+
+  if (NULL == _job)
+    return;
 
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
@@ -54,7 +53,6 @@ _sb_discharge(size_t const syspages)
       BDMPL_SLEEP(_job, gomsg);
     }
   }
-#endif
 }
 
 
@@ -93,6 +91,7 @@ sb_init(sjob_t * const const job)
 extern int
 sb_finalize(void)
 {
+  _job = NULL;
   return 1;
 }
 
