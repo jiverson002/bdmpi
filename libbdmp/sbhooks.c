@@ -176,7 +176,7 @@ sb_saveall_internal(void)
   is_internal = 1; /* disable the _sb_discharge function */
   num = xmsyncall();
   is_internal = 0; /* re-enable the _sb_discharge function */
-  return num;
+  return num*sysconf(_SC_PAGESIZE);
 }
 
 
