@@ -86,7 +86,7 @@ typedef struct {
   size_t mmsize;        /*!< The maximum buffer size of inter-node p2p communication */
   size_t sbsize;        /*!< The minimum size for sbmalloc() */
   size_t pgsize;        /*!< The number of system pages per sb_malloc() page */
-  int rmsize;           /*!< The base 2 log of maximum aggregate resident set size for slaves */
+  size_t rmsize;        /*!< The maximum number of aggregate systems pages resident */
   int lockmem;          /*!< Specifies if the master will be locking its bcast/reduce
                              buffers */
   int dbglvl;           /*!< The dbglvl of the execution */

@@ -30,7 +30,8 @@ static struct gk_option long_options[] = {
   {"sbs",   0,      0,      BDMPRUN_CMD_SBSAVEALL},
   {"sblw",  0,      0,      BDMPRUN_CMD_SBLAZYWRITE},
   {"sblr",  0,      0,      BDMPRUN_CMD_SBLAZYREAD},
-  {"sbas",  0,      0,      BDMPRUN_CMD_SBASIO},
+  {"sbmt",  0,      0,      BDMPRUN_CMD_SBMULTITHREAD},
+  {"sbdl",  0,      0,      BDMPRUN_CMD_SBDLMALLOC},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -82,18 +83,17 @@ static char helpstr[][100] =
 "     bcast/reduce operations.",
 */
 " ",
-"  -pg=int [Default: 4]",
-"     Specifies the number of system pages which make a single sb_malloc page.",
-" ",
-"  -rm=int [Default: 32]",
-"     Specifies the aggregate maximum resident set size for the slave ",
-"     processes on each node. The int argument is the base two logarithm of ",
-"     the desired size, so default is 2^32 = 4GiB.",
-" ",
-"  -sb=int [Default: 32]",
+"  -sb=int [Default: 4]",
 "     Specifies the size of allocations for which the explicit storage backed",
-"     subsystem should be used. The size is in terms of number of pages and a",
-"     value of 0 turns it off.",
+"     subsystem should be used. The size is in terms of number of system",
+"     pages and a value of 0 turns it off.",
+" ",
+"  -pg=int [Default: 4]",
+"     Specifies the number of system pages which make a single sbpage.",
+" ",
+"  -rm=int [Default: 917504]",
+"     Specifies the maximum resident set size for the slave processes on",
+"     each node. The size is in terms of number of system pages.",
 " ",
 "  -wd=string [Default: "BDMPRUN_DEFAULT_WDIR"]",
 "     Specifies where working files will be stored.",
@@ -125,12 +125,14 @@ static char helpstr[][100] =
 "     memory is read and protected at a resolution of an sbpage, which can",
 "     be any multiple of a system page.",
 " ",
-"  -sbas [Default: no]",
-"     Enable the ``asynchronous I/O'' strategy in the sbmalloc library.",
-"     This means that when a memory request is made for a page, the page",
-"     will be read if it is not already and returned immediately. Then, in",
-"     the background, an `I/O thread' will continue reading the rest of the",
-"     chunk that the page was from.",
+"  -sbmt [Default: no]",
+"     Enables multi-threaded I/O in sbmalloc library.  This is mainly useful",
+"     for where the bdmpi working directory is a SSD.",
+" ",
+"  -sbdl [Default: no]",
+"     Enables the use of dlmalloc as a layer on top of sbmalloc.  This is",
+"     mainly useful for programs which make a large number of small",
+"     allocations.",
 " ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
@@ -162,6 +164,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->smsize   = BDMPRUN_DEFAULT_SMSIZE;
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
+  bdmp->rmsize   = BDMPRUN_DEFAULT_RMSIZE;
   bdmp->sbsize   = BDMPRUN_DEFAULT_SBSIZE;
   bdmp->pgsize   = BDMPRUN_DEFAULT_PGSIZE;
   bdmp->lockmem  = BDMPRUN_DEFAULT_LOCKMEM;
@@ -198,8 +201,12 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         bdmp->sbopts |= BDMPI_SB_LAZYREAD;
         break;
 
-      case BDMPRUN_CMD_SBASIO:
-        bdmp->sbopts |= BDMPI_SB_ASIO;
+      case BDMPRUN_CMD_SBMULTITHREAD:
+        bdmp->sbopts |= BDMPI_SB_MULTITHREAD;
+        break;
+
+      case BDMPRUN_CMD_SBDLMALLOC:
+        bdmp->sbopts |= BDMPI_SB_DLMALLOC;
         break;
 
       case BDMPRUN_CMD_SMSIZE:
@@ -218,12 +225,12 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         if (gk_optarg) bdmp->sbsize = (size_t)atoi(gk_optarg);
         break;
 
-      case BDMPRUN_CMD_RMSIZE:
-        if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
-        break;
-
       case BDMPRUN_CMD_PGSIZE:
         if (gk_optarg) bdmp->pgsize = atoi(gk_optarg);
+        break;
+
+      case BDMPRUN_CMD_RMSIZE:
+        if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
         break;
 
       case BDMPRUN_CMD_DBGLVL:

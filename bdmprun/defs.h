@@ -9,23 +9,24 @@
  */
 
 /* Constants for command-line arguments */
-#define BDMPRUN_CMD_NS          1
-#define BDMPRUN_CMD_NR          2
-#define BDMPRUN_CMD_WDIR        3
-#define BDMPRUN_CMD_SMSIZE      4
-#define BDMPRUN_CMD_IMSIZE      5
-#define BDMPRUN_CMD_MMSIZE      6
-#define BDMPRUN_CMD_SBSIZE      7
-#define BDMPRUN_CMD_RMSIZE      8
-#define BDMPRUN_CMD_PGSIZE      9
-#define BDMPRUN_CMD_NOLOCKMEM   10
-#define BDMPRUN_CMD_DBGLVL      100
-#define BDMPRUN_CMD_SBDISCARD   200
-#define BDMPRUN_CMD_SBSAVEALL   201
-#define BDMPRUN_CMD_SBLAZYWRITE 202
-#define BDMPRUN_CMD_SBLAZYREAD  203
-#define BDMPRUN_CMD_SBASIO      204
-#define BDMPRUN_CMD_HELP        1000
+#define BDMPRUN_CMD_NS            1
+#define BDMPRUN_CMD_NR            2
+#define BDMPRUN_CMD_WDIR          3
+#define BDMPRUN_CMD_SMSIZE        4
+#define BDMPRUN_CMD_IMSIZE        5
+#define BDMPRUN_CMD_MMSIZE        6
+#define BDMPRUN_CMD_SBSIZE        7
+#define BDMPRUN_CMD_RMSIZE        8
+#define BDMPRUN_CMD_PGSIZE        9
+#define BDMPRUN_CMD_NOLOCKMEM     10
+#define BDMPRUN_CMD_DBGLVL        100
+#define BDMPRUN_CMD_SBDISCARD     200
+#define BDMPRUN_CMD_SBSAVEALL     201
+#define BDMPRUN_CMD_SBLAZYWRITE   202
+#define BDMPRUN_CMD_SBLAZYREAD    203
+#define BDMPRUN_CMD_SBMULTITHREAD 204
+#define BDMPRUN_CMD_SBDLMALLOC    205
+#define BDMPRUN_CMD_HELP          1000
 
 
 /* Various defaults */
@@ -37,9 +38,9 @@
 #define BDMPRUN_DEFAULT_IMSIZE        4
 #define BDMPRUN_DEFAULT_SMSIZE        20
 #define BDMPRUN_DEFAULT_MMSIZE        32
-#define BDMPRUN_DEFAULT_SBSIZE        32
-#define BDMPRUN_DEFAULT_RMSIZE        32
+#define BDMPRUN_DEFAULT_SBSIZE        4
 #define BDMPRUN_DEFAULT_PGSIZE        4
+#define BDMPRUN_DEFAULT_RMSIZE        917504  /* 3584 MiB */
 #define BDMPRUN_DEFAULT_LOCKMEM       1
 #define BDMPRUN_DEFAULT_DBGLVL        0
 

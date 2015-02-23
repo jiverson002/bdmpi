@@ -36,14 +36,14 @@
  *  \details  Enable the use of sb_discard() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_DISCARD   1
+#define BDMPI_SB_DISCARD      1
 
 /****************************************************************************/
 /*!
  *  \details  Enable the use of sb_saveall() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_SAVEALL   2
+#define BDMPI_SB_SAVEALL      2
 
 /****************************************************************************/
 /*!
@@ -59,7 +59,7 @@
  *            negate the advantages of this strategy.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYWRITE 4
+#define BDMPI_SB_LAZYWRITE    4
 
 /****************************************************************************/
 /*!
@@ -74,18 +74,28 @@
  *            page.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYREAD  8
+#define BDMPI_SB_LAZYREAD     8
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "asynchronous I/O" strategy in the sbmalloc library.
- *            This means that when a memory request is made for a page, the
- *            page will be read if it is not already and returned immediately.
- *            Then, in the background, an `I/O thread' will continue reading
- *            the rest of the chunk that the page was from.
+ *  \details  Enable the "multi-threaded I/O" strategy in the sbmalloc library.
+ *            This means that reading and writing of memory is done by
+ *            multiple threads.  This is beneficial mainly for invocations
+ *            which use an SSD as their working directory.
  */
 /****************************************************************************/
-#define BDMPI_SB_ASIO      16
+#define BDMPI_SB_MULTITHREAD  16
+
+/****************************************************************************/
+/*!
+ *  \details  Enable the "dlmalloc" strategy in the sbmalloc library.  This
+ *            means that the standard library hooks will call dlmalloc
+ *            funcations which will in turn call sbmalloc functions.  This is
+ *            aimed at C++ style programs which make a large number of small
+ *            memory allocations.
+ */
+/****************************************************************************/
+#define BDMPI_SB_DLMALLOC     32
 
 
 /*************************************************************************/

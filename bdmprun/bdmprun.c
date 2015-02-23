@@ -153,6 +153,7 @@ void setup_master_prefork(mjob_t *job)
   job->imsize *= sysconf(_SC_PAGESIZE);
   job->mmsize *= sysconf(_SC_PAGESIZE);
   job->smsize *= sysconf(_SC_PAGESIZE);
+  job->rmsize *= sysconf(_SC_PAGESIZE);
 
   /* setup MPI-related information */
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Setting up MPI environment\n"));
@@ -329,9 +330,9 @@ void setup_master_postfork(mjob_t *job)
 
   /* populate the various memory statistics */
   job->memrss = 0;
-  //job->memmax = job->rmsize*sysconf(_SC_PAGESIZE);
+  job->memmax = job->rmsize;
   //job->memmax = 3221225472;
-  job->memmax = 3758096384;
+  //job->memmax = 3758096384;
   job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
   job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
   memset(job->slvrss, 0, job->ns*sizeof(size_t));
