@@ -30,8 +30,8 @@ static struct gk_option long_options[] = {
   {"sbs",   0,      0,      BDMPRUN_CMD_SBSAVEALL},
   {"sblw",  0,      0,      BDMPRUN_CMD_SBLAZYWRITE},
   {"sblr",  0,      0,      BDMPRUN_CMD_SBLAZYREAD},
-  {"sbmt",  0,      0,      BDMPRUN_CMD_SBMULTITHREAD},
   {"sbdl",  0,      0,      BDMPRUN_CMD_SBDLMALLOC},
+  {"sbmt",  1,      0,      BDMPRUN_CMD_SBMULTITHREAD},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -125,14 +125,15 @@ static char helpstr[][100] =
 "     memory is read and protected at a resolution of an sbpage, which can",
 "     be any multiple of a system page.",
 " ",
-"  -sbmt [Default: no]",
-"     Enables multi-threaded I/O in sbmalloc library.  This is mainly useful",
-"     for where the bdmpi working directory is a SSD.",
-" ",
 "  -sbdl [Default: no]",
 "     Enables the use of dlmalloc as a layer on top of sbmalloc.  This is",
 "     mainly useful for programs which make a large number of small",
 "     allocations.",
+" ",
+"  -sbmt=int [Default: 1]",
+"     Specify the number of threads to be used for multi-threaded I/O in",
+"     sbmalloc library.  This is mainly useful for where the bdmpi working",
+"     directory is a SSD.",
 " ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
@@ -161,6 +162,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->nr_input = BDMPRUN_DEFAULT_NR;
   bdmp->nc       = BDMPRUN_DEFAULT_NC;
   bdmp->sbopts   = BDMPRUN_DEFAULT_SBOPTS;
+  bdmp->sbnt     = BDMPRUN_DEFAULT_SBNT;
   bdmp->smsize   = BDMPRUN_DEFAULT_SMSIZE;
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
@@ -201,12 +203,12 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         bdmp->sbopts |= BDMPI_SB_LAZYREAD;
         break;
 
-      case BDMPRUN_CMD_SBMULTITHREAD:
-        bdmp->sbopts |= BDMPI_SB_MULTITHREAD;
-        break;
-
       case BDMPRUN_CMD_SBDLMALLOC:
         bdmp->sbopts |= BDMPI_SB_DLMALLOC;
+        break;
+
+      case BDMPRUN_CMD_SBMULTITHREAD:
+        if (gk_optarg) bdmp->sbnt =  atoi(gk_optarg);
         break;
 
       case BDMPRUN_CMD_SMSIZE:

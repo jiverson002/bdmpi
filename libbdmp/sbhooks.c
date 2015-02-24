@@ -76,14 +76,12 @@ sb_init(sjob_t * const const job)
   if (-1 == xmmallopt(XMOPT_NUMPAGES, job->jdesc->pgsize))
     fprintf(stderr, "sb_init: could not set XMOPT_PAGESIZE\n");
 
+  if (-1 == xmmallopt(XMOPT_MULTITHREAD, job->jdesc->sbnt))
+    fprintf(stderr, "sb_init: could not set XMOPT_MULTITHREAD\n");
+
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD)) {
     if (-1 == xmmallopt(XMOPT_LAZYREAD, 1))
       fprintf(stderr, "sb_init: could not set XMOPT_LAZYREAD\n");
-  }
-
-  if (BDMPI_SB_MULTITHREAD == (job->jdesc->sbopts&BDMPI_SB_MULTITHREAD)) {
-    if (-1 == xmmallopt(XMOPT_MULTITHREAD, 1))
-      fprintf(stderr, "sb_init: could not set XMOPT_MULTITHREAD\n");
   }
 
   if (BDMPI_SB_DLMALLOC == (job->jdesc->sbopts&BDMPI_SB_DLMALLOC)) {

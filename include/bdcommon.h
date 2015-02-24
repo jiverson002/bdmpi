@@ -78,16 +78,6 @@
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "multi-threaded I/O" strategy in the sbmalloc library.
- *            This means that reading and writing of memory is done by
- *            multiple threads.  This is beneficial mainly for invocations
- *            which use an SSD as their working directory.
- */
-/****************************************************************************/
-#define BDMPI_SB_MULTITHREAD  16
-
-/****************************************************************************/
-/*!
  *  \details  Enable the "dlmalloc" strategy in the sbmalloc library.  This
  *            means that the standard library hooks will call dlmalloc
  *            funcations which will in turn call sbmalloc functions.  This is
@@ -95,7 +85,7 @@
  *            memory allocations.
  */
 /****************************************************************************/
-#define BDMPI_SB_DLMALLOC     32
+#define BDMPI_SB_DLMALLOC     16
 
 
 /*************************************************************************/
@@ -365,6 +355,7 @@ typedef struct {
   int nr;                   /*!< The maximum number of slaves allowed to run */
   mdbglvl_et dbglvl;        /*!< The dbglvl of the execution */
   int sbopts;               /*!< The sb library options */
+  int sbnt;                 /*!< The sb library thread count */
   size_t smsize;            /*!< The size of the shared memory comm buffer */
   size_t imsize;            /*!< The maximum size for in-memory buffering */
   size_t sbsize;            /*!< The minimum size for storage-backed allocation */
