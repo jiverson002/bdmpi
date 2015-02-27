@@ -133,6 +133,8 @@ int main(int argc, char **argv)
 
   //WritePR(params, dmat, prvec);
 
+  gk_free((void**)&prvec, LTERM);
+
   CleanupData(params, dmat);
 
   BDMPI_Barrier(params->comm);
@@ -730,7 +732,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     }
 
     /* free pr if it will not be needed */
-    if (!(iter%10 == 0 || iter == params->niters-1)) 
+    if (!(iter%10 == 0 || iter == params->niters-1))
       gk_free((void **)&pr, LTERM);
 
     gk_startwctimer(params->commTmr);
@@ -799,6 +801,8 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     }
 
     pr = prnew;
+
+    BDMPI_Barrier(MPI_COMM_WORLD);
   }
 
   return pr;

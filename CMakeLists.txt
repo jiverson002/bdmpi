@@ -41,7 +41,7 @@ add_subdirectory("bdmprun")
 #add_subdirectory("test")
 add_subdirectory("scripts")
 
-#add_subdirectory("apps/bdmp")           # DISTRM  this is for my grep -v script
+add_subdirectory("apps/bdmp")           # DISTRM  this is for my grep -v script
 #add_subdirectory("apps/bdmp-oc")        # DISTRM
 #add_subdirectory("apps/oc")             # DISTRM
 #add_subdirectory("apps/mpi")            # DISTRM
