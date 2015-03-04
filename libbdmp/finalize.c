@@ -20,6 +20,7 @@ int bdmp_Finalize(sjob_t *job)
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
+#if 0
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
   /* turn off sbmalloc */
@@ -57,6 +58,7 @@ int bdmp_Finalize(sjob_t *job)
 
   /* free communicators */
   gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
+#endif
 
   return BDMPI_SUCCESS;
 }
