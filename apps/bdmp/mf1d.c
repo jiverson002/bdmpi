@@ -6,7 +6,7 @@
 \author George
 */
 
-#define LOCKMEM 1
+//#define LOCKMEM 1
 
 #define _LARGEFILE64_SOURCE
 #include <GKlib.h>
@@ -96,7 +96,6 @@ int main(int argc, char **argv)
   BDMPI_Comm_size(params->comm, &(params->npes));
   BDMPI_Comm_rank(params->comm, &(params->mype));
 
-
   if (argc != 4) {
     if (params->mype == 0)
       fprintf(stderr, "Usage: %s filename niters nfactors\n", argv[0]);
@@ -136,6 +135,8 @@ int main(int argc, char **argv)
   gk_stopwctimer(params->compTmr);
 
   //WriteFactors(params, dmat, model);
+
+  gk_free((void**)&model->u, &model->v, &model->rb, &model->cb, &model, LTERM);
 
   CleanupData(params, dmat);
 
