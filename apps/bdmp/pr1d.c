@@ -217,6 +217,7 @@ dcsr_t *LoadData(params_t *params)
       errexit("Failed to read the ncols from file %s!\n", params->filename);
 
     rowptr = gk_zmalloc(gnrows+1, "rowptr");
+
     if (gk_read(fd, rowptr, sizeof(ssize_t)*(gnrows+1)) != sizeof(ssize_t)*(gnrows+1))
       errexit("Failed to read the rowptr from file %s!\n", params->filename);
     close(fd);
@@ -238,7 +239,6 @@ dcsr_t *LoadData(params_t *params)
 
   /* broadcast rowdist */
   BDMPI_Bcast(dmat->rowdist, npes+1, BDMPI_INT, 0, params->comm);
-
 
   /* wait your turn */
   if (lrank != 0) 

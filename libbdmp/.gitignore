@@ -1,5 +1,5 @@
-xmconfig.h
-xmhooks.c
-xmmalloc.c
-xmmalloc.h
-dlmalloc.c
+sbconfig.h
+sbhooks.c
+sbmalloc.c
+sbmalloc.h
+sbsys.c

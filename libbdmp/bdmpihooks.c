@@ -1,5 +1,5 @@
 #include "bdmplib.h"
-#include "xmmalloc.h"
+#include "sbmalloc.h"
 
 
 static int is_internal=0;
@@ -64,34 +64,29 @@ sb_init(sjob_t * const const job)
 {
   _job = job;
 
-  (void)xmfstem(job->jdesc->wdir);
+  (void)SB_fstem(job->jdesc->wdir);
 
-  if (-1 == xmmallopt(XMOPT_DEBUG, XMDBG_INFO))
-    fprintf(stderr, "sb_init: could not set XMOPT_DEBUG\n");
+  if (-1 == SB_mallopt(SBOPT_DEBUG, SBDBG_INFO))
+    fprintf(stderr, "sb_init: could not set SBOPT_DEBUG\n");
 
-  if (-1 == xmmallopt(XMOPT_MINPAGES, job->jdesc->sbsize))
-    fprintf(stderr, "sb_init: could not set XMOPT_PAGESIZE\n");
+  if (-1 == SB_mallopt(SBOPT_MINPAGES, job->jdesc->sbsize))
+    fprintf(stderr, "sb_init: could not set SBOPT_PAGESIZE\n");
 
-  if (-1 == xmmallopt(XMOPT_NUMPAGES, job->jdesc->pgsize))
-    fprintf(stderr, "sb_init: could not set XMOPT_PAGESIZE\n");
+  if (-1 == SB_mallopt(SBOPT_NUMPAGES, job->jdesc->pgsize))
+    fprintf(stderr, "sb_init: could not set SBOPT_PAGESIZE\n");
 
   if (BDMPI_SB_LAZYWRITE == (job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
-    if (-1 == xmbk(&(_sb_charge), &(_sb_discharge)))
+    if (-1 == SB_acct(&(_sb_charge), &(_sb_discharge)))
       fprintf(stderr, "sb_init: could not set book-keeping functions\n");
   }
 
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD)) {
-    if (-1 == xmmallopt(XMOPT_LAZYREAD, 1))
-      fprintf(stderr, "sb_init: could not set XMOPT_LAZYREAD\n");
+    if (-1 == SB_mallopt(SBOPT_LAZYREAD, 1))
+      fprintf(stderr, "sb_init: could not set SBOPT_LAZYREAD\n");
   }
 
-  if (-1 == xmmallopt(XMOPT_MULTITHREAD, job->jdesc->sbnt))
-    fprintf(stderr, "sb_init: could not set XMOPT_MULTITHREAD\n");
-
-  if (BDMPI_SB_DLMALLOC == (job->jdesc->sbopts&BDMPI_SB_DLMALLOC)) {
-    if (-1 == xmmallopt(XMOPT_DLMALLOC, 1))
-      fprintf(stderr, "sb_init: could not set XMOPT_DLMALLOC\n");
-  }
+  if (-1 == SB_mallopt(SBOPT_MULTITHREAD, job->jdesc->sbnt))
+    fprintf(stderr, "sb_init: could not set SBOPT_MULTITHREAD\n");
 
   return 1;
 }
@@ -114,7 +109,7 @@ sb_finalize(void)
 extern void *
 sb_malloc(size_t const len)
 {
-  return xmmalloc(len);
+  return SB_malloc(len);
 }
 
 
@@ -124,7 +119,7 @@ sb_malloc(size_t const len)
 extern void *
 sb_calloc(size_t const num, size_t const size)
 {
-  return xmcalloc(num, size);
+  return SB_calloc(num, size);
 }
 
 
@@ -134,7 +129,7 @@ sb_calloc(size_t const num, size_t const size)
 extern void *
 sb_realloc(void * const oldptr, size_t const len)
 {
-  return xmrealloc(oldptr, len);
+  return SB_realloc(oldptr, len);
 }
 
 
@@ -144,7 +139,7 @@ sb_realloc(void * const oldptr, size_t const len)
 extern void
 sb_free(void * const addr)
 {
-  xmfree(addr);
+  SB_free(addr);
 }
 
 
@@ -154,7 +149,7 @@ sb_free(void * const addr)
 extern int
 sb_exists(void * const ptr)
 {
-  return xmexists(ptr);
+  return SB_exists(ptr);
 }
 
 
@@ -164,7 +159,7 @@ sb_exists(void * const ptr)
 extern void
 sb_save(void * const buf)
 {
-  (void)xmsync(buf, SIZE_MAX);
+  (void)SB_sync(buf, SIZE_MAX);
 }
 
 
@@ -174,7 +169,7 @@ sb_save(void * const buf)
 extern void
 sb_saveall(void)
 {
-  (void)xmsyncall();
+  (void)SB_syncall();
 }
 
 
@@ -186,7 +181,7 @@ sb_saveall_internal(void)
 {
   size_t num;
   is_internal = 1; /* disable the _sb_discharge function */
-  num = xmsyncall();
+  num = SB_syncall();
   is_internal = 0; /* re-enable the _sb_discharge function */
   return num*sysconf(_SC_PAGESIZE);
 }
@@ -198,7 +193,7 @@ sb_saveall_internal(void)
 extern void
 sb_load(void const * const buf)
 {
-  (void)xmload(buf, SIZE_MAX, XMPAGE_SYNC);
+  (void)SB_load(buf, SIZE_MAX, SBPAGE_SYNC);
 }
 
 
@@ -208,7 +203,7 @@ sb_load(void const * const buf)
 extern void
 sb_loadall(void)
 {
-  (void)xmloadall(XMPAGE_SYNC);
+  (void)SB_loadall(SBPAGE_SYNC);
 }
 
 
@@ -218,5 +213,5 @@ sb_loadall(void)
 extern void
 sb_discard(void * const ptr, size_t const len)
 {
-  (void)xmdump(ptr, len);
+  (void)SB_dump(ptr, len);
 }
