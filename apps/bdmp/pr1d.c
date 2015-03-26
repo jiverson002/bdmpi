@@ -122,6 +122,9 @@ int main(int argc, char **argv)
 
   dmat = LoadData(params);
 
+  BDMPI_Finalize();
+  return EXIT_SUCCESS;
+
   gk_startwctimer(params->setupTmr);
   SetupData(params, dmat);
   gk_stopwctimer(params->setupTmr);

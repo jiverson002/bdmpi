@@ -17,14 +17,17 @@ int bdmp_Finalize(sjob_t *job)
   int i;
   bdmsg_t donemsg, gomsg;
 
+  bdprintf("finalizing\n");
+
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
-#if 0
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
   /* turn off sbmalloc */
   sb_finalize();
+
+  bdprintf("finalizing\n");
 
   /* send a message to the slave telling it that you are leaving... */
   memset(&donemsg, 0, sizeof(bdmsg_t));
@@ -56,9 +59,10 @@ int bdmp_Finalize(sjob_t *job)
   /* close the SCM for master-slave communication */
   bdscb_close(job->scb);
 
+  bdprintf("about to free\n");
+
   /* free communicators */
   gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
-#endif
 
   return BDMPI_SUCCESS;
 }

@@ -1,5 +1,6 @@
 #include "bdmplib.h"
 #include "sbmalloc.h"
+#include "klmalloc.h"
 
 
 static int is_internal=0;
@@ -109,7 +110,7 @@ sb_finalize(void)
 extern void *
 sb_malloc(size_t const len)
 {
-  return SB_malloc(len);
+  return KL_malloc(len);
 }
 
 
@@ -119,7 +120,7 @@ sb_malloc(size_t const len)
 extern void *
 sb_calloc(size_t const num, size_t const size)
 {
-  return SB_calloc(num, size);
+  return KL_calloc(num, size);
 }
 
 
@@ -129,7 +130,7 @@ sb_calloc(size_t const num, size_t const size)
 extern void *
 sb_realloc(void * const oldptr, size_t const len)
 {
-  return SB_realloc(oldptr, len);
+  return KL_realloc(oldptr, len);
 }
 
 
@@ -139,7 +140,7 @@ sb_realloc(void * const oldptr, size_t const len)
 extern void
 sb_free(void * const addr)
 {
-  SB_free(addr);
+  KL_free(addr);
 }
 
 

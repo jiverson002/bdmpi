@@ -50,6 +50,7 @@
 #include "macros.h"
 #include "struct.h"
 #include "proto.h"
+#include "sbmalloc.h"
 
 
 // #if defined(COMPILER_GCC)

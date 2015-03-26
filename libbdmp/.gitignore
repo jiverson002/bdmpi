@@ -1,5 +1,6 @@
 sbconfig.h
-sbhooks.c
-sbmalloc.c
 sbmalloc.h
-sbsys.c
+sbmalloc.c
+klmalloc.h
+klmalloc.c
+hooks.c

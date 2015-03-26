@@ -177,9 +177,14 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
+    if (job->jdesc->nr < job->jdesc->ns) {
       sb_saveall();
+      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
+      BDMPL_SAVEALL_HACK(job);
+    }
   }
+
+  bdprintf("savedall\n");
 
   memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_COMMFREE;
@@ -217,8 +222,11 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
+    if (job->jdesc->nr < job->jdesc->ns) {
       sb_saveall();
+      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
+      BDMPL_SAVEALL_HACK(job);
+    }
   }
 
   *newcomm = BDMPI_COMM_NULL;
@@ -231,7 +239,10 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   msg.dest    = key;
 
   /* notify the master that you entering a barrier */
-  bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
+  if (-1 == bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t))) {
+    bdprintf("Failed on trying to send a req message: %s.\n",
+      strerror(errno));
+  }
 
   /* go to sleep... */
   BDMPL_SLEEP(job, gomsg);
