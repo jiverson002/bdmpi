@@ -70,11 +70,8 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
       sb_discard(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns) {
+    if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
-      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
-      BDMPL_SAVEALL_HACK(job);
-    }
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
@@ -209,11 +206,8 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
 
   /* go to sleep until everybody has called the reduce */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns) {
+    if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
-      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
-      BDMPL_SAVEALL_HACK(job);
-    }
   }
   BDMPL_SLEEP(job, gomsg);
 
@@ -298,11 +292,8 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     sb_discard(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns) {
+    if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
-      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
-      BDMPL_SAVEALL_HACK(job);
-    }
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 

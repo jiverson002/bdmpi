@@ -69,11 +69,8 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       sb_discard(buf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns) {
+    if (job->jdesc->nr < job->jdesc->ns)
       sb_saveall();
-      /* HACK: fixes a bug in BDMPL_SLEEP when run with sb_saveall. */
-      BDMPL_SAVEALL_HACK(job);
-    }
   }
 
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
