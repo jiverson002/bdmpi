@@ -184,8 +184,6 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
     }
   }
 
-  bdprintf("savedall\n");
-
   memset(&msg, 0, sizeof(bdmsg_t));
   msg.msgtype = BDMPI_MSGTYPE_COMMFREE;
   msg.mcomm   = (*comm)->mcomm;
