@@ -84,8 +84,8 @@ int main(int argc, char **argv)
   BDMPI_Status status;
   double max, current;
 
-  setbuf(stdout, NULL);
-  setbuf(stderr, NULL);
+  //setbuf(stdout, NULL);
+  //setbuf(stderr, NULL);
 
   BDMPI_Init(&argc, &argv);
 
@@ -169,6 +169,8 @@ int main(int argc, char **argv)
   BDMPI_Reduce(&current, &max, 1, BDMPI_DOUBLE, BDMPI_MAX, 0, params->comm);
   if (params->mype == 0)
     printf(" totalTmr:  %10.4lf\n", max);
+
+  gk_free((void**)&params->filename, &params, LTERM);
 
 //DONE:
   BDMPI_Finalize();
