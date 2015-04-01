@@ -29,15 +29,18 @@ void * mstr_mem_load(void * const arg)
   //printf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count, job->memrss, job->memmax);
   //fflush(stdout);
 
+  bdprintf("chkpt.1\n");
   if (job->memrss > job->memmax) {
     //printf("  WAKE (%d)\n", msg->source);
     //fflush(stdout);
     memory_wakeup_some(job, msg->source, msg->count);
   }
+  bdprintf("chkpt.2\n");
 
   gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
   if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
     bdprintf("Failed to send a go message to %d: %s\n", msg->source, strerror(errno));
+  bdprintf("chkpt.3\n");
   BD_LET_LOCK(job->schedule_lock);
 
   gk_free((void **)&arg, LTERM);
@@ -87,6 +90,7 @@ void memory_wakeup_some(mjob_t * const job, int const source,
 
   msg.msgtype = BDMPI_MSGTYPE_MEMFREE;
 
+  bdprintf("-chkpt.1\n");
   while (job->memrss > job->memmax &&
          0 != job->nrunnable+job->nmblocked+job->ncblocked)
   {
@@ -181,13 +185,16 @@ void memory_wakeup_some(mjob_t * const job, int const source,
     //printf("WAKE (%d) %d %d %d\n", togo, source, itogo, iitogo);
     //fflush(stdout);
 
-    //printf("telling %d to free memory\n", togo);
+    bdprintf("-chkpt.2\n");
+    bdprintf("telling %d to free memory\n", job->spids[togo]);
     /* send that slave a go free memory message */
     if (-1 == bdmq_send(job->goMQs[togo], &msg, sizeof(bdmsg_t)))
       bdprintf("Failed to send a go message to %d: %s\n", togo, strerror(errno));
+    bdprintf("-chkpt.3\n");
     /* recv from slave a done message */
     if (-1 == bdmq_recv(job->c2mMQs[togo], &count, sizeof(size_t)))
       bdprintf("Failed to recv a done message from %d: %s\n", togo, strerror(errno));
+    bdprintf("-chkpt.4\n");
     //printf("%d free'd %zu bytes of memory\n", togo, count);
 #endif
 
@@ -218,6 +225,7 @@ void memory_wakeup_some(mjob_t * const job, int const source,
     //printf("SAVE (%d) %10zu / %10zu / %10zu\n", togo, count, job->memrss, job->memmax);
     //fflush(stdout);
   }
+  bdprintf("-chkpt.5\n");
 }
 
 

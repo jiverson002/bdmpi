@@ -117,7 +117,7 @@
     }\
   } while(0)
 
-#if 1
+#if 0
 #define BD_GET_LOCK(lock)\
   {\
     int retval;\
@@ -138,7 +138,7 @@
     clock_gettime(CLOCK_REALTIME, &ts);\
     ts.tv_sec += 10;\
     if (ETIMEDOUT == (retval=pthread_mutex_timedlock(lock, &ts))) {\
-      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for mutex (%p)\n",\
+      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for lock (%p)\n",\
         syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)(lock));\
       pthread_mutex_lock(lock);\
       fprintf(stderr, "[%6ld:%s,%4d]: locked mutex\n", syscall(SYS_gettid),\
@@ -166,9 +166,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    /*fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
+    fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
       syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));*/\
+      (void*)(lock));\
   }
 
 #define BD_TRY_LOCK(lock, haslock)\
@@ -192,7 +192,7 @@
     }\
   }
 
-#if 1
+#if 0
 #define BD_GET_SEM(sem)                                                   \
 {                                                                         \
   char hostname[9];                                                       \
@@ -244,9 +244,9 @@
       __FILE__, errno, strerror(errno));                                  \
     abort();                                                              \
   }                                                                       \
-  /*fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
+  fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
     syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-    (void*)(sem));*/\
+    (void*)(sem));\
 }
 
 #define BD_TRY_SEM(SEM, BOOL)                                             \

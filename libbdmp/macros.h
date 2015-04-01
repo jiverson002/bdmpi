@@ -20,7 +20,7 @@ do {                                                                        \
       SB_load((JOB)->goMQ->buf, (JOB)->goMQ->msgsize, SBPAGE_DIRTY);        \
     }                                                                       \
   }                                                                         \
-  /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
+  bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);\
   for (;;) {                                                                \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t)))              \
       bdprintf("Failed on trying to recv a go message in sleep: %s.\n",     \
@@ -29,5 +29,5 @@ do {                                                                        \
       break;                                                                \
     slv_route(JOB, &(MSG));                                                 \
   }                                                                         \
-  /*bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);*/\
+  bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);\
 } while (0)
