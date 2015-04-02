@@ -5,20 +5,14 @@
 #include <dlfcn.h>  /* dlsym */
 #include <signal.h> /* raise */
 #include <stdarg.h> /* va_* */
-#include <stdio.h>  /* *printf */
 #include <stdint.h> /* int*_t */
+#include <stdio.h>  /* *printf */
 #include <string.h> /* memmove */
 #include <unistd.h> /* ssize_t */
 
 
-/****************************************************************************/
-/* need to provide temporary calloc function for dlsym */
-/****************************************************************************/
-#define HOOK_INIT(func)                                                     \
-do {                                                                        \
-  if (NULL == libc_##func)                                                  \
-    *((void **) &libc_##func) = dlsym(RTLD_NEXT, #func);                    \
-} while (0)
+extern void * __libc_malloc(size_t);
+extern void * __libc_free(void*);
 
 
 /*************************************************************************/
@@ -33,16 +27,12 @@ do {                                                                        \
 /**************************************************************************/
 void *bd_malloc(size_t nbytes, char *msg)
 {
-  static void* (*libc_malloc)(size_t)=NULL;
-
   void *ptr=NULL;
-
-  HOOK_INIT(malloc);
 
   if (nbytes == 0)
     nbytes++;  /* Force mallocs to actually allocate some memory */
 
-  ptr = (void *)libc_malloc(nbytes);
+  ptr = (void *)__libc_malloc(nbytes);
 
   if (ptr == NULL) {
     fprintf(stderr, "***Memory allocation failed for %s. Requested size: %zu "
@@ -50,6 +40,8 @@ void *bd_malloc(size_t nbytes, char *msg)
     raise(SIGKILL);
     return NULL;
   }
+
+  memset(ptr, 0, nbytes);
 
   return ptr;
 }
@@ -60,21 +52,18 @@ void *bd_malloc(size_t nbytes, char *msg)
 **************************************************************************/
 void bd_free(void **ptr1,...)
 {
-  static void (*libc_free)(void*)=NULL;
   va_list plist;
   void **ptr;
 
-  HOOK_INIT(free);
-
   if (*ptr1 != NULL) {
-    libc_free(*ptr1);
+    __libc_free(*ptr1);
   }
   *ptr1 = NULL;
 
   va_start(plist, ptr1);
   while ((ptr = va_arg(plist, void **)) != (void**)0) {
     if (*ptr != NULL) {
-      libc_free(*ptr);
+      __libc_free(*ptr);
     }
     *ptr = NULL;
   }

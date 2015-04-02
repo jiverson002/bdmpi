@@ -28,7 +28,7 @@ bdscb_t *bdscb_create(size_t size, char *tag, int num)
   char name[256];
   bdscb_t *scb=NULL;
 
-  scb = (bdscb_t *)gk_malloc(sizeof(bdscb_t), "bdscb_create: scb");
+  scb = (bdscb_t *)bd_malloc(sizeof(bdscb_t), "bdscb_create: scb");
 
   /* allocate the shared memory, set its size, and map it */
   scb->size = size;
@@ -91,7 +91,7 @@ bdscb_t *bdscb_open(size_t size, char *tag, int num)
   char name[256];
   bdscb_t *scb;
 
-  scb = (bdscb_t *)gk_malloc(sizeof(bdscb_t), "bdscb_create: scb");
+  scb = (bdscb_t *)bd_malloc(sizeof(bdscb_t), "bdscb_create: scb");
 
   /* allocate the shared memory object and map it */
   scb->size = size;
@@ -150,7 +150,8 @@ void bdscb_close(bdscb_t *scb)
   if (close(scb->fd) == -1)
     errexit("Failed on close(scb->fd): %s\n", strerror(errno));
 
-  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
+  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, LTERM);
+  bd_free((void **)&scb, LTERM);
 }
 
 
@@ -178,7 +179,8 @@ void bdscb_destroy(bdscb_t *scb)
   if (shm_unlink(scb->smname) == -1)
     errexit("Failed on shm_unlink(scb->smname): %s\n", strerror(errno));
 
-  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
+  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, LTERM);
+  bd_free((void **)&scb, LTERM);
 }
 
 

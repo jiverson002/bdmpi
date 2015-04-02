@@ -28,7 +28,7 @@ bdsm_t *bdsm_create(size_t size, char *tag, int num)
   char name[256];
   bdsm_t *sm;
 
-  sm = (bdsm_t *)gk_malloc(sizeof(bdsm_t), "bdsm_create: sm");
+  sm = (bdsm_t *)bd_malloc(sizeof(bdsm_t), "bdsm_create: sm");
 
   /* allocate the shared memory, size it, and map it */
   sm->size = size;
@@ -79,7 +79,7 @@ bdsm_t *bdsm_open(size_t size, char *tag, int num)
   char name[256];
   bdsm_t *sm;
 
-  sm = (bdsm_t *)gk_malloc(sizeof(bdsm_t), "bdsm_create: sm");
+  sm = (bdsm_t *)bd_malloc(sizeof(bdsm_t), "bdsm_create: sm");
 
   /* allocate the shared memory, size it, and map it */
   sm->size = size;
@@ -127,7 +127,8 @@ void bdsm_close(bdsm_t *sm)
   if (close(sm->fd) == -1)
     errexit("Failed on close(sm->fd): %s\n", strerror(errno));
 
-  gk_free((void **)&sm->smname, &sm->semname, &sm, LTERM);
+  gk_free((void **)&sm->smname, &sm->semname, LTERM);
+  bd_free((void **)&sm, LTERM);
 }
 
 
@@ -150,7 +151,8 @@ void bdsm_destroy(bdsm_t *sm)
   if (shm_unlink(sm->smname) == -1)
     errexit("Failed on shm_unlink(sm->smname): %s\n", strerror(errno));
 
-  gk_free((void **)&sm->smname, &sm->semname, &sm, LTERM);
+  gk_free((void **)&sm->smname, &sm->semname, LTERM);
+  bd_free((void **)&sm, LTERM);
 }
 
 

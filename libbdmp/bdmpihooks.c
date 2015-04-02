@@ -18,22 +18,17 @@ _sb_charge(size_t const syspages)
   if (NULL == _job)
     return;
 
-  printf("[%5d] --chkpt.1\n", (int)getpid());
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
     msg.source  = _job->rank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
-    printf("[%5d] --chkpt.2\n", (int)getpid());
     if (0 != msg.count) {
       bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
-      printf("[%5d] --chkpt.3\n", (int)getpid());
       BDMPL_SLEEP(_job, gomsg);
-      printf("[%5d] --chkpt.4\n", (int)getpid());
     }
   }
-  printf("[%5d] --chkpt.5\n", (int)getpid());
 }
 
 
@@ -48,21 +43,17 @@ _sb_discharge(size_t const syspages)
   if (NULL == _job)
     return;
 
-  printf("[%5d] ++chkpt.1\n", (int)getpid());
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
     msg.source  = _job->rank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
-    printf("[%5d] ++chkpt.2\n", (int)getpid());
     if (0 == is_internal && 0 != msg.count) {
       bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
       BDMPL_SLEEP(_job, gomsg);
     }
-    printf("[%5d] ++chkpt.3\n", (int)getpid());
   }
-  printf("[%5d] ++chkpt.4\n", (int)getpid());
 }
 
 
@@ -191,9 +182,7 @@ sb_saveall_internal(void)
 {
   size_t num;
   is_internal = 1; /* disable the _sb_discharge function */
-  printf("[%5d] internal syncall start\n", (int)getpid());
   num = SB_syncall();
-  printf("[%5d] internal syncall done\n", (int)getpid());
   is_internal = 0; /* re-enable the _sb_discharge function */
   return num*sysconf(_SC_PAGESIZE);
 }

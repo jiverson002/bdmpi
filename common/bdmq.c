@@ -27,7 +27,7 @@ bdmq_t *bdmq_create(char *tag, int num)
   bdmq_t *mq;
   struct mq_attr attr;
 
-  mq = (bdmq_t *)gk_malloc(sizeof(bdmq_t), "bdmq_create: mq");
+  mq = (bdmq_t *)bd_malloc(sizeof(bdmq_t), "bdmq_create: mq");
 
   /* set some deafult attributes */
   attr.mq_flags   = 0;
@@ -47,7 +47,7 @@ bdmq_t *bdmq_create(char *tag, int num)
 
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
-  mq->buf = gk_cmalloc(mq->msgsize, "mq->buf");
+  mq->buf = bd_malloc(mq->msgsize, "mq->buf");
 
   //printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
   //    attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
@@ -71,7 +71,7 @@ bdmq_t *bdmq_open(char *tag, int num)
   bdmq_t *mq;
   struct mq_attr attr;
 
-  mq = (bdmq_t *)gk_malloc(sizeof(bdmq_t), "bdmq_create: mq");
+  mq = (bdmq_t *)bd_malloc(sizeof(bdmq_t), "bdmq_create: mq");
 
   /* open the message queue */
   sprintf(name, "/%s%d", tag, num);
@@ -83,7 +83,7 @@ bdmq_t *bdmq_open(char *tag, int num)
 
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
-  mq->buf = gk_cmalloc(mq->msgsize, "mq->buf");
+  mq->buf = bd_malloc(mq->msgsize, "mq->buf");
 
   return mq;
 }
@@ -100,7 +100,8 @@ void bdmq_close(bdmq_t *mq)
   if (mq_close(mq->mqdes) == -1)
     errexit("Failed on mq_close(mq->mqdes): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, &mq->buf, &mq, LTERM);
+  gk_free((void **)&mq->name, LTERM);
+  bd_free((void **)&mq->buf, &mq, LTERM);
 }
 
 
@@ -118,7 +119,8 @@ void bdmq_destroy(bdmq_t *mq)
   if (mq_unlink(mq->name) == -1)
     errexit("Failed on mq_unlink(mq->name): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, &mq->buf, &mq, LTERM);
+  gk_free((void **)&mq->name, LTERM);
+  bd_free((void **)&mq->buf, &mq, LTERM);
 }
 
 
