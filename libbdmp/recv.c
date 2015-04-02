@@ -143,7 +143,7 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_RANK;
   }
 
-  request = *r_request = (bdrequest_t *)gk_malloc(sizeof(bdrequest_t), "request");
+  request = *r_request = (bdrequest_t *)bd_malloc(sizeof(bdrequest_t), "request");
   memset(request, 0, sizeof(bdrequest_t));
   request->type = BDMPI_REQUEST_IRECV;
 

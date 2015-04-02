@@ -260,7 +260,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
   tag = (++comm->copid)*BDMPL_COPID_MULT + BDMPL_ALLTOALL_TAG;
 
-  rmsgs = (bdmsg_t *)gk_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Alltoallv_p2p: rmsgs");
+  rmsgs = (bdmsg_t *)bd_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Alltoallv_p2p: rmsgs");
   memset(rmsgs, 0, sizeof(bdmsg_t)*npes);
 
   sdtsize = bdmp_sizeof(sendtype);
@@ -360,7 +360,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
     memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf+sdispls[mype]*sdtsize, size);
   }
 
-  gk_free((void **)&rmsgs, LTERM);
+  bd_free((void **)&rmsgs, LTERM);
 
   return BDMPI_SUCCESS;
 }

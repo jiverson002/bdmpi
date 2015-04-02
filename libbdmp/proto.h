@@ -130,6 +130,10 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 /* debug.c */
 int slv_printf(char *f_str,...);
 
+/* memory.c */
+void *bd_malloc(size_t nbytes, char *msg);
+void bd_free(void **ptr1,...);
+
 /* sbmalloc.c */
 int sb_init(sjob_t * const job);
 int sb_finalize();

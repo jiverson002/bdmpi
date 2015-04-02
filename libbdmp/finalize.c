@@ -56,7 +56,7 @@ int bdmp_Finalize(sjob_t *job)
   bdscb_close(job->scb);
 
   /* free communicators */
-  gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
+  bd_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
 
   return BDMPI_SUCCESS;
 }

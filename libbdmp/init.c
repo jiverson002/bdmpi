@@ -27,7 +27,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   mallopt(M_TRIM_THRESHOLD, 64*4096);
   mallopt(M_MMAP_THRESHOLD, 64*4096);
 
-  job = *r_job = (sjob_t *)gk_malloc(sizeof(sjob_t), "bdmp_Init: job");
+  job = *r_job = (sjob_t *)bd_malloc(sizeof(sjob_t), "bdmp_Init: job");
   memset(job, 0, sizeof(sjob_t));
 
   mpid       = getppid();
@@ -100,7 +100,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Setting up communicators\n"));
 
   /* BDMPI_COMM_WORLD */
-  BDMPI_COMM_WORLD = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "BDMPI_COMM_WORLD");
+  BDMPI_COMM_WORLD = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "BDMPI_COMM_WORLD");
   BDMPI_COMM_WORLD->mcomm = 0;  /* This is hard-coded and is OK */
   BDMPI_COMM_WORLD->size  = job->jdesc->np;
   BDMPI_COMM_WORLD->rank  = job->rank;
@@ -112,7 +112,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   BDMPI_COMM_WORLD->copid = 1;
 
   /* BDMPI_COMM_NODE */
-  BDMPI_COMM_NODE = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "BDMPI_COMM_NODE");
+  BDMPI_COMM_NODE = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "BDMPI_COMM_NODE");
   BDMPI_COMM_NODE->mcomm = 1;  /* This is hard-coded and is OK */
   BDMPI_COMM_NODE->size  = job->jdesc->ns;
   BDMPI_COMM_NODE->rank  = job->lrank;

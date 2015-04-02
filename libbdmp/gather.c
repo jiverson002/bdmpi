@@ -248,7 +248,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
   /* the root receives data from everybody */
   if (mype == root) {
-    rmsgs = (bdmsg_t *)gk_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Gatherv_p2p: rmsgs");
+    rmsgs = (bdmsg_t *)bd_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Gatherv_p2p: rmsgs");
     memset(rmsgs, 0, sizeof(bdmsg_t)*npes);
 
     /* deal with root's data */
@@ -331,7 +331,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
       memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf, size);
     }
 
-    gk_free((void **)&rmsgs, LTERM);
+    bd_free((void **)&rmsgs, LTERM);
   }
 
 

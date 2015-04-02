@@ -117,7 +117,7 @@
     }\
   } while(0)
 
-#if 0
+#if 1
 #define BD_GET_LOCK(lock)\
   {\
     int retval;\
@@ -166,9 +166,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
+    /*fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
       syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));\
+      (void*)(lock));*/\
   }
 
 #define BD_TRY_LOCK(lock, haslock)\
@@ -192,7 +192,7 @@
     }\
   }
 
-#if 0
+#if 1
 #define BD_GET_SEM(sem)                                                   \
 {                                                                         \
   char hostname[9];                                                       \
@@ -244,9 +244,9 @@
       __FILE__, errno, strerror(errno));                                  \
     abort();                                                              \
   }                                                                       \
-  fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
+  /*fprintf(stderr, "[%6ld:%s,%4d]: let semahore (%p)\n",\
     syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-    (void*)(sem));\
+    (void*)(sem));*/\
 }
 
 #define BD_TRY_SEM(SEM, BOOL)                                             \
@@ -452,6 +452,10 @@ typedef struct {int val; int loc;} bdvlp_ii_t;
 size_t bdmp_sizeof(BDMPI_Datatype datatype);
 size_t bdmp_msize(size_t count, BDMPI_Datatype datatype);
 int datatype_isvalid(BDMPI_Datatype datatype);
+
+/* memory.c */
+void *bd_malloc(size_t nbytes, char *msg);
+void bd_free(void **ptr1,...);
 
 /* reduce.c */
 void reduce_op(void *a, void *b, size_t count, BDMPI_Datatype datatype,

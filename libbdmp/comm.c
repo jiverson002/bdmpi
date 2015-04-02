@@ -150,7 +150,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
   BDMPL_SLEEP(job, gomsg);
 
   /* allocate the new communicator */
-  *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
+  *newcomm = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "newcomm");
 
   /* copy the new communicator info from the master */
   xfer_in_scb(job->scb, *newcomm, sizeof(bdscomm_t), BDMPI_BYTE);
@@ -193,7 +193,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   BDMPL_SLEEP(job, gomsg);
 
   /* remove the info associated with the old communicator */
-  gk_free((void **)comm, LTERM);
+  bd_free((void **)comm, LTERM);
   *comm = BDMPI_COMM_NULL;
 
   return BDMPI_SUCCESS;
@@ -240,7 +240,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   BDMPL_SLEEP(job, gomsg);
 
   /* create the new communicator */
-  *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
+  *newcomm = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "newcomm");
 
   /* copy the new communicator info from the master */
   xfer_in_scb(job->scb, *newcomm, sizeof(bdscomm_t), BDMPI_BYTE);

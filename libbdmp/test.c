@@ -27,13 +27,13 @@ int bdmp_Test(sjob_t *job, BDMPI_Request *r_request, int *flag, BDMPI_Status *st
                  request->status.datatype, request->status.BDMPI_SOURCE, 
                  request->status.BDMPI_TAG, request->status.comm, &nrequest);
 
-    gk_free((void **)r_request, LTERM);
+    bd_free((void **)r_request, LTERM);
 
     if (nrequest->state == BDMPI_SUCCESS) { /* async operation finished */
       if (status != BDMPI_STATUS_IGNORE) 
         *status = nrequest->status;
 
-      gk_free((void **)&nrequest, LTERM);
+      bd_free((void **)&nrequest, LTERM);
       *r_request = BDMPI_REQUEST_NULL;
       *flag = 1;
     }
@@ -48,7 +48,7 @@ int bdmp_Test(sjob_t *job, BDMPI_Request *r_request, int *flag, BDMPI_Status *st
     if (status != BDMPI_STATUS_IGNORE) 
       *status  = request->status;
     
-    gk_free((void **)r_request, LTERM);
+    bd_free((void **)r_request, LTERM);
     *r_request = BDMPI_REQUEST_NULL;
   }
 
