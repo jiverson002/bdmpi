@@ -456,6 +456,7 @@ int datatype_isvalid(BDMPI_Datatype datatype);
 /* memory.c */
 void *bd_malloc(size_t nbytes, char *msg);
 void bd_free(void **ptr1,...);
+char *bd_strdup(char *orgstr);
 
 /* reduce.c */
 void reduce_op(void *a, void *b, size_t count, BDMPI_Datatype datatype,

@@ -35,7 +35,7 @@ bdsm_t *bdsm_create(size_t size, char *tag, int num)
   sm->off  = 0;
 
   sprintf(name, "/sm%s%d", tag, num);
-  sm->smname = gk_strdup(name);
+  sm->smname = bd_strdup(name);
   shm_unlink(name);
 
   sm->fd = shm_open(name, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR);
@@ -51,7 +51,7 @@ bdsm_t *bdsm_create(size_t size, char *tag, int num)
 
   /* allocate the associated semaphore */
   sprintf(name, "/sem%s%d", tag, num);
-  sm->semname = gk_strdup(name);
+  sm->semname = bd_strdup(name);
   sem_unlink(name);
 
   sm->sem = sem_open(name, O_CREAT, S_IRUSR|S_IWUSR, 1);
@@ -86,12 +86,12 @@ bdsm_t *bdsm_open(size_t size, char *tag, int num)
   sm->off  = 0;
 
   sprintf(name, "/sm%s%d", tag, num);
-  sm->smname = gk_strdup(name);
+  sm->smname = bd_strdup(name);
 
   sm->fd = shm_open(name, O_RDWR, 0);
   if (sm->fd == -1)
     errexit("Failed on shm_open(sm->fd): %s\n", strerror(errno));
-  
+
   /* I do not think this is needed
   if (ftruncate(sm->fd, size) == -1)
     errexit("Failed on ftruncate(sm->fd): %s\n", strerror(errno));
@@ -103,7 +103,7 @@ bdsm_t *bdsm_open(size_t size, char *tag, int num)
 
   /* allocate the associated semaphore */
   sprintf(name, "/sem%s%d", tag, num);
-  sm->semname = gk_strdup(name);
+  sm->semname = bd_strdup(name);
 
   sm->sem = sem_open(name, 0);
   if (sm->sem == SEM_FAILED)
@@ -127,8 +127,7 @@ void bdsm_close(bdsm_t *sm)
   if (close(sm->fd) == -1)
     errexit("Failed on close(sm->fd): %s\n", strerror(errno));
 
-  gk_free((void **)&sm->smname, &sm->semname, LTERM);
-  bd_free((void **)&sm, LTERM);
+  bd_free((void **)&sm->smname, &sm->semname, &sm, LTERM);
 }
 
 
@@ -151,8 +150,7 @@ void bdsm_destroy(bdsm_t *sm)
   if (shm_unlink(sm->smname) == -1)
     errexit("Failed on shm_unlink(sm->smname): %s\n", strerror(errno));
 
-  gk_free((void **)&sm->smname, &sm->semname, LTERM);
-  bd_free((void **)&sm, LTERM);
+  bd_free((void **)&sm->smname, &sm->semname, &sm, LTERM);
 }
 
 

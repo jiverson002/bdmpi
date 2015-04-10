@@ -37,7 +37,7 @@ bdmq_t *bdmq_create(char *tag, int num)
 
   /* create the message queue */
   sprintf(name, "/%s%d", tag, num);
-  mq->name = gk_strdup(name);
+  mq->name = bd_strdup(name);
   mq_unlink(name);
 
   mq->mqdes = mq_open(name, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR, &attr);
@@ -75,7 +75,7 @@ bdmq_t *bdmq_open(char *tag, int num)
 
   /* open the message queue */
   sprintf(name, "/%s%d", tag, num);
-  mq->name = gk_strdup(name);
+  mq->name = bd_strdup(name);
 
   mq->mqdes = mq_open(name, O_RDWR);
   if (mq->mqdes == -1)
@@ -100,8 +100,7 @@ void bdmq_close(bdmq_t *mq)
   if (mq_close(mq->mqdes) == -1)
     errexit("Failed on mq_close(mq->mqdes): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, LTERM);
-  bd_free((void **)&mq->buf, &mq, LTERM);
+  bd_free((void **)&mq->name, &mq->buf, &mq, LTERM);
 }
 
 
@@ -119,8 +118,7 @@ void bdmq_destroy(bdmq_t *mq)
   if (mq_unlink(mq->name) == -1)
     errexit("Failed on mq_unlink(mq->name): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, LTERM);
-  bd_free((void **)&mq->buf, &mq, LTERM);
+  bd_free((void **)&mq->name, &mq->buf, &mq, LTERM);
 }
 
 

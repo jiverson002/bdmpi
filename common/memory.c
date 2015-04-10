@@ -47,9 +47,9 @@ void *bd_malloc(size_t nbytes, char *msg)
 }
 
 
-/*************************************************************************
-* This function is my wrapper around free, allows multiple pointers
-**************************************************************************/
+/*************************************************************************/
+/* This function is my wrapper around free, allows multiple pointers */
+/*************************************************************************/
 void bd_free(void **ptr1,...)
 {
   va_list plist;
@@ -68,4 +68,34 @@ void bd_free(void **ptr1,...)
     *ptr = NULL;
   }
   va_end(plist);
+}
+
+
+/************************************************************************/
+/*! \brief Duplicates a string
+
+This function is a replacement for C's standard <em>strdup()</em> function.
+The key differences between the two are that gk_strdup():
+  - uses the dynamic memory allocation routines of \e GKlib. 
+  - it correctly handles NULL input strings.
+
+The string that is returned must be freed by gk_free().
+
+\param orgstr is the string that will be duplicated.
+\returns A pointer to the newly created string.
+\sa gk_free()
+*/
+/*************************************************************************/
+char *bd_strdup(char *orgstr)
+{
+  int len;
+  char *str=NULL;
+
+  if (orgstr != NULL) {
+    len = strlen(orgstr)+1;
+    str = bd_malloc(len*sizeof(char), "gk_strdup: str");
+    strcpy(str, orgstr);
+  }
+
+  return str;
 }
