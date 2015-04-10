@@ -10,13 +10,13 @@ static sjob_t * _job=NULL;
 /****************************************************************************/
 /*! Charge an allocation to the system */
 /****************************************************************************/
-static void
+static int
 _sb_charge(size_t const syspages)
 {
   bdmsg_t msg, gomsg;
 
   if (NULL == _job)
-    return;
+    return 0;
 
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
@@ -24,24 +24,30 @@ _sb_charge(size_t const syspages)
     msg.source  = _job->rank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
-    if (0 != msg.count) {
+    if (0 == is_internal && 0 != syspages) {
+      //fprintf(stderr, "[%5d] %zu +\n", (int)getpid(), syspages);
       bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
       BDMPL_SLEEP(_job, gomsg);
+      return 1;
+    }
+    else if (1 == is_internal) {
+      return 1;
     }
   }
+  return 0;
 }
 
 
 /****************************************************************************/
 /*! Discharge an allocation to the system */
 /****************************************************************************/
-static void
+static int
 _sb_discharge(size_t const syspages)
 {
   bdmsg_t msg, gomsg;
 
   if (NULL == _job)
-    return;
+    return 0;
 
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
@@ -49,11 +55,17 @@ _sb_discharge(size_t const syspages)
     msg.source  = _job->rank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
-    if (0 == is_internal && 0 != msg.count) {
+    if (0 == is_internal && 0 != syspages) {
+      //fprintf(stderr, "[%5d] %zu -\n", (int)getpid(), syspages);
       bdmq_send(_job->reqMQ, &msg, sizeof(bdmsg_t));
       BDMPL_SLEEP(_job, gomsg);
+      return 1;
+    }
+    else if (1 == is_internal) {
+      return 1;
     }
   }
+  return 0;
 }
 
 
@@ -64,6 +76,9 @@ extern int
 sb_init(sjob_t * const const job)
 {
   _job = job;
+
+  /* turn on klmalloc */
+  //KL_init();
 
   (void)SB_fstem(job->jdesc->wdir);
 
@@ -99,7 +114,11 @@ sb_init(sjob_t * const const job)
 extern int
 sb_finalize(void)
 {
+  /* turn off klmalloc */
+  //KL_finalize();
+
   _job = NULL;
+
   return 1;
 }
 

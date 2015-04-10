@@ -25,6 +25,10 @@ int bdmp_Finalize(sjob_t *job)
   /* turn off sbmalloc */
   sb_finalize();
 
+  /* ====================================================================== */
+  /* everything below here must have been allocated via the libc interface. */
+  /* ====================================================================== */
+
   /* send a message to the slave telling it that you are leaving... */
   memset(&donemsg, 0, sizeof(bdmsg_t));
   donemsg.msgtype = BDMPI_MSGTYPE_FINALIZE;

@@ -156,6 +156,10 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank, &BDMPI_COMM_CWORLD)
       == BDMPI_SUCCESS);
 
+  /* ====================================================================== */
+  /* everything above here must have been allocated via the libc interface. */
+  /* ====================================================================== */
+
   /* init the sbmalloc subsystem */
   if (0 == sb_init(job))
     bdprintf("Failed on sb_init()\n");
