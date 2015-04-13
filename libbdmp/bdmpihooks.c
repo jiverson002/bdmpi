@@ -75,11 +75,6 @@ _sb_discharge(size_t const syspages)
 extern int
 sb_init(sjob_t * const const job)
 {
-  _job = job;
-
-  /* turn on klmalloc */
-  //KL_init();
-
   (void)SB_fstem(job->jdesc->wdir);
 
   if (-1 == SB_mallopt(SBOPT_DEBUG, SBDBG_INFO))
@@ -104,6 +99,12 @@ sb_init(sjob_t * const const job)
   if (-1 == SB_mallopt(SBOPT_MULTITHREAD, job->jdesc->sbnt))
     fprintf(stderr, "sb_init: could not set SBOPT_MULTITHREAD\n");
 
+  /* turn on klmalloc */
+  if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_ON))
+    fprintf(stderr, "sb_finalize: could not enable kl environment\n");
+
+  _job = job;
+
   return 1;
 }
 
@@ -115,7 +116,8 @@ extern int
 sb_finalize(void)
 {
   /* turn off klmalloc */
-  //KL_finalize();
+  if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_OFF))
+    fprintf(stderr, "sb_finalize: could not disabled kl environment\n");
 
   _job = NULL;
 

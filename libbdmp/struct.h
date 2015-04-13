@@ -46,6 +46,9 @@ typedef struct {
                              shared memory */
   pid_t *spids;         /*!< The pids of the slave processes. This will
                              be allocated in the global SMR. */
+  struct mallinfo * mallinfo; /*!< malloc information for slaves on node. This
+                                   will be allocated in the global shared
+                                   memory. */
 
   /* other */
   size_t smallmsg;      /*!< The size of a message in datatype to be considered
@@ -54,4 +57,4 @@ typedef struct {
 } sjob_t;
 
 
-#endif 
+#endif

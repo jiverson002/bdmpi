@@ -3,4 +3,5 @@ sbmalloc.h
 sbmalloc.c
 klmalloc.h
 klmalloc.c
+config.h
 hooks.c

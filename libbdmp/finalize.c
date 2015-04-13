@@ -16,6 +16,7 @@ int bdmp_Finalize(sjob_t *job)
 {
   int i;
   bdmsg_t donemsg, gomsg;
+  struct mallinfo mi;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
@@ -24,6 +25,9 @@ int bdmp_Finalize(sjob_t *job)
 
   /* turn off sbmalloc */
   sb_finalize();
+
+  mi = SB_mallinfo();
+  memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
 
   /* ====================================================================== */
   /* everything below here must have been allocated via the libc interface. */

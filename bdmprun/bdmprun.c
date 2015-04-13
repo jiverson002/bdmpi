@@ -206,6 +206,11 @@ void setup_master_prefork(mjob_t *job)
   job->spids = (pid_t *)bdsm_malloc(job->globalSM, sizeof(pid_t)*job->ns, "job->spids");
   memset(job->spids, 0, sizeof(pid_t)*job->ns);
 
+  /* allocate memory for mallinfo in the global SM */
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Allocating job->mallinfo\n"));
+  job->mallinfo = (struct mallinfo*)bdsm_malloc(job->globalSM,
+    sizeof(struct mallinfo)*job->jdesc->ns, "job->mallinfo");
+  memset(job->mallinfo, 0, sizeof(struct mallinfo)*job->ns);
 
   /* setup the working directory */
   snprintf(job->jdesc->wdir, BDMPI_WDIR_LEN, "%s/%d", job->iwdir, (int)job->mpid);
@@ -335,9 +340,7 @@ void setup_master_postfork(mjob_t *job)
   //job->memmax = 3221225472;
   //job->memmax = 3758096384;
   job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
-  job->slvtot = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvtot");
   memset(job->slvrss, 0, job->ns*sizeof(size_t));
-  memset(job->slvtot, 0, job->ns*sizeof(size_t));
 
   return;
 }
@@ -353,21 +356,31 @@ void cleanup_master(mjob_t *job)
 
   gk_stopwctimer(job->totalTmr);
 
-  sleep(1);
-  bdprintf("------------------------------------------------\n");
-  bdprintf("Master %d is done.\n", job->mynode);
-  bdprintf("Memory stats [%10zu / %10zu]\n", job->memrss, job->memmax);
+  bdprintf("-------------------------------------------------------------\n");
+  //bdprintf("Master %d is done.\n", job->mynode);
+  //bdprintf("Memory stats [%10zu / %10zu]\n", job->memrss, job->memmax);
 
-  gk_rmpath(job->jdesc->wdir);
+  bdprintf("        +-------------------+---------+----------+----------+\n");
+  bdprintf("        |            loaded | maximum | rd fault | wr fault |\n");
+  bdprintf("        +-------------------+---------+----------+----------+\n");
+  for (i=0; i<job->ns; i++) {
+    bdprintf(" [%3d]%c | %7zu / %7zu | %7zu | %8zu | %8zu |\n", i,
+      job->mallinfo[i].fordblks>0 ? '*' : ' ',
+      job->slvrss[i]/sysconf(_SC_PAGESIZE), job->mallinfo[i].uordblks,
+      job->mallinfo[i].arena, job->mallinfo[i].smblks,
+      job->mallinfo[i].ordblks);
+  }
+  bdprintf("        +-------------------+---------+----------+----------+\n");
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
-    bdprintf("       [%3d] [%10zu / %10zu]\n", i, job->slvrss[i], job->slvtot[i]);
     bdscb_destroy(job->scbs[i]);
     bdmq_destroy(job->goMQs[i]);
     bdmq_destroy(job->c2sMQs[i]);
     bdmq_destroy(job->c2mMQs[i]);
   }
+
+  gk_rmpath(job->jdesc->wdir);
 
   bdmq_destroy(job->reqMQ);
   bdsm_destroy(job->globalSM);
@@ -381,7 +394,7 @@ void cleanup_master(mjob_t *job)
 
   /* print timing info */
   if (job->mynode == 0) {
-    bdprintf("------------------------------------------------\n");
+    bdprintf("-------------------------------------------------------------\n");
     bdprintf("Master timings\n");
   }
 
@@ -427,7 +440,7 @@ void cleanup_master(mjob_t *job)
 
 
   if (job->mynode == 0)
-    bdprintf("------------------------------------------------\n");
+    bdprintf("-------------------------------------------------------------\n");
 
   pthread_mutex_destroy(job->schedule_lock);
   pthread_mutex_destroy(job->comm_lock);
@@ -439,7 +452,7 @@ void cleanup_master(mjob_t *job)
       &job->mblockedmap, &job->cblockedmap,
       &job->blockedts,
       &job->slvdist,
-      &job->slvrss, &job->slvtot,
+      &job->slvrss,
       &job->schedule_lock, &job->comm_lock,
       &job, LTERM);
 

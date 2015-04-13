@@ -101,7 +101,8 @@ typedef struct {
   size_t memrss;        /*!< Current resident set size for slaves on node */
   size_t memmax;        /*!< Maximum amount of memory available on system */
   size_t * slvrss;      /*!< Current resident set size for slaves on node */
-  size_t * slvtot;      /*!< Total memory allocated for slaves on node */
+
+  struct mallinfo * mallinfo; /*!< malloc information for slaves on node */
 
   /* process IDs */
   pid_t mpid;           /*!< The pid of the master */
