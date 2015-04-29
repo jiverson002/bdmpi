@@ -82,8 +82,8 @@ int main(int argc, char **argv)
   BDMPI_Status status;
   double max, current;
 
-  //setbuf(stdout, NULL);
-  //setbuf(stderr, NULL);
+  setbuf(stdout, NULL);
+  setbuf(stderr, NULL);
 
   BDMPI_Init(&argc, &argv);
 
@@ -200,8 +200,10 @@ dcsr_t *LoadData(params_t *params)
   BDMPI_Comm_lsize(params->comm, &lsize);
 
   if (mype == 0) {
-    if (!gk_fexists(params->filename)) 
+    if (!gk_fexists(params->filename)) {
+      printf("[%5d] %s\n", (int)getpid(), strerror(errno));
       errexit("File %s does not exist!\n", params->filename);
+    }
   }
 
   dmat = (dcsr_t *)gk_malloc(sizeof(dcsr_t), "dmat");
