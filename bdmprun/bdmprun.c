@@ -210,7 +210,7 @@ void setup_master_prefork(mjob_t *job)
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Allocating job->mallinfo\n"));
   job->mallinfo = (struct mallinfo*)bdsm_malloc(job->globalSM,
     sizeof(struct mallinfo)*job->jdesc->ns, "job->mallinfo");
-  memset(job->mallinfo, 0, sizeof(struct mallinfo)*job->ns);
+  memset(job->mallinfo, 0, sizeof(struct mallinfo)*job->jdesc->ns);
 
   /* setup the working directory */
   snprintf(job->jdesc->wdir, BDMPI_WDIR_LEN, "%s/%d", job->iwdir, (int)job->mpid);
