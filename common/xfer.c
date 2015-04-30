@@ -160,6 +160,7 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
     errexit("xfer_in_disk: Failed to open file %s: %s\n", fname, strerror(errno));
 
   //bdprintf("in_disk: %zu bytes from %p [%zu %zu]\n", rsize, buf, size, fnum);
+
   size = rsize;
   do {
     ssize_t retval;

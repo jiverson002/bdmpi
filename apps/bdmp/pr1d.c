@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 /**************************************************************************/
 /* data structures */
 /**************************************************************************/
@@ -181,7 +180,7 @@ int main(int argc, char **argv)
 
 
 /**************************************************************************/
-/*! Reads a sparse matrix in binary CSR format, one process at a time. 
+/*! Reads a sparse matrix in binary CSR format, one process at a time.
     \returns the local portion of the matrix.
 */
 /**************************************************************************/
@@ -200,10 +199,8 @@ dcsr_t *LoadData(params_t *params)
   BDMPI_Comm_lsize(params->comm, &lsize);
 
   if (mype == 0) {
-    if (!gk_fexists(params->filename)) {
-      printf("[%5d] %s\n", (int)getpid(), strerror(errno));
+    if (!gk_fexists(params->filename))
       errexit("File %s does not exist!\n", params->filename);
-    }
   }
 
   dmat = (dcsr_t *)gk_malloc(sizeof(dcsr_t), "dmat");
@@ -245,7 +242,7 @@ dcsr_t *LoadData(params_t *params)
   BDMPI_Bcast(dmat->rowdist, npes+1, BDMPI_INT, 0, params->comm);
 
   /* wait your turn */
-  if (lrank != 0) 
+  if (lrank != 0)
     BDMPI_Recv(&token, 1, BDMPI_INT, mype-1, 1, params->comm, &status);
 
   if ((fd = open(params->filename, O_RDONLY)) == -1)
@@ -297,7 +294,7 @@ dcsr_t *LoadData(params_t *params)
   if (lseek64(fd, fpos, SEEK_SET) == -1)
     gk_errexit(SIGERR, "Failed to lseek for %s. error: %s!\n", params->filename, strerror(errno));
   if (gk_read(fd, dmat->mat->rowval, sizeof(float)*lnnz) != (sizeof(float)*lnnz))
-    gk_errexit(SIGERR, "Failed to read the rowval from file %s [%zd]!\n", 
+    gk_errexit(SIGERR, "Failed to read the rowval from file %s [%zd]!\n",
         params->filename, sizeof(float)*lnnz);
 #endif
 
@@ -312,10 +309,10 @@ dcsr_t *LoadData(params_t *params)
     BDMPI_Send(&token, 1, BDMPI_INT, mype+1, 1, params->comm);
 
   printf("[%3d] dmat->gnrows/lnrows: %d/%d, dmat->gncols/lncols: %d/%d, "
-      "dmat->gnnz/lnnz: %zu/%zu [ts: %d]\n", 
-      mype, 
-      dmat->gnrows, dmat->mat->nrows, 
-      dmat->gncols, dmat->mat->ncols, 
+      "dmat->gnnz/lnnz: %zu/%zu [ts: %d]\n",
+      mype,
+      dmat->gnrows, dmat->mat->nrows,
+      dmat->gncols, dmat->mat->ncols,
       dmat->gnnz, dmat->mat->rowptr[dmat->mat->nrows],(int)time(NULL));
 
   return dmat;
@@ -404,7 +401,7 @@ void SetupData0(params_t *params, dcsr_t *dmat)
 #ifdef XXX
   /* sort the adjacency list of each vertex */
   gk_startwctimer(params->sort1Tmr);
-  for (i=0; i<nrows; i++) 
+  for (i=0; i<nrows; i++)
     gk_isorti(rowptr[i+1]-rowptr[i], rowind+rowptr[i]);
   gk_stopwctimer(params->sort1Tmr);
 #endif
@@ -483,8 +480,8 @@ void SetupData0(params_t *params, dcsr_t *dmat)
 
   /* allocate memory for rinds and populate it via an all-to-all */
   dmat->rinds = gk_imalloc(dmat->nrecv, "rinds");
-  BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT, 
-                dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT, 
+  BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT,
+                dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT,
                 params->comm);
 
   /* free sinds, as they will not be used again */
@@ -493,13 +490,13 @@ void SetupData0(params_t *params, dcsr_t *dmat)
   /* localize the indices in dmat->rinds */
   for (i=0; i<dmat->nrecv; i++) {
     if (dmat->rinds[i] < firstrow || dmat->rinds[i] >= lastrow) {
-      gk_errexit(SIGERR, "[%d] rinds[%zu]=%d is outside local range [%d %d]\n", 
+      gk_errexit(SIGERR, "[%d] rinds[%zu]=%d is outside local range [%d %d]\n",
           mype, i, dmat->rinds[i], firstrow, lastrow);
     }
     dmat->rinds[i] -= firstrow;
   }
 
-  printf("[%3d] nsend: %d, nrecv: %d [ts: %d]\n", mype, dmat->nsend, 
+  printf("[%3d] nsend: %d, nrecv: %d [ts: %d]\n", mype, dmat->nsend,
       dmat->nrecv,(int)time(NULL));
 
   return;
@@ -570,7 +567,7 @@ void SetupData(params_t *params, dcsr_t *dmat)
     if (p == mype) {
       for (i=0; i<nrows; i++) {
         for (j=nrowptr[i]; j<rowptr[i+1]; j++) {
-          if (rowind[j] < plastrow) 
+          if (rowind[j] < plastrow)
             rowind[j] -= pfirstrow;
           else
             break;
@@ -593,7 +590,7 @@ void SetupData(params_t *params, dcsr_t *dmat)
             }
             rowind[j] = nrows + nunique + marker[k];
           }
-          else 
+          else
             break;
         }
         nrowptr[i] = j;
@@ -637,8 +634,8 @@ void SetupData(params_t *params, dcsr_t *dmat)
 
   /* allocate memory for rinds and populate it via an all-to-all */
   dmat->rinds = gk_imalloc(dmat->nrecv, "rinds");
-  BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT, 
-                dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT, 
+  BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT,
+                dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT,
                 params->comm);
 
   /* free sinds, as they will not be used again */
@@ -647,13 +644,13 @@ void SetupData(params_t *params, dcsr_t *dmat)
   /* localize the indices in dmat->rinds */
   for (i=0; i<dmat->nrecv; i++) {
     if (dmat->rinds[i] < firstrow || dmat->rinds[i] >= lastrow) {
-      gk_errexit(SIGERR, "[%d] rinds[%zu]=%d is outside local range [%d %d]\n", 
+      gk_errexit(SIGERR, "[%d] rinds[%zu]=%d is outside local range [%d %d]\n",
           mype, i, dmat->rinds[i], firstrow, lastrow);
     }
     dmat->rinds[i] -= firstrow;
   }
 
-  printf("[%3d] nsend: %d, nrecv: %d [ts: %d]\n", mype, dmat->nsend, 
+  printf("[%3d] nsend: %d, nrecv: %d [ts: %d]\n", mype, dmat->nsend,
       dmat->nrecv,(int)time(NULL));
 
   return;
@@ -669,8 +666,8 @@ void CleanupData(params_t *params, dcsr_t *dmat)
   printf("[pe %2d] Clean.1 [ts: %d]\n",params->mype,(int)time(NULL));
   gk_csr_Free(&(dmat->mat));
   gk_free((void **)&dmat->rowdist,
-                   &dmat->scounts, &dmat->sdispls, 
-                   &dmat->rcounts, &dmat->rdispls, &dmat->rinds, 
+                   &dmat->scounts, &dmat->sdispls,
+                   &dmat->rcounts, &dmat->rdispls, &dmat->rinds,
                    &dmat, LTERM);
 
   printf("[pe %2d] Clean.2 [ts: %d]\n",params->mype,(int)time(NULL));
@@ -711,7 +708,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
 
     prnew = gk_dsmalloc(nrows+nsend, 0.0, "prnew");
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(prnew, (nrows+nsend)*sizeof(double)) == 0);
 
     /* push random-walk scores to the outlinks */
@@ -752,19 +749,19 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
                   params->comm);
     gk_stopwctimer(params->commTmr);
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(prrecv, nrecv*sizeof(double)) == 0);
 
     /* shrink the size of prnew, as you do not need the last nsend entries */
     prnew = gk_drealloc(prnew, nrows, "drealloc: prnew");
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(prnew, nrows*sizeof(double)) == 0);
 
     for (i=0; i<nrecv; i++)
       prnew[rinds[i]] += prrecv[i];
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_munlock(prrecv, nrecv*sizeof(double)) == 0);
 
     gk_free((void **)&prrecv, LTERM);
@@ -773,7 +770,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     for (i=0; i<nrows; i++)
       prnew[i] = lambda*rprob + (1.0-lambda)*(gsinks*rprob+prnew[i]);
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_munlock(prnew, nrows*sizeof(double)) == 0);
 
 
@@ -784,7 +781,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
       }
 
       /* compute the difference */
-      for (lrmsd=0.0, i=0; i<nrows; i++) 
+      for (lrmsd=0.0, i=0; i<nrows; i++)
         lrmsd += (pr[i]-prnew[i])*(pr[i]-prnew[i]);
 
       if (params->mlock) {
@@ -847,7 +844,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
 
     tpr = gk_dsmalloc(nrows+nsend, 0.0, "tpr");
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(tpr, (nrows+nsend)*sizeof(double)) == 0);
 
     printf("[pe %2d] Iter.B: %5zu [ts: %d]\n",mype,iter,(int)time(NULL));
@@ -864,7 +861,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
       }
       else {
         wgt = pr1[i]/(rowptr[i+1]-rowptr[i]);
-        for (j=rowptr[i]; j<rowptr[i+1]; j++) 
+        for (j=rowptr[i]; j<rowptr[i+1]; j++)
           tpr[rowind[j]] += wgt;
       }
     }
@@ -878,7 +875,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
     }
 
     /* free pr1 if it will not be needed */
-    if (!(iter%10 == 0 || iter == params->niters-1)) 
+    if (!(iter%10 == 0 || iter == params->niters-1))
       gk_free((void **)&pr1, LTERM);
 
 
@@ -895,7 +892,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
 
 
     /* send your partial results */
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(tpr, (nrows+nsend)*sizeof(double)) == 0);
 
     tpr += nrows;
@@ -909,7 +906,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
     /* keep the partial results for your own vertices in tpr */
     pr2 = gk_dcopy(nrows, tpr, gk_dmalloc(nrows, "pr2"));
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_munlock(tpr, (nrows+nsend)*sizeof(double)) == 0);
 
     gk_free((void **)&tpr, LTERM);
@@ -951,13 +948,13 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
     printf("[pe %2d] Iter.D: %5zu [ts: %d]\n",mype,iter,(int)time(NULL));
 
     /* apply the restart condition */
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_mlock(pr2, nrows*sizeof(double)) == 0);
 
     for (i=0; i<nrows; i++)
       pr2[i] = lambda*rprob + (1.0-lambda)*(gsinks*rprob+pr2[i]);
 
-    if (params->mlock) 
+    if (params->mlock)
       GKWARN(BDMPI_munlock(pr2, nrows*sizeof(double)) == 0);
 
     printf("[pe %2d] Iter.E: %5zu [ts: %d]\n",mype,iter,(int)time(NULL));
@@ -970,7 +967,7 @@ double *ComputePR_p2p(params_t *params, dcsr_t *dmat)
       }
 
       /* compute the difference */
-      for (lrmsd=0.0, i=0; i<nrows; i++) 
+      for (lrmsd=0.0, i=0; i<nrows; i++)
         lrmsd += (pr1[i]-pr2[i])*(pr1[i]-pr2[i]);
 
       if (params->mlock) {

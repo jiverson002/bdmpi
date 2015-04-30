@@ -8,7 +8,6 @@
 
 #include "bdmplib.h"
 
-
 /*************************************************************************/
 /* Performs BDMPI_Alltoallv() directly */
 /*************************************************************************/
@@ -116,8 +115,6 @@ int bdmp_Alltoallv_node(sjob_t *job,
 
   /* get the data */
   for (i=0; i<npes-1; i++) {
-    //printf("%d slv-recv1 %2d.%2d\n", (int)time(0), mype, (int)i);
-
     /* get msg info from master */
     xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
     p = rmsg.myrank;
@@ -126,20 +123,25 @@ int bdmp_Alltoallv_node(sjob_t *job,
       errexit("[%d]BDMPI_Alltoallv: Amount of data to be received from %d is more than specified: %zu %zu\n",
           mype, p, bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(recvcounts[p], recvtype));
 
-    //printf("%d slv-recv2 %2d.%2d\n", (int)time(0), mype, (int)i);
-    if (rmsg.fnum == -1)
-      xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype);
-    else
-      xfer_in_disk(rmsg.fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype, 1);
-    //printf("%d slv-recv3 %2d.%2d\n", (int)time(0), mype, (int)i);
+    if (rmsg.fnum == -1) {
+      xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count,
+        rmsg.datatype);
+    }
+    else {
+      xfer_in_disk(rmsg.fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count,
+        rmsg.datatype, 1);
+    }
   }
 
   /* copy the local data */
-  if (myfnum == -1)
-    memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf+sdispls[mype]*sdtsize,
-        sendcounts[mype]*sdtsize);
-  else
-    xfer_in_disk(myfnum, (char *)recvbuf+rdispls[mype]*rdtsize, sendcounts[mype], sendtype, 1);
+  if (myfnum == -1) {
+    memcpy((char *)recvbuf+rdispls[mype]*rdtsize,
+      (char *)sendbuf+sdispls[mype]*sdtsize, sendcounts[mype]*sdtsize);
+  }
+  else {
+    xfer_in_disk(myfnum, (char *)recvbuf+rdispls[mype]*rdtsize,
+      sendcounts[mype], sendtype, 1);
+  }
 
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Alltoallv: exiting: comm: %p\n", comm));
