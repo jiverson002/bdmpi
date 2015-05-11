@@ -28,6 +28,10 @@ typedef struct sbchunk {
 /* Stores global information associated with storage-backed memory */
 typedef struct {
   int opts;              /* the sb library options */
+
+  size_t numrd;
+  size_t numwr;
+
   size_t pagesize;       /* the size of a memory page */
   size_t minsize;        /* the minimum allocation in pages handled by sbmalloc */
   char *fstem;           /* the file stem where the data is stored */
@@ -405,6 +409,8 @@ int sb_init(char *fstem, sjob_t * const job)
 
   sbinfo->job      = job;
   sbinfo->opts     = job->jdesc->sbopts;
+  sbinfo->numrd    = 0;
+  sbinfo->numwr    = 0;
   sbinfo->minsize  = job->jdesc->sbsize*sysconf(_SC_PAGESIZE);
   sbinfo->pagesize = job->jdesc->pgsize*sysconf(_SC_PAGESIZE);
   sbinfo->head     = NULL;
@@ -507,6 +513,9 @@ int sb_finalize()
 
   GKASSERT(pthread_mutex_destroy(&(sbinfo->mtx)) == 0);
   GKASSERT(pthread_mutexattr_destroy(&(sbinfo->mtx_attr)) == 0);
+
+  bdprintf("numrd = %f\n", sbinfo->numrd*sbinfo->pagesize/(1024.0*1024.0*1024.0));
+  bdprintf("numwr = %f\n", sbinfo->numwr*sbinfo->pagesize/(1024.0*1024.0*1024.0));
 
   libc_free(sbinfo->fstem);
   libc_free(sbinfo);
@@ -1507,6 +1516,10 @@ void _sb_chunkload(sbchunk_t *sbchunk)
           tsize -= size;
         } while (tsize > 0);
 
+        //BD_GET_LOCK(&(sbinfo->mtx));
+        sbinfo->numrd += (ip-ifirst);
+        //BD_LET_LOCK(&(sbinfo->mtx));
+
         ifirst = -1;
       }
     }
@@ -1620,6 +1633,10 @@ size_t _sb_chunksave(sbchunk_t *sbchunk, int const flag)
           buf   += size;
           tsize -= size;
         } while (tsize > 0);
+
+        //BD_GET_LOCK(&(sbinfo->mtx));
+        sbinfo->numwr += (ip-ifirst);
+        //BD_LET_LOCK(&(sbinfo->mtx));
 
         ifirst = -1;
       }
@@ -1757,6 +1774,10 @@ void _sb_pageload(sbchunk_t * const sbchunk, size_t const ip)
       tsize -= size;
     } while (tsize > 0);
 
+    //BD_GET_LOCK(&(sbinfo->mtx));
+    sbinfo->numrd += 1;
+    //BD_LET_LOCK(&(sbinfo->mtx));
+
     if (-1 == close(fd)) {
       perror("sb_pageload: failed to close the fd");
       exit(EXIT_FAILURE);
@@ -1818,6 +1839,10 @@ void _sb_pagesave(sbchunk_t * const sbchunk, size_t const ip)
       buf   += size;
       tsize -= size;
     } while (tsize > 0);
+
+    //BD_GET_LOCK(&(sbinfo->mtx));
+    sbinfo->numwr += 1;
+    //BD_LET_LOCK(&(sbinfo->mtx));
 
     if (-1 == close(fd)) {
       perror("_sb_pagesave: failed to close the fd data for write");
