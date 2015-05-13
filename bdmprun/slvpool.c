@@ -8,7 +8,6 @@
 
 #include "bdmprun.h"
 
-
 /*************************************************************************/
 /*! It repeatedly checks/routes messages from the slaves and watches for
     slaves that have terminated. */

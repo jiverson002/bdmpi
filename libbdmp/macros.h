@@ -22,6 +22,13 @@
 
 #endif
 
+#define P(...)\
+(\
+  fprintf(stderr, "[%6ld/%6d:%s,%4d]: ", syscall(SYS_gettid),\
+    (int)getpid(), basename(__FILE__), __LINE__),\
+  fprintf(stderr, __VA_ARGS__)\
+)
+
 #define BDMPL_SLEEP(JOB, MSG)                                               \
 do {                                                                        \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\

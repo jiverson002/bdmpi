@@ -11,7 +11,6 @@
 
 #include "common.h"
 
-
 /*************************************************************************/
 /*! Creates the neccessary components of a message queue.
 
@@ -49,6 +48,8 @@ bdmq_t *bdmq_create(char *tag, int num)
   mq->msgsize = attr.mq_msgsize;
   mq->buf = bd_malloc(mq->msgsize, "mq->buf");
 
+  //bdprintf("create:%s: %zu\n", name, attr.mq_msgsize);
+
   //printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
   //    attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
 
@@ -84,6 +85,8 @@ bdmq_t *bdmq_open(char *tag, int num)
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
   mq->buf = bd_malloc(mq->msgsize, "mq->buf");
+
+  //bdprintf("open:%s: %zu\n", name, attr.mq_msgsize);
 
   return mq;
 }
@@ -127,10 +130,17 @@ void bdmq_destroy(bdmq_t *mq)
 /*************************************************************************/
 int bdmq_send(bdmq_t *mq, void *buf, size_t size)
 {
-  if (size > mq->msgsize)
-    errexit("bdmq_send: Message size %zu exceeds max limit of %zu.\n", size, mq->msgsize);
+  int ret;
+  struct mq_attr attr;
+  mq_getattr(mq->mqdes, &attr);
 
-  return mq_send(mq->mqdes, buf, size, 0);
+  if (size > mq->msgsize) {
+    errexit("[%5d] bdmq_send: Message size %zu exceeds max limit of %zu (%s).\n",
+      (int)getpid(), size, mq->msgsize, mq->name);
+  }
+  ret = mq_send(mq->mqdes, buf, size, 0);
+
+  return ret;
 }
 
 
@@ -167,7 +177,7 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
   struct timespec abs_timeout;
   ssize_t rsize;
 
-  //printf("[%d] timedrecv-in\n", (int)time(0));
+  /*printf("[%d] timedrecv-in\n", (int)time(0));*/
   if (clock_gettime(CLOCK_REALTIME, &abs_timeout) == -1)
     return -1;
 
@@ -186,7 +196,7 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
     else
       memcpy(buf, mq->buf, rsize);
   }
-  //printf("[%d] timedrecv-out\n", (int)time(0));
+  /*printf("[%d] timedrecv-out\n", (int)time(0));*/
 
   return rsize;
 }

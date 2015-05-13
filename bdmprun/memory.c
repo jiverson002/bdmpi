@@ -8,7 +8,6 @@
 
 #include "bdmprun.h"
 
-
 /*************************************************************************/
 /*! Response to a BDMPI_MSGTYPE_MEMLOAD
     Checks if a the memory being requested will over-subscribe the system
@@ -26,19 +25,21 @@ void * mstr_mem_load(void * const arg)
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
 
-  //printf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count, job->memrss, job->memmax);
-  //fflush(stdout);
+  /*bdprintf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count,
+    job->memrss, job->memmax);*/
 
   if (job->memrss > job->memmax) {
-    //printf("  WAKE (%d)\n", msg->source);
-    //fflush(stdout);
+    /*bdprintf("  WAKE (%d)\n", msg->source);*/
     memory_wakeup_some(job, msg->source, msg->count);
   }
 
-  gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
-  if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t)))
-    bdprintf("Failed to send a go message to %d: %s\n", msg->source, strerror(errno));
   BD_LET_LOCK(job->schedule_lock);
+
+  gomsg.msgtype = BDMPI_MSGTYPE_PROCEED;
+  if (-1 == bdmq_send(job->goMQs[msg->source], &gomsg, sizeof(bdmsg_t))) {
+    bdprintf("Failed to send a go message to %d: %s\n", msg->source,
+      strerror(errno));
+  }
 
   gk_free((void **)&arg, LTERM);
 

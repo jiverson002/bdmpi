@@ -150,9 +150,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    fprintf(stderr, "[%6ld:%s,%4d]: get lock (%p)\n",\
-      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));\
+    fprintf(stderr, "[%6ld/%6d:%s,%4d]: get lock (%p,%s)\n",\
+      syscall(SYS_gettid), (int)getpid(), basename(__FILE__), __LINE__,\
+      (void*)(lock), #lock);\
   }
 #endif
 
@@ -166,9 +166,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    /*fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
-      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));*/\
+    /*fprintf(stderr, "[%6ld/%6d:%s,%4d]: let lock (%p,%s)\n",\
+      syscall(SYS_gettid), (int)getpid(), basename(__FILE__), __LINE__,\
+      (void*)(lock), #lock);*/\
   }
 
 #define BD_TRY_LOCK(lock, haslock)\

@@ -467,9 +467,9 @@ MPI_API(int) MPI_Comm_rank(MPI_Comm comm, int *rank);
 MPI_API(int) MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 MPI_API(int) MPI_Comm_free(MPI_Comm *comm);
 MPI_API(int) MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
-MPI_API(int) MPI_Send(void *buf, int count, MPI_Datatype datatype,
+MPI_API(int) MPI_Send(void const *buf, int count, MPI_Datatype datatype,
                    int dest, int tag, MPI_Comm comm);
-MPI_API(int) MPI_Isend(void *buf, int count, MPI_Datatype datatype,
+MPI_API(int) MPI_Isend(void const *buf, int count, MPI_Datatype datatype,
                    int dest, int tag, MPI_Comm comm, MPI_Request *request);
 MPI_API(int) MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                    int source, int tag, MPI_Comm comm, MPI_Status *status);
@@ -508,10 +508,12 @@ MPI_API(int) MPI_Scatterv(void *sendbuf, int *sendcounts, int *displs,
 MPI_API(int) MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    MPI_Comm comm);
-MPI_API(int) MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdipls,
-                   MPI_Datatype sendtype, void *recvbuf, int *recvcounts,
-                   int *rdispls, MPI_Datatype recvtype, MPI_Comm comm);
-MPI_API(int) MPI_Reduce(void *sendbuf, void *recvbuf, int count,
+MPI_API(int) MPI_Alltoallv(void const * const sendbuf,
+                   int const * const sendcounts, int const * const sdispls,
+                   MPI_Datatype sendtype, void *recvbuf,
+                   int const * const recvcounts, int const * const rdispls,
+                   MPI_Datatype recvtype, MPI_Comm comm);
+MPI_API(int) MPI_Reduce(void const *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
 MPI_API(int) MPI_Allreduce(void *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);

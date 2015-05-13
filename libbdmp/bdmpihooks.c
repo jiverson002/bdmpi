@@ -21,7 +21,7 @@ _sb_charge(size_t const syspages)
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMLOAD;
-    msg.source  = _job->rank;
+    msg.source  = _job->lrank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
     if (0 == is_internal && 0 != syspages) {
@@ -52,7 +52,7 @@ _sb_discharge(size_t const syspages)
   if (BDMPI_SB_LAZYWRITE == (_job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
     memset(&msg, 0, sizeof(bdmsg_t));
     msg.msgtype = BDMPI_MSGTYPE_MEMSAVE;
-    msg.source  = _job->rank;
+    msg.source  = _job->lrank;
     msg.count   = syspages*sysconf(_SC_PAGESIZE);
 
     if (0 == is_internal && 0 != syspages) {

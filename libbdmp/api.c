@@ -382,16 +382,16 @@ int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
   return BDMPI_Comm_split(comm, color, key, newcomm);
 }
 
-int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Send(void const *buf, int count, MPI_Datatype datatype, int dest, 
          int tag, MPI_Comm comm)
 {
-  return BDMPI_Send(buf, count, datatype, dest, tag, comm);
+  return BDMPI_Send((void*)buf, count, datatype, dest, tag, comm);
 }
 
-int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, 
+int MPI_Isend(void const *buf, int count, MPI_Datatype datatype, int dest, 
          int tag, MPI_Comm comm, MPI_Request *request)
 {
-  return BDMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  return BDMPI_Isend((void*)buf, count, datatype, dest, tag, comm, request);
 }
 
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, 
@@ -488,10 +488,10 @@ int MPI_Allgatherv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
               _displs, recvtype, comm);
 }
 
-int MPI_Reduce(void *sendbuf, void *recvbuf, int count, 
+int MPI_Reduce(void const *sendbuf, void *recvbuf, int count, 
          MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
 {
-  return BDMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
+  return BDMPI_Reduce((void*)sendbuf, recvbuf, count, datatype, op, root, comm);
 }
 
 int MPI_Allreduce(void *sendbuf, void *recvbuf, int count, 
@@ -561,9 +561,10 @@ int MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
               recvtype, comm);
 }
 
-int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls, 
-         MPI_Datatype sendtype, void *recvbuf, int *recvcounts, 
-         int *rdispls, MPI_Datatype recvtype, MPI_Comm comm)
+int MPI_Alltoallv(void const * const sendbuf, int const * const sendcounts,
+         int const * const sdispls, MPI_Datatype sendtype, void *recvbuf,
+         int const * const recvcounts, int const * const rdispls,
+         MPI_Datatype recvtype, MPI_Comm comm)
 {
   EXITIFNOTINIT(job);
 
@@ -578,7 +579,7 @@ int MPI_Alltoallv(void *sendbuf, int *sendcounts, int *sdispls,
     _rdispls[i]    = rdispls[i];
   }
 
-  return BDMPI_Alltoallv(sendbuf, _sendcounts, _sdispls, sendtype, recvbuf,
+  return BDMPI_Alltoallv((void*)sendbuf, _sendcounts, _sdispls, sendtype, recvbuf,
               _recvcounts, _rdispls, recvtype, comm);
 
 }
