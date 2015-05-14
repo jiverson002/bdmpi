@@ -25,8 +25,8 @@ void * mstr_mem_load(void * const arg)
   job->memrss += msg->count;
   job->slvrss[msg->source] += msg->count;
 
-  /*bdprintf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count,
-    job->memrss, job->memmax);*/
+  //bdprintf("LOAD (%d) %10zu / %10zu / %10zu\n", msg->source, msg->count,
+  //  job->memrss, job->memmax);
 
   if (job->memrss > job->memmax) {
     /*bdprintf("  WAKE (%d)\n", msg->source);*/
@@ -179,6 +179,8 @@ void memory_wakeup_some(mjob_t * const job, int const source,
 #endif
 
 #if 1
+    //bdprintf("WAKE (%d) %10zu / %10zu / %10zu\n", togo, source, job->memrss,
+    //  job->memmax);
     //printf("WAKE (%d) %d %d %d\n", togo, source, itogo, iitogo);
     //fflush(stdout);
 
@@ -214,6 +216,7 @@ void memory_wakeup_some(mjob_t * const job, int const source,
 
     job->memrss -= count;
     job->slvrss[togo] -= count;
+    //bdprintf("SAVE (%d) %10zu / %10zu\n", togo, count, job->slvrss[togo]);
 
     //printf("SAVE (%d) %10zu / %10zu / %10zu\n", togo, count, job->memrss, job->memmax);
     //fflush(stdout);

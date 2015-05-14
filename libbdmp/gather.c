@@ -265,7 +265,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     S_SB_IFSET(BDMPI_SB_DISCARD) {
       for (p=0; p<npes; p++)
         sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
-          bdmp_msize(recvcounts[p], bdmp_sizeof(recvtype)));
+          bdmp_msize(recvcounts[p], recvtype));
     }
 
     /* receive data from everybody else */
