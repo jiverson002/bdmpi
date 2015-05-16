@@ -356,21 +356,19 @@ void cleanup_master(mjob_t *job)
 
   gk_stopwctimer(job->totalTmr);
 
-  bdprintf("-------------------------------------------------------------\n");
-  //bdprintf("Master %d is done.\n", job->mynode);
-  //bdprintf("Memory stats [%10zu / %10zu]\n", job->memrss, job->memmax);
-
-  bdprintf("        +-------------------+---------+----------+----------+\n");
-  bdprintf("        |            loaded | maximum | rd fault | wr fault |\n");
-  bdprintf("        +-------------------+---------+----------+----------+\n");
+  bdprintf("          +------------+----------+----------+----------+----------+\n");
+  bdprintf("          | ld maximum | rd pages | wr pages | rd fault | wr fault |\n");
+  bdprintf("          +------------+----------+----------+----------+----------+\n");
   for (i=0; i<job->ns; i++) {
-    bdprintf(" [%3d]%c | %7zu / %7zu | %7zu | %8zu | %8zu |\n", i,
-      job->mallinfo[i].fordblks>0 ? '*' : ' ',
-      job->slvrss[i]/sysconf(_SC_PAGESIZE), job->mallinfo[i].uordblks,
-      job->mallinfo[i].arena, job->mallinfo[i].smblks,
+    bdprintf(" [%3d]%c%c%c | %10d | %8d | %8d | %8d | %8d |\n", i,
+      job->mallinfo[i].keepcost>0 ? '*' : ' ',
+      job->slvrss[i]/sysconf(_SC_PAGESIZE)>0 ? '*' : ' ',
+      job->mallinfo[i].uordblks>0 ? '*' : ' ',
+      job->mallinfo[i].fordblks, job->mallinfo[i].usmblks,
+      job->mallinfo[i].fsmblks, job->mallinfo[i].smblks,
       job->mallinfo[i].ordblks);
   }
-  bdprintf("        +-------------------+---------+----------+----------+\n");
+  bdprintf("          +------------+----------+----------+----------+----------+\n");
 
   /* clean up the various per-slave message queues and shared memory regions */
   for (i=0; i<job->ns; i++) {
@@ -437,7 +435,6 @@ void cleanup_master(mjob_t *job)
   MPI_Reduce(&job->aux3Tmr, &maxtmr, 1, MPI_DOUBLE, MPI_MAX, 0, job->mpi_wcomm);
   if (job->mynode == 0 && maxtmr>0)
     bdprintf("     aux3Tmr:   %8.3lfs\n", maxtmr);
-
 
   if (job->mynode == 0)
     bdprintf("-------------------------------------------------------------\n");

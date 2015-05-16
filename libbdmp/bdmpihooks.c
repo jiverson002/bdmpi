@@ -75,28 +75,28 @@ _sb_discharge(size_t const syspages)
 extern int
 sb_init(sjob_t * const const job)
 {
-  (void)SB_fstem(job->jdesc->wdir);
+  (void)SB_mfile(job->jdesc->wdir);
 
-  if (-1 == SB_mallopt(SBOPT_DEBUG, SBDBG_INFO))
+  if (-1 == SB_mopt(SBOPT_DEBUG, SBDBG_INFO))
     fprintf(stderr, "sb_init: could not set SBOPT_DEBUG\n");
 
-  if (-1 == SB_mallopt(SBOPT_MINPAGES, job->jdesc->sbsize))
+  if (-1 == SB_mopt(SBOPT_MINPAGES, job->jdesc->sbsize))
     fprintf(stderr, "sb_init: could not set SBOPT_PAGESIZE\n");
 
-  if (-1 == SB_mallopt(SBOPT_NUMPAGES, job->jdesc->pgsize))
+  if (-1 == SB_mopt(SBOPT_NUMPAGES, job->jdesc->pgsize))
     fprintf(stderr, "sb_init: could not set SBOPT_PAGESIZE\n");
 
   if (BDMPI_SB_LAZYWRITE == (job->jdesc->sbopts&BDMPI_SB_LAZYWRITE)) {
-    if (-1 == SB_acct(&(_sb_charge), &(_sb_discharge)))
+    if (-1 == SB_mcal(&(_sb_charge), &(_sb_discharge)))
       fprintf(stderr, "sb_init: could not set book-keeping functions\n");
   }
 
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD)) {
-    if (-1 == SB_mallopt(SBOPT_LAZYREAD, 1))
+    if (-1 == SB_mopt(SBOPT_LAZYREAD, 1))
       fprintf(stderr, "sb_init: could not set SBOPT_LAZYREAD\n");
   }
 
-  if (-1 == SB_mallopt(SBOPT_MULTITHREAD, job->jdesc->sbnt))
+  if (-1 == SB_mopt(SBOPT_MULTITHREAD, job->jdesc->sbnt))
     fprintf(stderr, "sb_init: could not set SBOPT_MULTITHREAD\n");
 
   /* turn on klmalloc */
@@ -171,7 +171,7 @@ sb_free(void * const addr)
 extern int
 sb_exists(void * const ptr)
 {
-  return SB_exists(ptr);
+  return SB_mexist(ptr);
 }
 
 
@@ -181,7 +181,7 @@ sb_exists(void * const ptr)
 extern void
 sb_save(void * const buf)
 {
-  (void)SB_sync(buf, SIZE_MAX);
+  (void)SB_mevict(buf);
 }
 
 
@@ -191,7 +191,7 @@ sb_save(void * const buf)
 extern void
 sb_saveall(void)
 {
-  (void)SB_syncall();
+  (void)SB_mevictall();
 }
 
 
@@ -203,7 +203,7 @@ sb_saveall_internal(void)
 {
   size_t num;
   is_internal = 1; /* disable the _sb_discharge function */
-  num = SB_syncall();
+  num = SB_mevictall();
   is_internal = 0; /* re-enable the _sb_discharge function */
   return num*sysconf(_SC_PAGESIZE);
 }
@@ -215,7 +215,7 @@ sb_saveall_internal(void)
 extern void
 sb_load(void const * const buf)
 {
-  (void)SB_load(buf, SIZE_MAX, SBPAGE_SYNC);
+  (void)SB_mtouch((void*)buf, SIZE_MAX);
 }
 
 
@@ -225,7 +225,7 @@ sb_load(void const * const buf)
 extern void
 sb_loadall(void)
 {
-  (void)SB_loadall(SBPAGE_SYNC);
+  (void)SB_mtouchall();
 }
 
 
@@ -235,5 +235,5 @@ sb_loadall(void)
 extern void
 sb_discard(void * const ptr, size_t const len)
 {
-  (void)SB_dump(ptr, len);
+  (void)SB_mclear(ptr, len);
 }

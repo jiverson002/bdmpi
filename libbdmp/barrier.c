@@ -22,7 +22,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 
   /* some error checking */
   if (comm == BDMPI_COMM_NULL) {
-    fprintf(stderr, "Undefined communicator.\n");
+    fprintf(stderr, "[%5d] Undefined communicator.\n", (int)getpid());
     return BDMPI_ERR_COMM;
   }
 

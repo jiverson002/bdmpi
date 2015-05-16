@@ -26,7 +26,7 @@ int bdmp_Finalize(sjob_t *job)
   /* turn off sbmalloc */
   sb_finalize();
 
-  mi = SB_mallinfo();
+  mi = SB_minfo();
   memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
 
   /* ====================================================================== */
