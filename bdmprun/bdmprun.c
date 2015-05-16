@@ -362,8 +362,8 @@ void cleanup_master(mjob_t *job)
   for (i=0; i<job->ns; i++) {
     bdprintf(" [%3d]%c%c%c | %10d | %8d | %8d | %8d | %8d |\n", i,
       job->mallinfo[i].keepcost>0 ? '*' : ' ',
-      job->slvrss[i]/sysconf(_SC_PAGESIZE)>0 ? '*' : ' ',
       job->mallinfo[i].uordblks>0 ? '*' : ' ',
+      job->slvrss[i]/sysconf(_SC_PAGESIZE)>0 ? '*' : ' ',
       job->mallinfo[i].fordblks, job->mallinfo[i].usmblks,
       job->mallinfo[i].fsmblks, job->mallinfo[i].smblks,
       job->mallinfo[i].ordblks);
