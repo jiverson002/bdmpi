@@ -277,8 +277,10 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   rmsgs[mype].datatype = sendtype;
   if (sendcounts[mype]*sdtsize > job->smallmsg) {
     rmsgs[mype].fnum = xfer_getfnum();
+    printf("[%5d] xfer beg\n", (int)getpid());
     xfer_out_disk(rmsgs[mype].fnum, (char *)sendbuf+sdispls[mype]*sdtsize,
         sendcounts[mype], sendtype);
+    printf("[%5d] xfer end\n", (int)getpid());
   }
 
 

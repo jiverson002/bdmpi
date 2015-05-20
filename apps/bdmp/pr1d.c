@@ -199,8 +199,10 @@ dcsr_t *LoadData(params_t *params)
   BDMPI_Comm_lsize(params->comm, &lsize);
 
   if (mype == 0) {
-    if (!gk_fexists(params->filename))
-      errexit("File %s does not exist!\n", params->filename);
+    if (!gk_fexists(params->filename)) {
+      errexit("[%5d] File %s does not exist!\n", (int)getpid(),
+        params->filename);
+    }
   }
 
   dmat = (dcsr_t *)gk_malloc(sizeof(dcsr_t), "dmat");
