@@ -97,7 +97,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      sbma_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
@@ -291,14 +291,14 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   /* sbdiscard the incoming buffers */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
     for (p=0; p<npes; p++)
-      sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
+      sbma_mclear((char *)recvbuf+rdispls[p]*rdtsize,
         bdmp_msize(recvcounts[p], recvtype));
   }
 
   /* save your address space before blocking */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      sbma_mevictall();
   }
 
   /* receive data from everybody else */
@@ -328,7 +328,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
       /* go to sleep... */
       S_SB_IFSET(BDMPI_SB_SAVEALL) {
         if (job->jdesc->nr < job->jdesc->ns)
-          sb_saveall();
+          sbma_mevictall();
       }
       BDMPL_SLEEP(job, gomsg);
     }

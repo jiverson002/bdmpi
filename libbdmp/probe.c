@@ -31,7 +31,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
     if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      sbma_mevictall();
   }
 
   msg.msgtype  = BDMPI_MSGTYPE_PROBE;
@@ -54,7 +54,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
     /* prepare to go to sleep */
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
       if (job->jdesc->nr < job->jdesc->ns)
-        sb_saveall();
+        sbma_mevictall();
     }
 
     /* go to sleep... */

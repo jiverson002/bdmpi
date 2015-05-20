@@ -51,7 +51,7 @@
 #include "struct.h"
 #include "proto.h"
 #include "klmalloc.h"
-#include "sbmalloc.h"
+#include "sbma.h"
 
 
 // #if defined(COMPILER_GCC)

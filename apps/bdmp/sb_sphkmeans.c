@@ -289,11 +289,11 @@ int *ClusterData(params_t *params, gk_csr_t *mat)
       /* assign each local row to the closest cluster */
       gk_startwctimer(params->compTmr);
 
-      BDMPI_sbload(rowptr);
-      BDMPI_sbload(rowind);
-      BDMPI_sbload(rowval);
-      BDMPI_sbload(centers);
-      BDMPI_sbload(cpart);
+      //BDMPI_sbload(rowptr);
+      //BDMPI_sbload(rowind);
+      //BDMPI_sbload(rowval);
+      //BDMPI_sbload(centers);
+      //BDMPI_sbload(cpart);
       lnmoves = 0;
 #pragma omp parallel default(none),\
                      shared(nrows, nclusters, rowptr, rowind, rowval, centers, cpart),\

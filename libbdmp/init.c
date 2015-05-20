@@ -19,7 +19,7 @@
 /*************************************************************************/
 int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 {
-  int i;
+  int i, opts;
   pid_t mpid;
   sjob_t *job;
   bdmsg_t donemsg, gomsg;
@@ -164,9 +164,21 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* everything above here must have been allocated via the libc interface. */
   /* ====================================================================== */
 
-  /* init the sbmalloc subsystem */
-  if (0 == sb_init(job))
-    bdprintf("Failed on sb_init()\n");
+  /* setup vmm opts */
+  opts = 0;
+  if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD))
+    opts |= VMM_LZYRD;
+
+  /* init the sbma subsystem */
+  if (-1 == sbma_init(job->jdesc->wdir,\
+    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), opts))
+  {
+    bdprintf("Failed to init sbma\n");
+  }
+
+  /* init the klmalloc subsystem */
+  if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_ON))
+    bdprintf("Failed to enable klmalloc\n");
 
   return BDMPI_SUCCESS;
 }

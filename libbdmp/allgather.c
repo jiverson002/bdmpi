@@ -79,7 +79,7 @@ int bdmp_Allgatherv(sjob_t *job,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      sbma_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
