@@ -124,8 +124,6 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
   //  fnum, fname);
   do {
     len = (size > BDMPI_DISK_CHUNK ? BDMPI_DISK_CHUNK : size);
-    printf("[%5d]:%s:%d %zx -- %zx\n", (int)getpid(), __func__, __LINE__,
-      (uintptr_t)buf, (uintptr_t)buf+len);
     if ((ret=write(fd, buf, len)) != len)
       errexit("[%5d] xfer_out_disk: Write size does not match: %s %zd %zu\n",
         (int)getpid(), strerror(errno), ret, len);
