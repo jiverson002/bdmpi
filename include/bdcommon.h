@@ -47,12 +47,12 @@
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "lazy-write" strategy in the sbmalloc library.  This
+ *  \details  Enable the `lazy-write' strategy in the sbmalloc library.  This
  *            means that memory allocations controlled by the sbmalloc library
- *            will not be written to disk until there is ``sufficient''
- *            pressure on the total DRAM to warrant such an action.  In this
- *            case, ``sufficient'' is determined by the resident memory
- *            command line parameter `-rm='.
+ *            will not be written to disk until there is `sufficient' pressure
+ *            on the total DRAM to warrant such an action.  In this case,
+ *            `sufficient' is determined by the resident memory command line
+ *            parameter `-rm='.
  *
  *  \note     While compatible, it is not recommended to use this option with
  *            the #BDMPI_SB_SAVEALL option, since the latter will essentially
@@ -63,7 +63,7 @@
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "lazy-read" strategy in the sbmalloc library.  This
+ *  \details  Enable the `lazy-read' strategy in the sbmalloc library.  This
  *            means that memory allocations controlled by the sbmalloc library
  *            will not be read from disk and read protected until the
  *            application makes a read / write attempt to the memory location
@@ -76,17 +76,6 @@
 /****************************************************************************/
 #define BDMPI_SB_LAZYREAD     8
 
-/****************************************************************************/
-/*!
- *  \details  Enable the "dlmalloc" strategy in the sbmalloc library.  This
- *            means that the standard library hooks will call dlmalloc
- *            funcations which will in turn call sbmalloc functions.  This is
- *            aimed at C++ style programs which make a large number of small
- *            memory allocations.
- */
-/****************************************************************************/
-#define BDMPI_SB_DLMALLOC     16
-
 
 /*************************************************************************/
 /* Common macros */
@@ -94,7 +83,6 @@
 #define S_IFSET(a,b)      IFSET(job->jdesc->dbglvl, (a), (b))
 #define M_IFSET(a,b)      IFSET(job->dbglvl, (a), (b))
 #define S_SB_IFSET(FLAG)  if ((FLAG) == (job->jdesc->sbopts&(FLAG)))
-#define SB_SB_IFSET(FLAG) if ((FLAG) == (sbinfo->opts&(FLAG)))
 
 #define BDWARN(expr)\
   do {\
