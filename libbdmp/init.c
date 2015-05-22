@@ -166,12 +166,14 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 
   /* setup vmm opts */
   opts = 0;
+  if (BDMPI_SB_LAZYWRITE == (job->jdesc->sbopts&BDMPI_SB_LAZYWRITE))
+    opts |= VMM_LZYWR;
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD))
     opts |= VMM_LZYRD;
 
   /* init the sbma subsystem */
   if (-1 == sbma_init(job->jdesc->wdir,\
-    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), opts))
+    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns, opts))
   {
     bdprintf("Failed to init sbma\n");
   }
