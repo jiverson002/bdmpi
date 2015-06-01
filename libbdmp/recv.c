@@ -80,7 +80,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     }
 
     /* go to sleep... */
-    BDMPL_SLEEP(job, gomsg);
+    BDMPL_SLEEP(job, gomsg, 1);
   }
 
   /* get the missing message info from the master */

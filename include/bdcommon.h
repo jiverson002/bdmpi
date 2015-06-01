@@ -348,6 +348,8 @@ typedef struct {
   size_t imsize;            /*!< The maximum size for in-memory buffering */
   size_t sbsize;            /*!< The minimum size for storage-backed allocation */
   size_t pgsize;            /*!< Number of system pages making up a single sb page */
+  size_t rmsize;            /*!< Number of system pages which can be resident
+simultaneously */
   pid_t mpid;               /*!< The pid of the master */
   char wdir[BDMPI_WDIR_LEN]; /*!< The working directory */
 } bdjdesc_t;

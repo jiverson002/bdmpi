@@ -103,7 +103,7 @@ int bdmp_Alltoallv_node(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
 
   /*=====================================================================*/
@@ -326,7 +326,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
         if (job->jdesc->nr < job->jdesc->ns)
           sbma_mevictall();
       }
-      BDMPL_SLEEP(job, gomsg);
+      BDMPL_SLEEP(job, gomsg, 1);
     }
 
     /* get the missing message info from the master */

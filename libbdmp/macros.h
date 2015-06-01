@@ -29,16 +29,23 @@
   fprintf(stderr, __VA_ARGS__)\
 )
 
-#define BDMPL_SLEEP(JOB, MSG)                                               \
+#define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
+  if (1 == IPC && -1 == sbma_eligible(IPC_ELIGIBLE))                        \
+    bdprintf("Failed trying to change eligibility\n");                      \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
   for (;;) {                                                                \
-    if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t)))              \
-      bdprintf("Failed on trying to recv a go message in sleep: %s.\n",     \
-        strerror(errno));                                                   \
+    if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t))) {            \
+      if (EINTR != errno) {                                                 \
+        bdprintf("Failed on trying to recv a go message in sleep: %s.\n",   \
+          strerror(errno));                                                 \
+      }                                                                     \
+    }                                                                       \
     if (BDMPI_MSGTYPE_PROCEED == (MSG).msgtype)                             \
       break;                                                                \
-    slv_route(JOB, &(MSG));                                                 \
+    /*slv_route(JOB, &(MSG));                                               */\
   }                                                                         \
+  if (1 == IPC && -1 == sbma_eligible(0))                                   \
+    bdprintf("Failed trying to change eligibility\n");                      \
   /*bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);*/\
 } while (0)

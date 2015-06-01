@@ -20,8 +20,11 @@ int bdmp_Finalize(sjob_t *job)
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
+  /* destroy additional standard communicators -- must come before memory
+   * management environments are destroyed */
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
+
 
   /* turn off klmalloc subsystem */
   if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_OFF))
@@ -47,7 +50,7 @@ int bdmp_Finalize(sjob_t *job)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
   /* wait for a go response from the master */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 0);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following msg:"
     "%d\n", gomsg.msgtype));

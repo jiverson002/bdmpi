@@ -149,16 +149,10 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   /* sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 0);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: "
     "%d\n", gomsg.msgtype));
-
-  /* create additional standard communicators */
-  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1, &BDMPI_COMM_SELF)
-      == BDMPI_SUCCESS);
-  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank, &BDMPI_COMM_CWORLD)
-      == BDMPI_SUCCESS);
 
   /* ====================================================================== */
   /* everything above here must have been allocated via the libc interface. */
@@ -173,7 +167,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 
   /* init the sbma subsystem */
   if (-1 == sbma_init(job->jdesc->wdir,\
-    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns, opts))
+    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns,\
+    job->jdesc->rmsize, opts))
   {
     bdprintf("Failed to init sbma\n");
   }
@@ -181,6 +176,15 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* init the klmalloc subsystem */
   if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_ON))
     bdprintf("Failed to enable klmalloc\n");
+
+
+  /* create additional standard communicators -- must come after memory
+   * management environments are created */
+  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1,\
+    &BDMPI_COMM_SELF) == BDMPI_SUCCESS);
+  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank,\
+    &BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
+
 
   return BDMPI_SUCCESS;
 }

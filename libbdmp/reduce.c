@@ -76,7 +76,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -209,7 +209,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
     if (job->jdesc->nr < job->jdesc->ns)
       sbma_mevictall();
   }
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -298,7 +298,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLREDUCEF;

@@ -58,7 +58,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
     }
 
     /* go to sleep... */
-    BDMPL_SLEEP(job, gomsg);
+    BDMPL_SLEEP(job, gomsg, 1);
   }
 
   /* get the missing message info from the master */

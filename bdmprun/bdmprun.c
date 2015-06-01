@@ -153,7 +153,6 @@ void setup_master_prefork(mjob_t *job)
   job->imsize *= sysconf(_SC_PAGESIZE);
   job->mmsize *= sysconf(_SC_PAGESIZE);
   job->smsize *= sysconf(_SC_PAGESIZE);
-  job->rmsize *= sysconf(_SC_PAGESIZE);
 
   /* setup MPI-related information */
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Setting up MPI environment\n"));
@@ -195,6 +194,7 @@ void setup_master_prefork(mjob_t *job)
   job->jdesc->imsize  = job->imsize;
   job->jdesc->sbsize  = job->sbsize;
   job->jdesc->pgsize  = job->pgsize;
+  job->jdesc->rmsize  = job->rmsize;
   job->jdesc->dbglvl  = job->dbglvl;
   job->jdesc->mpid    = job->mpid;
 

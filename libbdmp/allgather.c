@@ -84,7 +84,7 @@ int bdmp_Allgatherv(sjob_t *job,
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the allgather */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* notify the master that you want to receive the allgathered data */
   msg.msgtype  = BDMPI_MSGTYPE_ALLGATHERF;
