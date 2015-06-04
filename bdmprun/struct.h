@@ -83,9 +83,6 @@ typedef struct {
   size_t smsize;        /*!< The size of the shared comm buffer (-smsize*pagesize) */
   size_t imsize;        /*!< The maximum size of a message for in-memory buffering */
   size_t mmsize;        /*!< The maximum buffer size of inter-node p2p communication */
-  size_t sbsize;        /*!< The minimum size for sbmalloc() */
-  size_t pgsize;        /*!< The number of system pages per sb_malloc() page */
-  size_t rmsize;        /*!< The maximum number of aggregate systems pages resident */
   int lockmem;          /*!< Specifies if the master will be locking its bcast/reduce
                              buffers */
   int dbglvl;           /*!< The dbglvl of the execution */
@@ -93,14 +90,10 @@ typedef struct {
   char *exefile;        /*!< The name of the executable to be run */
   char **exeargv;       /*!< The command-line arguments of the executable */
 
-  /* sbmalloc related options */
-  int sbopts;           /*!< The sb library options */
-  int sbnt;             /*!< Number of sbmalloc multi-threaded I/O threads */
-
-  /* memory structure */
-  size_t memrss;        /*!< Current resident set size for slaves on node */
-  size_t memmax;        /*!< Maximum amount of memory available on system */
-  size_t * slvrss;      /*!< Current resident set size for slaves on node */
+  /* SBMA related fields */
+  size_t pgsize;        /*!< The number of system pages per SBMA page */
+  size_t rmsize;        /*!< The maximum number of resident system pages */
+  int sbopts;           /*!< The sbma library options */
 
   struct mallinfo * mallinfo; /*!< malloc information for slaves on node */
 

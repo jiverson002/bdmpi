@@ -395,11 +395,7 @@ typedef enum {
 
   BDMPI_MSGTYPE_CID          =100, /*!< a to master-node request for next mpi_commid */
 
-  BDMPI_MSGTYPE_MEMLOAD      =200, /*!< a memory load operation */
-  BDMPI_MSGTYPE_MEMSAVE      =201, /*!< a memory save operation */
-
-  BDMPI_MSGTYPE_PROCEED      =210,  /*!< slave should proceed with execution */
-  BDMPI_MSGTYPE_MEMFREE      =211,  /*!< slave should free its memory */
+  BDMPI_MSGTYPE_PROCEED      =200,  /*!< slave should proceed with execution */
 
   BDMPI_MSGTYPE_NOOP         =999  /*!< a dummy message type */
 } bdmsgtype_et;

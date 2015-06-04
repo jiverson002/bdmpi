@@ -188,13 +188,11 @@ void setup_master_prefork(mjob_t *job)
   job->jdesc->soffset = job->slvdist[job->mynode];
   job->jdesc->ns      = job->ns;
   job->jdesc->nr      = job->nr_input;
-  job->jdesc->sbopts  = job->sbopts;
-  job->jdesc->sbnt    = job->sbnt;
   job->jdesc->smsize  = job->smsize;
   job->jdesc->imsize  = job->imsize;
-  job->jdesc->sbsize  = job->sbsize;
   job->jdesc->pgsize  = job->pgsize;
   job->jdesc->rmsize  = job->rmsize;
+  job->jdesc->sbopts  = job->sbopts;
   job->jdesc->dbglvl  = job->dbglvl;
   job->jdesc->mpid    = job->mpid;
 
@@ -334,14 +332,6 @@ void setup_master_postfork(mjob_t *job)
 
   job->nR = job->ns; /* initially, no co-operating scheduling */
 
-  /* populate the various memory statistics */
-  job->memrss = 0;
-  job->memmax = job->rmsize;
-  //job->memmax = 3221225472;
-  //job->memmax = 3758096384;
-  job->slvrss = (size_t *)gk_malloc(job->ns*sizeof(size_t), "slvrss");
-  memset(job->slvrss, 0, job->ns*sizeof(size_t));
-
   return;
 }
 
@@ -360,10 +350,9 @@ void cleanup_master(mjob_t *job)
   bdprintf("          | ld maximum | rd pages | wr pages | rd fault | wr fault |\n");
   bdprintf("          +------------+----------+----------+----------+----------+\n");
   for (i=0; i<job->ns; i++) {
-    bdprintf(" [%3d]%c%c%c | %10d | %8d | %8d | %8d | %8d |\n", i,
+    bdprintf(" [%3d]%c%c  | %10d | %8d | %8d | %8d | %8d |\n", i,
       job->mallinfo[i].keepcost>0 ? '*' : ' ',
       job->mallinfo[i].uordblks>0 ? '*' : ' ',
-      job->slvrss[i]/sysconf(_SC_PAGESIZE)>0 ? '*' : ' ',
       job->mallinfo[i].fordblks, job->mallinfo[i].usmblks,
       job->mallinfo[i].fsmblks, job->mallinfo[i].smblks,
       job->mallinfo[i].ordblks);
@@ -449,7 +438,6 @@ void cleanup_master(mjob_t *job)
       &job->mblockedmap, &job->cblockedmap,
       &job->blockedts,
       &job->slvdist,
-      &job->slvrss,
       &job->schedule_lock, &job->comm_lock,
       &job, LTERM);
 

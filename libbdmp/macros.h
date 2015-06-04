@@ -31,6 +31,7 @@
 
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
+  memset(&(MSG), 0, sizeof(bdmsg_t));                                       \
   if (1 == IPC && -1 == sbma_eligible(IPC_ELIGIBLE))                        \
     bdprintf("Failed trying to change eligibility\n");                      \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
@@ -43,6 +44,9 @@ do {                                                                        \
     }                                                                       \
     if (BDMPI_MSGTYPE_PROCEED == (MSG).msgtype)                             \
       break;                                                                \
+    /*else\
+      bdprintf("received other message %d %d,%d\n", (MSG).msgtype, errno,\
+        EINTR);*/\
     /*slv_route(JOB, &(MSG));                                               */\
   }                                                                         \
   if (1 == IPC && -1 == sbma_eligible(0))                                   \

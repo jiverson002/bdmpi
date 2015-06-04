@@ -15,14 +15,11 @@
 #define BDMPRUN_CMD_SMSIZE        4
 #define BDMPRUN_CMD_IMSIZE        5
 #define BDMPRUN_CMD_MMSIZE        6
-#define BDMPRUN_CMD_RMSIZE        7
-#define BDMPRUN_CMD_PGSIZE        8
+#define BDMPRUN_CMD_PGSIZE        7
+#define BDMPRUN_CMD_RMSIZE        8
 #define BDMPRUN_CMD_NOLOCKMEM     10
 #define BDMPRUN_CMD_DBGLVL        100
-#define BDMPRUN_CMD_SBDISCARD     200
-#define BDMPRUN_CMD_SBSAVEALL     201
-#define BDMPRUN_CMD_SBLAZYWRITE   202
-#define BDMPRUN_CMD_SBLAZYREAD    203
+#define BDMPRUN_CMD_SBMA          200
 #define BDMPRUN_CMD_HELP          1000
 
 
@@ -31,13 +28,13 @@
 #define BDMPRUN_DEFAULT_NR            1
 #define BDMPRUN_DEFAULT_NC            1
 #define BDMPRUN_DEFAULT_WDIR          "/tmp/bdmpi"
-#define BDMPRUN_DEFAULT_SBOPTS        0
+#define BDMPRUN_DEFAULT_SBOPTS        (BDMPI_SB_DISCARD|BDMPI_SB_SAVEALL)
 #define BDMPRUN_DEFAULT_IMSIZE        4
 #define BDMPRUN_DEFAULT_SMSIZE        20
 #define BDMPRUN_DEFAULT_MMSIZE        32
 #define BDMPRUN_DEFAULT_PGSIZE        4
 #define BDMPRUN_DEFAULT_RMSIZE        917504  /* 3584 MiB */
-#define BDMPRUN_DEFAULT_SBNT          1
+#define BDMPRUN_DEFAULT_SBMA          "araw"
 #define BDMPRUN_DEFAULT_LOCKMEM       1
 #define BDMPRUN_DEFAULT_DBGLVL        0
 
