@@ -170,7 +170,9 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         break;
 
       case BDMPRUN_CMD_SBMA:
-        if (0 == strncmp(gk_optarg, "arlw", 5)) {
+        if (0 == strncmp(gk_optarg, "araw", 5)) {
+        }
+        else if (0 == strncmp(gk_optarg, "arlw", 5)) {
           bdmp->sbopts &= ~BDMPI_SB_SAVEALL;
           bdmp->sbopts |= BDMPI_SB_LAZYWRITE;
         }
