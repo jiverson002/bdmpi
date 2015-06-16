@@ -67,11 +67,11 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
     if (mype == root)
-      sbma_mclear(recvbuf, bdmp_msize(count, datatype));
+      SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sbma_mevictall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
@@ -207,7 +207,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   /* go to sleep until everybody has called the reduce */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sbma_mevictall();
+      SBMA_mevictall();
   }
   BDMPL_SLEEP(job, gomsg, 1);
 
@@ -289,11 +289,11 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
-    sbma_mclear(recvbuf, bdmp_msize(count, datatype));
+    SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sbma_mevictall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 

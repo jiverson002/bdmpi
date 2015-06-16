@@ -28,13 +28,13 @@
 #define BDMPRUN_DEFAULT_NR            1
 #define BDMPRUN_DEFAULT_NC            1
 #define BDMPRUN_DEFAULT_WDIR          "/tmp/bdmpi"
-#define BDMPRUN_DEFAULT_SBOPTS        (BDMPI_SB_DISCARD|BDMPI_SB_SAVEALL)
+#define BDMPRUN_DEFAULT_SBOPTS        BDMPI_SB_DISCARD
 #define BDMPRUN_DEFAULT_IMSIZE        4
 #define BDMPRUN_DEFAULT_SMSIZE        20
 #define BDMPRUN_DEFAULT_MMSIZE        32
 #define BDMPRUN_DEFAULT_PGSIZE        4
 #define BDMPRUN_DEFAULT_RMSIZE        917504  /* 3584 MiB */
-#define BDMPRUN_DEFAULT_SBMA          "araw"
+#define BDMPRUN_DEFAULT_SBMA          "none"
 #define BDMPRUN_DEFAULT_LOCKMEM       1
 #define BDMPRUN_DEFAULT_DBGLVL        0
 

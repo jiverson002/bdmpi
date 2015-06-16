@@ -25,16 +25,11 @@ int bdmp_Finalize(sjob_t *job)
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
-
-  /* turn off klmalloc subsystem */
-  if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_OFF))
-    bdprintf("Failed to disable klmalloc\n");
-
   /* turn off sbma subsystem */
-  if (-1 == sbma_destroy())
+  if (-1 == SBMA_destroy())
     bdprintf("Failed to destroy sbma\n");
 
-  mi = sbma_mallinfo();
+  mi = SBMA_mallinfo();
   memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
 
   /* ====================================================================== */

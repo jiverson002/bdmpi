@@ -166,17 +166,12 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     opts |= VMM_LZYRD;
 
   /* init the sbma subsystem */
-  if (-1 == sbma_init(job->jdesc->wdir,\
+  if (-1 == SBMA_init(job->jdesc->wdir,\
     job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns,\
     job->jdesc->rmsize, opts))
   {
     bdprintf("Failed to init sbma\n");
   }
-
-  /* init the klmalloc subsystem */
-  if (-1 == KL_mallopt(M_ENABLED, M_ENABLED_ON))
-    bdprintf("Failed to enable klmalloc\n");
-
 
   /* create additional standard communicators -- must come after memory
    * management environments are created */
@@ -184,7 +179,6 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     &BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank,\
     &BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
-
 
   return BDMPI_SUCCESS;
 }

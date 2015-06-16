@@ -66,11 +66,11 @@ int bdmp_Bcast(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
     if (mype != root)
-      sbma_mclear(buf, bdmp_msize(count, datatype));
+      SBMA_mclear(buf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sbma_mevictall();
+      SBMA_mevictall();
   }
 
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
