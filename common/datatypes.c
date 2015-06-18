@@ -87,7 +87,7 @@ size_t bdmp_sizeof(BDMPI_Datatype datatype)
         return sizeof(bdvlp_ii_t);
 
       default:
-        errexit("Undefined datatype: %d.\n", (int)datatype);
+        errexit("[%5d] +Undefined datatype: %d.\n", (int)getpid(), (int)datatype);
   }
 
   return 0;

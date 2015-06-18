@@ -561,9 +561,9 @@ int MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
               recvtype, comm);
 }
 
-int MPI_Alltoallv(void const *sendbuf, int const *sendcounts,
-         int const *sdispls, MPI_Datatype sendtype,
-         void *recvbuf, int const *recvcounts, int const *rdispls,
+int MPI_Alltoallv(void const * const sendbuf, int const * const sendcounts,
+         int const * const sdispls, MPI_Datatype sendtype, void *recvbuf,
+         int const * const recvcounts, int const * const rdispls,
          MPI_Datatype recvtype, MPI_Comm comm)
 {
   EXITIFNOTINIT(job);
@@ -579,8 +579,8 @@ int MPI_Alltoallv(void const *sendbuf, int const *sendcounts,
     _rdispls[i]    = rdispls[i];
   }
 
-  return BDMPI_Alltoallv((void*)sendbuf, (void*)_sendcounts, (void*)_sdispls,
-    sendtype, recvbuf, (void*)_recvcounts, (void*)_rdispls, recvtype, comm);
+  return BDMPI_Alltoallv((void*)sendbuf, _sendcounts, _sdispls, sendtype, recvbuf,
+              _recvcounts, _rdispls, recvtype, comm);
 
 }
 
@@ -793,157 +793,6 @@ int BDMPI_Exitcritical(void)
   return BDMPI_SUCCESS;
 }
 
-
-/*! @} */
-
-/*! \defgroup bdmpisbmalloclist Functions for storage-backed memory allocation 
-
-This set of functions provides access to \bdmpi's *storage-backed memory allocation*
-subsystem, which is designed to bypass the system's swap file and achieve faster I/O
-performance during loading/saving of a process' address space.
-
-@{
-*/
-
-/**************************************************************************/
-/*! 
-
-Provides the same functionality as \p malloc().
-  
-*/
-/**************************************************************************/
-void *BDMPI_sbmalloc(size_t size)
-{
-  return sb_malloc(size);
-}
-
-/**************************************************************************/
-/*! 
-
-Provides the same functionality as \p realloc(). The \p oldptr must be a 
-pointer previously returned by either BDMPI_sbmalloc() or BDMPI_sbrealloc().
-
-*/
-/**************************************************************************/
-void *BDMPI_sbrealloc(void *oldptr, size_t size)
-{
-  return sb_realloc(oldptr, size);
-}
-
-/**************************************************************************/
-/*! 
-
-Implementation of \p free(). The \p ptr should be a pointer previously returned by
-either BDMPI_sbmalloc() or BDMPI_sbrealloc().
-
-*/
-/**************************************************************************/
-void BDMPI_sbfree(void *ptr)
-{
-  sb_free(ptr);
-}
-
-/**************************************************************************/
-/*! 
-
-It is used to make the memory associated with a previous BDMPI_sbmalloc() or
-BDMPI_sbrealloc() allocation available for accessing. If the allocation has been
-previously written to disk, then it will be restored from the disk.
-
-\param[in] ptr is a pointer to a previous allocation. Note that this does not have to
-be a pointer to the start of the region; a pointer anywhere in the allocated region
-will work.
-
-\note In order to ensure correct execution of \bdmpi multi-threaded programs (e.g.,
-programs whose processes rely on pthreads or OpenMP), any memory that has been
-allocated with either BDMPI_sbmalloc() or BDMPI_sbrealloc() and is accessed
-concurrently by multiple threads needs to be loaded prior to entering the
-multi-threaded region (e.g., parallel region in OpenMP).
-  
-*/
-/**************************************************************************/
-void BDMPI_sbload(void *ptr)
-{
-  sb_load(ptr);
-}
-
-/**************************************************************************/
-/*! 
-
-It is used to make all the memory associated with any previous BDMPI_sbmalloc() or
-BDMPI_sbrealloc() allocations available for accessing. If these allocations have been
-previously written to disk, they will be restored from the disk.
-
-*/
-/**************************************************************************/
-void BDMPI_sbloadall(void)
-{
-  sb_loadall();
-}
-
-/**************************************************************************/
-/*! 
-
-It is used to remove from active memory the memory pages associated with a
-BDMPI_sbmalloc() or BDMPI_sbrealloc() allocation. If any of the pages have been
-modified since the last time there were unloaded, they are first written to disk
-prior to removing them from the active memory. The unloading process does not change
-any of the virtual memory mappings and any subsequent access of the unloaded memory
-will automatically load it back in active memory.
-
-\param[in] ptr is a pointer to a previous allocation. Note that this does not have to be
-a pointer to the start of the region; a pointer anywhere in the allocated region will
-work.
-
-*/
-/**************************************************************************/
-void BDMPI_sbunload(void *ptr)
-{
-  sb_save(ptr);
-}
-
-/**************************************************************************/
-/*! 
-
-It is used to remove from active memory the memory pages that were previously
-allocated by any BDMPI_sbmalloc() or BDMPI_sbrealloc() calls. 
-
-Note that when the number of slaves that are allowed to be running (as specified by
-the `-nr` parameter of \bdmprun) is equal to the number of slaves (the `-ns`
-parameter of \bdmprun), this function does nothing. 
-
-*/
-/**************************************************************************/
-void BDMPI_sbunloadall(void)
-{
-  if (job->jdesc->nr < job->jdesc->ns)
-    sb_saveall();
-}
-
-/**************************************************************************/
-/*! 
-
-It is used to remove from active memory the memory pages associated with a
-BDMPI_sbmalloc() or BDMPI_sbrealloc() allocation and to also discard any
-modifications that may have been made to them. Next time the application access any
-of the memory in the discarded region it will be treated as if it was freshly
-allocated memory (i.e., its values will be undefined). This function should be used
-to discard sbmalloc'ed allocations corresponding to *scratch* memory prior to
-entering a blocking call.
-
-\param[in] ptr is a pointer to a memory location previously allocated by
-BDMPI_sbmalloc() or BDMPI_sbrealloc(). 
-
-\param[in] size specifies the number of bytes starting at \p ptr that will 
-be discarded. If size is -1, then the entire allocation associated with ptr 
-is discarded.
-
-*/
-/**************************************************************************/
-void BDMPI_sbdiscard(void *ptr, ssize_t size)
-{
-  sb_discard(ptr, size);
-}
 
 /*! @} */
 

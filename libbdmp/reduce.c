@@ -67,16 +67,16 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
     if (mype == root)
-      sb_discard(recvbuf, bdmp_msize(count, datatype));
+      SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -145,7 +145,7 @@ int bdmp_Reduce_init(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* the root gets the copid message */
-  request = *r_request = (bdrequest_t *)gk_malloc(sizeof(bdrequest_t), "request");
+  request = *r_request = (bdrequest_t *)bd_malloc(sizeof(bdrequest_t), "request");
   memset(request, 0, sizeof(bdrequest_t));
   request->type = BDMPI_REQUEST_REDUCEI;
   request->copid = -1;
@@ -207,9 +207,9 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
   /* go to sleep until everybody has called the reduce */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* the root sends a REDUCE_RECV request and get the data */
   if (mype == root) {
@@ -231,7 +231,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
     xfer_in_scb(job->scb, recvbuf, count, datatype);
   }
 
-  gk_free((void **)r_request, LTERM);
+  bd_free((void **)r_request, LTERM);
   *r_request = BDMPI_REQUEST_NULL;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Reduce_fine: exiting: comm: %p\n", comm));
@@ -289,16 +289,16 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
-    sb_discard(recvbuf, bdmp_msize(count, datatype));
+    SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the reduce */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLREDUCEF;

@@ -93,12 +93,12 @@ int bdmp_Gatherv_node(sjob_t *job,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /*=====================================================================*/
   /* after waking up... */
@@ -240,7 +240,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
   /* save the data in case you go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   /* sync to ensure collective semantics */
@@ -248,7 +248,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
   /* the root receives data from everybody */
   if (mype == root) {
-    rmsgs = (bdmsg_t *)gk_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Gatherv_p2p: rmsgs");
+    rmsgs = (bdmsg_t *)bd_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Gatherv_p2p: rmsgs");
     memset(rmsgs, 0, sizeof(bdmsg_t)*npes);
 
     /* deal with root's data */
@@ -264,8 +264,8 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     /* sbdiscard the incoming buffers */
     S_SB_IFSET(BDMPI_SB_DISCARD) {
       for (p=0; p<npes; p++)
-        sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
-          bdmp_msize(recvcounts[p], bdmp_sizeof(recvtype)));
+        SBMA_mclear((char *)recvbuf+rdispls[p]*rdtsize,
+          bdmp_msize(recvcounts[p], recvtype));
     }
 
     /* receive data from everybody else */
@@ -295,9 +295,9 @@ int bdmp_Gatherv_p2p(sjob_t *job,
         /* go to sleep... */
         S_SB_IFSET(BDMPI_SB_SAVEALL) {
           if (job->jdesc->nr < job->jdesc->ns)
-            sb_saveall();
+            SBMA_mevictall();
         }
-        BDMPL_SLEEP(job, gomsg);
+        BDMPL_SLEEP(job, gomsg, 1);
       }
 
       /* get the missing message info from the master */
@@ -331,7 +331,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
       memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf, size);
     }
 
-    gk_free((void **)&rmsgs, LTERM);
+    bd_free((void **)&rmsgs, LTERM);
   }
 
 

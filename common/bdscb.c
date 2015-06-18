@@ -28,13 +28,13 @@ bdscb_t *bdscb_create(size_t size, char *tag, int num)
   char name[256];
   bdscb_t *scb=NULL;
 
-  scb = (bdscb_t *)gk_malloc(sizeof(bdscb_t), "bdscb_create: scb");
+  scb = (bdscb_t *)bd_malloc(sizeof(bdscb_t), "bdscb_create: scb");
 
   /* allocate the shared memory, set its size, and map it */
   scb->size = size;
 
   sprintf(name, "/scbsm%s%d", tag, num);
-  scb->smname = gk_strdup(name);
+  scb->smname = bd_strdup(name);
   shm_unlink(name);
 
   scb->fd = shm_open(name, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR);
@@ -51,7 +51,7 @@ bdscb_t *bdscb_create(size_t size, char *tag, int num)
 
   /* allocate the empty semaphore */
   sprintf(name, "/scbesem%s%d", tag, num);  
-  scb->esemname = gk_strdup(name);
+  scb->esemname = bd_strdup(name);
   sem_unlink(name);
 
   scb->esem = sem_open(name, O_CREAT, S_IRUSR|S_IWUSR, 1);
@@ -61,7 +61,7 @@ bdscb_t *bdscb_create(size_t size, char *tag, int num)
 
   /* allocate the full semaphore */
   sprintf(name, "/scbfsem%s%d", tag, num);  
-  scb->fsemname = gk_strdup(name);
+  scb->fsemname = bd_strdup(name);
   sem_unlink(name);
 
   scb->fsem = sem_open(name, O_CREAT, S_IRUSR|S_IWUSR, 0);
@@ -91,13 +91,13 @@ bdscb_t *bdscb_open(size_t size, char *tag, int num)
   char name[256];
   bdscb_t *scb;
 
-  scb = (bdscb_t *)gk_malloc(sizeof(bdscb_t), "bdscb_create: scb");
+  scb = (bdscb_t *)bd_malloc(sizeof(bdscb_t), "bdscb_create: scb");
 
   /* allocate the shared memory object and map it */
   scb->size = size;
 
   sprintf(name, "/scbsm%s%d", tag, num);
-  scb->smname = gk_strdup(name);
+  scb->smname = bd_strdup(name);
 
   scb->fd = shm_open(name, O_RDWR, S_IRUSR|S_IWUSR);
   if (scb->fd == -1) 
@@ -115,7 +115,7 @@ bdscb_t *bdscb_open(size_t size, char *tag, int num)
 
   /* allocate the empty semaphore */
   sprintf(name, "/scbesem%s%d", tag, num);  
-  scb->esemname = gk_strdup(name);
+  scb->esemname = bd_strdup(name);
 
   scb->esem = sem_open(name, 0);
   if (scb->esem == SEM_FAILED)
@@ -124,7 +124,7 @@ bdscb_t *bdscb_open(size_t size, char *tag, int num)
 
   /* allocate the full semaphore */
   sprintf(name, "/scbfsem%s%d", tag, num);  
-  scb->fsemname = gk_strdup(name);
+  scb->fsemname = bd_strdup(name);
 
   scb->fsem = sem_open(name, 0);
   if (scb->fsem == SEM_FAILED)
@@ -150,7 +150,7 @@ void bdscb_close(bdscb_t *scb)
   if (close(scb->fd) == -1)
     errexit("Failed on close(scb->fd): %s\n", strerror(errno));
 
-  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
+  bd_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
 }
 
 
@@ -178,7 +178,7 @@ void bdscb_destroy(bdscb_t *scb)
   if (shm_unlink(scb->smname) == -1)
     errexit("Failed on shm_unlink(scb->smname): %s\n", strerror(errno));
 
-  gk_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
+  bd_free((void **)&scb->smname, &scb->esemname, &scb->fsemname, &scb, LTERM);
 }
 
 

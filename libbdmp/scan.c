@@ -35,8 +35,8 @@ int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   msize = bdmp_msize(count, datatype);
 
-  abuf = gk_cmalloc(msize, "abuf: bdmp_Scan");
-  tbuf = gk_cmalloc(msize, "tbuf: bdmp_Scan");
+  abuf = bd_malloc(msize, "abuf: bdmp_Scan");
+  tbuf = bd_malloc(msize, "tbuf: bdmp_Scan");
 
   memcpy(abuf, sendbuf, msize);
   memcpy(recvbuf, sendbuf, msize);
@@ -57,7 +57,7 @@ int bdmp_Scan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     }
   }
 
-  gk_free((void**)&abuf, (void**)&tbuf, LTERM);
+  bd_free((void**)&abuf, (void**)&tbuf, LTERM);
 
   return ierror;
 }
@@ -90,8 +90,8 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
 
   msize = bdmp_msize(count, datatype);
 
-  abuf = gk_cmalloc(msize, "abuf: bdmp_Scan");
-  tbuf = gk_cmalloc(msize, "tbuf: bdmp_Scan");
+  abuf = bd_malloc(msize, "abuf: bdmp_Scan");
+  tbuf = bd_malloc(msize, "tbuf: bdmp_Scan");
 
   memcpy(abuf, sendbuf, msize);
 
@@ -113,7 +113,7 @@ int bdmp_Exscan(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     }
   }
 
-  gk_free((void**)&abuf, (void**)&tbuf, LTERM);
+  bd_free((void**)&abuf, (void**)&tbuf, LTERM);
 
   return ierror;
 }

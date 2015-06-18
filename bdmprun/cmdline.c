@@ -21,16 +21,11 @@ static struct gk_option long_options[] = {
   {"sm",    1,      0,      BDMPRUN_CMD_SMSIZE},
   {"im",    1,      0,      BDMPRUN_CMD_IMSIZE},
   {"mm",    1,      0,      BDMPRUN_CMD_MMSIZE},
-  {"sb",    1,      0,      BDMPRUN_CMD_SBSIZE},
-  {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
-  {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"nlm",   0,      0,      BDMPRUN_CMD_NOLOCKMEM},
 
-  {"sbd",   0,      0,      BDMPRUN_CMD_SBDISCARD},
-  {"sbs",   0,      0,      BDMPRUN_CMD_SBSAVEALL},
-  {"sblw",  0,      0,      BDMPRUN_CMD_SBLAZYWRITE},
-  {"sblr",  0,      0,      BDMPRUN_CMD_SBLAZYREAD},
-  {"sbas",  0,      0,      BDMPRUN_CMD_SBASIO},
+  {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
+  {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
+  {"sbma",  1,      0,      BDMPRUN_CMD_SBMA},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -62,14 +57,14 @@ static char helpstr[][100] =
 "  -sm=int [Default: 20]",
 "     Specifies the number of shared memory pages allocated for each slave.",
 " ",
+"  -mm=int [Default: 32]",
+"     Specifies the maximum size of the buffer to be used by MPI for ",
+"     inter-node communication. The size is in terms of memory pages.",
+" ",
 "  -im=int [Default: 4]",
 "     Specifies the maximum size of a message that will be buffered",
 "     in the memory of the master. Messages longer than that are buffered",
 "     on disk. The size is in terms of memory pages.",
-" ",
-"  -mm=int [Default: 32]",
-"     Specifies the maximum size of the buffer to be used by MPI for ",
-"     inter-node communication. The size is in terms of memory pages.",
 /*
 " ",
 "  -dm=int [Default: 8]",
@@ -82,55 +77,27 @@ static char helpstr[][100] =
 "     bcast/reduce operations.",
 */
 " ",
-"  -pg=int [Default: 4]",
-"     Specifies the number of system pages which make a single sb_malloc page.",
-" ",
-"  -rm=int [Default: 32]",
-"     Specifies the aggregate maximum resident set size for the slave ",
-"     processes on each node. The int argument is the base two logarithm of ",
-"     the desired size, so default is 2^32 = 4GiB.",
-" ",
-"  -sb=int [Default: 32]",
-"     Specifies the size of allocations for which the explicit storage backed",
-"     subsystem should be used. The size is in terms of number of pages and a",
-"     value of 0 turns it off.",
-" ",
 "  -wd=string [Default: "BDMPRUN_DEFAULT_WDIR"]",
 "     Specifies where working files will be stored.",
 " ",
-"  -sbd [Default: no]",
-"     Enables the use of sb_discard() throughout the BDMPI library.",
+"  -pg=int [Default: 4]",
+"     Specifies the number of system pages which make a single sbpage.",
 " ",
-"  -sbs [Default: no]",
-"     Enables the use of sb_saveall() throughout the BDMPI library.",
+"  -rm=int [Default: 917504]",
+"     Specifies the maximum resident set size for the slave processes on",
+"     each node. The size is in terms of number of system pages.",
 " ",
-"  -sblw [Default: no]",
-"     Enables the ``lazy-write'' strategy in the sbmalloc library.  This",
-"     means that memory allocations controlled by the sbmalloc library will",
-"     not be written to disk until there is ``sufficient'' pressure on the",
-"     total DRAM to warrant such an action.  In this case, ``sufficient'' is",
-"     determined by the resident memory command line parameter `-rm='.",
+"  -sbma=string [Default: "BDMPRUN_DEFAULT_SBMA"]",
+"     Speicifies the operating mode of the SBMA library.  Valid options are:",
+"       araw  Aggressive read / aggressive write",
+"       arlw  Aggressive read / lazy write",
+"       lraw  Lazy read       / aggressive write",
+"       lrlw  Lazy read       / lazy write",
 " ",
-"     While compatible, it is not recommended to use this option with the ",
-"     `-sbs' option, since the latter will essentially negate the advantages",
-"     of this strategy.",
-" ",
-"  -sblr [Default: no]",
-"     Enables the ``lazy-read'' strategy in the sbmalloc library.  This",
-"     means that memory allocations controlled by the sbmalloc library will",
-"     not be read from disk and read protected until the application makes a",
-"     read / write attempt to the memory location corresponding to the",
-"     allocation.  Furthermore, rather than read the entire allocation",
-"     chunk, the first time that any system page within it is accessed,",
-"     memory is read and protected at a resolution of an sbpage, which can",
-"     be any multiple of a system page.",
-" ",
-"  -sbas [Default: no]",
-"     Enable the ``asynchronous I/O'' strategy in the sbmalloc library.",
-"     This means that when a memory request is made for a page, the page",
-"     will be read if it is not already and returned immediately. Then, in",
-"     the background, an `I/O thread' will continue reading the rest of the",
-"     chunk that the page was from.",
+"     The `laziness' of the lr* methods is controlled by the system page ",
+"     multiplier command line parameter `-pg='.",
+"     The `laziness' of the *lw methods is controlled by the resident memory ",
+"     command line parameter `-rm='.",
 " ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
@@ -162,7 +129,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->smsize   = BDMPRUN_DEFAULT_SMSIZE;
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
-  bdmp->sbsize   = BDMPRUN_DEFAULT_SBSIZE;
+  bdmp->rmsize   = BDMPRUN_DEFAULT_RMSIZE;
   bdmp->pgsize   = BDMPRUN_DEFAULT_PGSIZE;
   bdmp->lockmem  = BDMPRUN_DEFAULT_LOCKMEM;
   bdmp->dbglvl   = BDMPRUN_DEFAULT_DBGLVL;
@@ -182,26 +149,6 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         if (gk_optarg) bdmp->nr_input = atoi(gk_optarg);
         break;
 
-      case BDMPRUN_CMD_SBDISCARD:
-        bdmp->sbopts |= BDMPI_SB_DISCARD;
-        break;
-
-      case BDMPRUN_CMD_SBSAVEALL:
-        bdmp->sbopts |= BDMPI_SB_SAVEALL;
-        break;
-
-      case BDMPRUN_CMD_SBLAZYWRITE:
-        bdmp->sbopts |= BDMPI_SB_LAZYWRITE;
-        break;
-
-      case BDMPRUN_CMD_SBLAZYREAD:
-        bdmp->sbopts |= BDMPI_SB_LAZYREAD;
-        break;
-
-      case BDMPRUN_CMD_SBASIO:
-        bdmp->sbopts |= BDMPI_SB_ASIO;
-        break;
-
       case BDMPRUN_CMD_SMSIZE:
         if (gk_optarg) bdmp->smsize = (size_t)atoi(gk_optarg);
         break;
@@ -214,16 +161,25 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         if (gk_optarg) bdmp->mmsize = (size_t)atoi(gk_optarg);
         break;
 
-      case BDMPRUN_CMD_SBSIZE:
-        if (gk_optarg) bdmp->sbsize = (size_t)atoi(gk_optarg);
+      case BDMPRUN_CMD_PGSIZE:
+        if (gk_optarg) bdmp->pgsize = atoi(gk_optarg);
         break;
 
       case BDMPRUN_CMD_RMSIZE:
         if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
         break;
 
-      case BDMPRUN_CMD_PGSIZE:
-        if (gk_optarg) bdmp->pgsize = atoi(gk_optarg);
+      case BDMPRUN_CMD_SBMA:
+        if (0 == strncmp(gk_optarg, "araw", 5))
+          bdmp->sbopts |= BDMPI_SB_SAVEALL;
+        else if (0 == strncmp(gk_optarg, "arlw", 5))
+          bdmp->sbopts |= BDMPI_SB_LAZYWRITE;
+        else if (0 == strncmp(gk_optarg, "lraw", 5))
+          bdmp->sbopts |= (BDMPI_SB_SAVEALL|BDMPI_SB_LAZYREAD);
+        else if (0 == strncmp(gk_optarg, "lrlw", 5))
+          bdmp->sbopts |= (BDMPI_SB_LAZYREAD|BDMPI_SB_LAZYWRITE);
+        else
+          printf("invalid sbma option `%s'\n", gk_optarg);
         break;
 
       case BDMPRUN_CMD_DBGLVL:
@@ -288,8 +244,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
     errexit("The value for -im should be greater than 0.");
   if (bdmp->mmsize < 1)
     errexit("The value for -mm should be greater than 0.");
-  if (bdmp->sbsize < 0)
-    errexit("The value for -sb should be non-negative.");
+  if (bdmp->pgsize < 0)
+    errexit("The value for -pg should be non-negative.");
+  if (bdmp->rmsize < 0)
+    errexit("The value for -rm should be non-negative.");
 
   return bdmp;
 }

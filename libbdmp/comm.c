@@ -140,17 +140,17 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   /* notify the master that you entering a barrier */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* allocate the new communicator */
-  *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
+  *newcomm = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "newcomm");
 
   /* copy the new communicator info from the master */
   xfer_in_scb(job->scb, *newcomm, sizeof(bdscomm_t), BDMPI_BYTE);
@@ -178,7 +178,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   memset(&msg, 0, sizeof(bdmsg_t));
@@ -190,10 +190,10 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* remove the info associated with the old communicator */
-  gk_free((void **)comm, LTERM);
+  bd_free((void **)comm, LTERM);
   *comm = BDMPI_COMM_NULL;
 
   return BDMPI_SUCCESS;
@@ -218,7 +218,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   *newcomm = BDMPI_COMM_NULL;
@@ -231,13 +231,16 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
   msg.dest    = key;
 
   /* notify the master that you entering a barrier */
-  bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
+  if (-1 == bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t))) {
+    bdprintf("Failed on trying to send a req message: %s.\n",
+      strerror(errno));
+  }
 
   /* go to sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   /* create the new communicator */
-  *newcomm = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "newcomm");
+  *newcomm = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "newcomm");
 
   /* copy the new communicator info from the master */
   xfer_in_scb(job->scb, *newcomm, sizeof(bdscomm_t), BDMPI_BYTE);

@@ -141,68 +141,82 @@ slave processes. Section \ref running provides detailed information on how to us
 <!-- ***************************************************************************** -->
 \subsection sbmalloc Efficient loading & saving of a process's address space
 
-The initial implementation of \bdmpi (\cite lasalle13discs and \cite lasalle13tr),
-explored three different approaches for saving and/or restoring the address space of
-a slave process. The first approach relied entirely on the OS's VMM system to
-save/load the unused/used pages from the system's swap file. The second approach
-incorporated application-directed prefetching by relying on the \c mlock() system
-calls to lock in physical memory parts of the address space. Finally, the third
-bypassed the swap file entirely by requiring the application to explicitly save/load
-the various data structures that it needs to/from a file. The first approach is
-entirely transparent to the programmer, whereas the last two approaches require that
-the programmer modifies his/her program in order to either insert the appropriate \c
-mlock()/munlock() calls or explicitly perform file I/O. However, the gains achieved
-by the last two approaches were often considerable, with the third approach
-performing the best.
+The initial implementation of \bdmpi (\cite lasalle13discs and \cite
+lasalle13tr), explored three different approaches for saving and/or restoring
+the address space of a slave process. The first approach relied entirely on
+the OS's VMM system to save/load the unused/used pages from the system's swap
+file. The second approach incorporated application-directed prefetching by
+relying on the \c mlock() system calls to lock in physical memory parts of the
+address space. Finally, the third bypassed the swap file entirely by requiring
+the application to explicitly save/load the various data structures that it
+needs to/from a file. The first approach is entirely transparent to the
+programmer, whereas the last two approaches require that the programmer
+modifies his/her program in order to either insert the appropriate \c
+mlock()/munlock() calls or explicitly perform file I/O. However, the gains
+achieved by the last two approaches were often considerable, with the third
+approach performing the best.
 
-The current implementation of \bdmpi uses its own memory allocation subsystem that is
-designed to achieve the performance of explicit file I/O with no or minimal
-modifications of the underlying program. This memory management subsystem, which is
-referred to as <em>storage-backed memory allocation</em> and will be abbreviated as
-\e sbmalloc, is implemented as a wrapper around \c libc's standard \c malloc()
-library. That is, a call to \c malloc() in a \bdmpi program will be performed by
-sbmalloc. \bdmpi provides wrappers for the following malloc-related functions: \c
-malloc(), \c realloc(), and \c free(). Note that \c calloc() is not in that list due
-to an issue with GNU libc's implementation of \c dlsym(), which prevents \c calloc()
-to be wrapped. 
+The current implementation of \bdmpi uses its own memory allocation subsystem
+that is designed to achieve the performance of explicit file I/O with no or
+minimal modifications of the underlying program. This memory management
+subsystem, which is referred to as <em>storage-backed memory allocation</em>
+(\cite iverson15tr), and will be abbreviated as \e sbmalloc, is implemented as
+a wrapper around \c libc's standard \c malloc() library. That is, a call to \c
+malloc() in a \bdmpi program will be performed by sbmalloc. \bdmpi provides
+wrappers for the following malloc-related functions: \c malloc(), \c calloc(),
+\c realloc(), and \c free().
 
 The key ideas behind sbmalloc are the following:
 
-- It uses \c mmap() to satisfy an allocation request and creates a file that will 
-  be used to persist the data of the associated memory pages when the slave is 
-  blocked.
+- It uses \c mmap() to satisfy an allocation request and creates a file that
+  will be used to persist the data of the associated memory pages when the
+  slave is blocked.
 
-- It relies on memory protection and signal handling to determine if the program
-  is accessing any of the allocated pages and if so, the access mode (read or 
-  write).
+- It relies on memory protection and signal handling to determine if the
+  program is accessing any of the allocated pages and if so, the access mode
+  (read or write).
 
-- It saves any pages that have been modified to its associated file when the slave 
-  process blocks due to a communication operation and 
-  - informs the OS that the associated address space does not need to be saved in 
-    the swap file, and 
-  - modifies the memory protection of the associated pages to remove read/write
-    permissions.
-    
-- When a process first reads anywhere in the allocation, it reads the previous
-  data from the disk for the entire allocation (if they exist) and gives the 
-  process read permissions to the allocation.
-  
-As a result of the above, if the aggregate amount of memory that the running slaves
-need to access between successive blocking operations fits within the physical memory
-of the node, these allocations will not use the system's swap file. The advantage of
-this approach is that as long as the application tends to read and/or write all the
-data within an allocation request, this data will be brought into memory and saved
-with fast sequential read/write operations. 
+- It saves any pages that have been modified to its associated file when the
+  slave process blocks due to a communication operation and
+  - informs the OS that the associated address space does not need to be saved
+    in the swap file, and
+  - modifies the memory protection of the associated pages to remove
+    read/write permissions.
 
-Section \ref memoptions provides additional information on how to control which
-memory allocations will be handled by sbmalloc and which ones will be handled by the
-standard malloc library. Section \ref bdmpisbmalloc provides information on how to
-explicitly use the sbmalloc subsystem in a program. Finally, \ref tb_sbmalloc
-provides information on some issues that may arise with sbmalloc and how to resolve
-them.
+- \e sbmalloc implements four different read/write strategies for choosing
+  when data should be transferred to/from disk. Each of the four strategies is
+  a unique combination of the following four read/write algorithms:
+  - Aggressive Write (aw) - Before every blocking MPI operation, the currently
+    executing process writes any modified pages to disk.
+  - Lazy Write (lw) - Modified pages are not written to disk before
+    each blocking MPI operation. Instead, when the system memory becomes
+    over-committed, according to the \c -rm parameter, the master process
+    chooses as blocked slave which then writes all of its modified pages to
+    disk.
+  - Aggresive Read (ar) - Upon resuming execution, the first access anywhere
+    in an allocation causes the relevant process to read the previous data
+    from the disk for the entire allocation (if they exists) and give read
+    permission to the allocation.
+  - Lazy Read (lr) - Rather than reading the previous data for an entire
+    allocation upon first access, data is read at a smaller resolution,
+    dictated by the \c -pg parameter.
 
+<!--
+- When a process first reads anywhere in the allocation, it reads the
+previous data from the disk for the entire allocation (if they exist) and
+gives the process read permissions to the allocation.
 
+As a result of the above, if the aggregate amount of memory that the running
+slaves need to access between successive blocking operations fits within the
+physical memory of the node, these allocations will not use the system's swap
+file. The advantage of this approach is that as long as the application tends
+to read and/or write all the data within an allocation request, this data will
+be brought into memory and saved with fast sequential read/write operations.
+-->
+
+Section \ref memoptions provides additional information on how to control the
+memory exchange strategy and its associated parameters. Finally, \ref
+tb_sbmalloc provides information on some issues that may arise with sbmalloc
+and how to resolve them.
 
 */
-
-

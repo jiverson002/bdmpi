@@ -54,8 +54,8 @@ typedef __int64 int64_t;
 
 /* BDMPI's version number */
 #define BDMPI_VER_MAJOR         0
-#define BDMPI_VER_MINOR         1
-#define BDMPI_VER_SUBMINOR      0
+#define BDMPI_VER_MINOR         2
+#define BDMPI_VER_SUBMINOR      1
 
 
 /* Wild-cards */
@@ -508,9 +508,10 @@ MPI_API(int) MPI_Scatterv(void *sendbuf, int *sendcounts, int *displs,
 MPI_API(int) MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype,
                    void *recvbuf, int recvcount, MPI_Datatype recvtype,
                    MPI_Comm comm);
-MPI_API(int) MPI_Alltoallv(void const *sendbuf, int const *sendcounts,
-                   int const *sdipls, MPI_Datatype sendtype, void *recvbuf,
-                   int const *recvcounts, int const *rdispls,
+MPI_API(int) MPI_Alltoallv(void const * const sendbuf,
+                   int const * const sendcounts, int const * const sdispls,
+                   MPI_Datatype sendtype, void *recvbuf,
+                   int const * const recvcounts, int const * const rdispls,
                    MPI_Datatype recvtype, MPI_Comm comm);
 MPI_API(int) MPI_Reduce(void const *sendbuf, void *recvbuf, int count,
                    MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
@@ -528,9 +529,6 @@ MPI_API(double) MPI_Wtime(void);
 #ifdef __cplusplus
 }
 #endif
-
-//void* _malloc(size_t, char*, int);
-//#define malloc(SIZE) _malloc(SIZE, __FILE__, __LINE__)
 
 
 #endif

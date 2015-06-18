@@ -11,7 +11,6 @@
 
 #include "common.h"
 
-
 /*************************************************************************/
 /*! Creates the neccessary components of a message queue.
 
@@ -27,7 +26,7 @@ bdmq_t *bdmq_create(char *tag, int num)
   bdmq_t *mq;
   struct mq_attr attr;
 
-  mq = (bdmq_t *)gk_malloc(sizeof(bdmq_t), "bdmq_create: mq");
+  mq = (bdmq_t *)bd_malloc(sizeof(bdmq_t), "bdmq_create: mq");
 
   /* set some deafult attributes */
   attr.mq_flags   = 0;
@@ -37,20 +36,22 @@ bdmq_t *bdmq_create(char *tag, int num)
 
   /* create the message queue */
   sprintf(name, "/%s%d", tag, num);
-  mq->name = gk_strdup(name);
+  mq->name = bd_strdup(name);
   mq_unlink(name);
 
   mq->mqdes = mq_open(name, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR, &attr);
   //mq->mqdes = mq_open(name, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR, NULL);
   if (mq->mqdes == -1)
-    errexit("Failed on mq_open(mq->mqdes) for %s: %s\n", name, strerror(errno));
+    errexit("!! Failed on mq_open(mq->mqdes) for %s: %s\n", name, strerror(errno));
 
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
-  mq->buf = gk_cmalloc(mq->msgsize, "mq->buf");
+  mq->buf = bd_malloc(mq->msgsize, "mq->buf");
 
-//  printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
-//      attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
+  //bdprintf("create:%s: %zu\n", name, attr.mq_msgsize);
+
+  //printf("mq_flags: %ld, mq_maxmsg: %ld, mq_msgsize: %ld, mq_curmsgs: %ld\n",
+  //    attr.mq_flags, attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
 
   return mq;
 }
@@ -71,11 +72,11 @@ bdmq_t *bdmq_open(char *tag, int num)
   bdmq_t *mq;
   struct mq_attr attr;
 
-  mq = (bdmq_t *)gk_malloc(sizeof(bdmq_t), "bdmq_create: mq");
+  mq = (bdmq_t *)bd_malloc(sizeof(bdmq_t), "bdmq_create: mq");
 
   /* open the message queue */
   sprintf(name, "/%s%d", tag, num);
-  mq->name = gk_strdup(name);
+  mq->name = bd_strdup(name);
 
   mq->mqdes = mq_open(name, O_RDWR);
   if (mq->mqdes == -1)
@@ -83,7 +84,9 @@ bdmq_t *bdmq_open(char *tag, int num)
 
   mq_getattr(mq->mqdes, &attr);
   mq->msgsize = attr.mq_msgsize;
-  mq->buf = gk_cmalloc(mq->msgsize, "mq->buf");
+  mq->buf = bd_malloc(mq->msgsize, "mq->buf");
+
+  //bdprintf("open:%s: %zu\n", name, attr.mq_msgsize);
 
   return mq;
 }
@@ -100,7 +103,7 @@ void bdmq_close(bdmq_t *mq)
   if (mq_close(mq->mqdes) == -1)
     errexit("Failed on mq_close(mq->mqdes): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, &mq->buf, &mq, LTERM);
+  bd_free((void **)&mq->name, &mq->buf, &mq, LTERM);
 }
 
 
@@ -118,7 +121,7 @@ void bdmq_destroy(bdmq_t *mq)
   if (mq_unlink(mq->name) == -1)
     errexit("Failed on mq_unlink(mq->name): %s\n", strerror(errno));
 
-  gk_free((void **)&mq->name, &mq->buf, &mq, LTERM);
+  bd_free((void **)&mq->name, &mq->buf, &mq, LTERM);
 }
 
 
@@ -127,10 +130,17 @@ void bdmq_destroy(bdmq_t *mq)
 /*************************************************************************/
 int bdmq_send(bdmq_t *mq, void *buf, size_t size)
 {
-  if (size > mq->msgsize)
-    errexit("bdmq_send: Message size %zu exceeds max limit of %zu.\n", size, mq->msgsize);
+  int ret;
+  struct mq_attr attr;
+  mq_getattr(mq->mqdes, &attr);
 
-  return mq_send(mq->mqdes, buf, size, 0);
+  if (size > mq->msgsize) {
+    errexit("[%5d] bdmq_send: Message size %zu exceeds max limit of %zu (%s).\n",
+      (int)getpid(), size, mq->msgsize, mq->name);
+  }
+  ret = mq_send(mq->mqdes, buf, size, 0);
+
+  return ret;
 }
 
 
@@ -167,7 +177,7 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
   struct timespec abs_timeout;
   ssize_t rsize;
 
-  //printf("[%d] timedrecv-in\n", (int)time(0));
+  /*printf("[%d] timedrecv-in\n", (int)time(0));*/
   if (clock_gettime(CLOCK_REALTIME, &abs_timeout) == -1)
     return -1;
 
@@ -186,7 +196,7 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
     else
       memcpy(buf, mq->buf, rsize);
   }
-  //printf("[%d] timedrecv-out\n", (int)time(0));
+  /*printf("[%d] timedrecv-out\n", (int)time(0));*/
 
   return rsize;
 }

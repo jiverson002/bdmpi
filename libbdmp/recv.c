@@ -43,11 +43,11 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
   if (flag == 0) {
     S_SB_IFSET(BDMPI_SB_DISCARD) {
-      sb_discard(buf, bdmp_msize(count, datatype));
+      SBMA_mclear(buf, bdmp_msize(count, datatype));
     }
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
       if (job->jdesc->nr < job->jdesc->ns)
-        sb_saveall();
+        SBMA_mevictall();
     }
   }
 
@@ -76,11 +76,11 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     /* prepare to go to sleep */
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
       if (job->jdesc->nr < job->jdesc->ns)
-        sb_saveall();
+        SBMA_mevictall();
     }
 
     /* go to sleep... */
-    BDMPL_SLEEP(job, gomsg);
+    BDMPL_SLEEP(job, gomsg, 1);
   }
 
   /* get the missing message info from the master */
@@ -141,7 +141,7 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_RANK;
   }
 
-  request = *r_request = (bdrequest_t *)gk_malloc(sizeof(bdrequest_t), "request");
+  request = *r_request = (bdrequest_t *)bd_malloc(sizeof(bdrequest_t), "request");
   memset(request, 0, sizeof(bdrequest_t));
   request->type = BDMPI_REQUEST_IRECV;
 

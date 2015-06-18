@@ -22,7 +22,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 
   /* some error checking */
   if (comm == BDMPI_COMM_NULL) {
-    fprintf(stderr, "Undefined communicator.\n");
+    fprintf(stderr, "[%5d] Undefined communicator.\n", (int)getpid());
     return BDMPI_ERR_COMM;
   }
 
@@ -34,14 +34,14 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
   /* save the address space before blocking */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   /* notify the master that you entering a barrier */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* go to sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Barrier: exiting: comm: %p\n", comm));
 

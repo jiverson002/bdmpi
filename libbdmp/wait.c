@@ -34,7 +34,7 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
                   request->status.BDMPI_TAG, request->status.comm, status);
   }
 
-  gk_free((void **)r_request, LTERM);
+  bd_free((void **)r_request, LTERM);
   *r_request = BDMPI_REQUEST_NULL;
 
   return BDMPI_SUCCESS;

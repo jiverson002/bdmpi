@@ -8,7 +8,7 @@ file(GLOB bdmp_sources *.c)
 add_executable(bdmprun ${common_sources} ${bdmp_sources})
 add_dependencies(bdmprun ${GKlib_includes})
 foreach(prog bdmprun)
-  target_link_libraries(${prog} GKlib m rt)
+  target_link_libraries(${prog} GKlib m rt dl)
 endforeach(prog)
 
 set(CMAKE_C_COMPILER mpicc)

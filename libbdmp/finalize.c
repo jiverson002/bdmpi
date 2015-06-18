@@ -16,14 +16,25 @@ int bdmp_Finalize(sjob_t *job)
 {
   int i;
   bdmsg_t donemsg, gomsg;
+  struct mallinfo mi;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
+  /* destroy additional standard communicators -- must come before memory
+   * management environments are destroyed */
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
-  /* turn off sbmalloc */
-  sb_finalize();
+  /* turn off sbma subsystem */
+  if (-1 == SBMA_destroy())
+    bdprintf("Failed to destroy sbma\n");
+
+  mi = SBMA_mallinfo();
+  memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
+
+  /* ====================================================================== */
+  /* everything below here must have been allocated via the libc interface. */
+  /* ====================================================================== */
 
   /* send a message to the slave telling it that you are leaving... */
   memset(&donemsg, 0, sizeof(bdmsg_t));
@@ -34,7 +45,7 @@ int bdmp_Finalize(sjob_t *job)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
   /* wait for a go response from the master */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 0);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following msg:"
     "%d\n", gomsg.msgtype));
@@ -56,7 +67,7 @@ int bdmp_Finalize(sjob_t *job)
   bdscb_close(job->scb);
 
   /* free communicators */
-  gk_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
+  bd_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
 
   return BDMPI_SUCCESS;
 }

@@ -6,7 +6,7 @@
 \author George
 */
 
-#define LOCKMEM 1
+//#define LOCKMEM 1
 
 #define _LARGEFILE64_SOURCE
 #include <GKlib.h>
@@ -84,8 +84,8 @@ int main(int argc, char **argv)
   BDMPI_Status status;
   double max, current;
 
-  setbuf(stdout, NULL);
-  setbuf(stderr, NULL);
+  //setbuf(stdout, NULL);
+  //setbuf(stderr, NULL);
 
   BDMPI_Init(&argc, &argv);
 
@@ -95,7 +95,6 @@ int main(int argc, char **argv)
   params->comm = BDMPI_COMM_WORLD;
   BDMPI_Comm_size(params->comm, &(params->npes));
   BDMPI_Comm_rank(params->comm, &(params->mype));
-
 
   if (argc != 4) {
     if (params->mype == 0)
@@ -137,6 +136,8 @@ int main(int argc, char **argv)
 
   //WriteFactors(params, dmat, model);
 
+  gk_free((void**)&model->u, &model->v, &model->rb, &model->cb, &model, LTERM);
+
   CleanupData(params, dmat);
 
   BDMPI_Barrier(params->comm);
@@ -168,6 +169,8 @@ int main(int argc, char **argv)
   BDMPI_Reduce(&current, &max, 1, BDMPI_DOUBLE, BDMPI_MAX, 0, params->comm);
   if (params->mype == 0)
     printf(" totalTmr:  %10.4lf\n", max);
+
+  gk_free((void**)&params->filename, &params, LTERM);
 
 //DONE:
   BDMPI_Finalize();

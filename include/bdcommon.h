@@ -36,34 +36,34 @@
  *  \details  Enable the use of sb_discard() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_DISCARD   1
+#define BDMPI_SB_DISCARD      1
 
 /****************************************************************************/
 /*!
  *  \details  Enable the use of sb_saveall() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_SAVEALL   2
+#define BDMPI_SB_SAVEALL      2
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "lazy-write" strategy in the sbmalloc library.  This
+ *  \details  Enable the `lazy-write' strategy in the sbmalloc library.  This
  *            means that memory allocations controlled by the sbmalloc library
- *            will not be written to disk until there is ``sufficient''
- *            pressure on the total DRAM to warrant such an action.  In this
- *            case, ``sufficient'' is determined by the resident memory
- *            command line parameter `-rm='.
+ *            will not be written to disk until there is `sufficient' pressure
+ *            on the total DRAM to warrant such an action.  In this case,
+ *            `sufficient' is determined by the resident memory command line
+ *            parameter `-rm='.
  *
  *  \note     While compatible, it is not recommended to use this option with
  *            the #BDMPI_SB_SAVEALL option, since the latter will essentially
  *            negate the advantages of this strategy.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYWRITE 4
+#define BDMPI_SB_LAZYWRITE    4
 
 /****************************************************************************/
 /*!
- *  \details  Enable the "lazy-read" strategy in the sbmalloc library.  This
+ *  \details  Enable the `lazy-read' strategy in the sbmalloc library.  This
  *            means that memory allocations controlled by the sbmalloc library
  *            will not be read from disk and read protected until the
  *            application makes a read / write attempt to the memory location
@@ -74,18 +74,7 @@
  *            page.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYREAD  8
-
-/****************************************************************************/
-/*!
- *  \details  Enable the "asynchronous I/O" strategy in the sbmalloc library.
- *            This means that when a memory request is made for a page, the
- *            page will be read if it is not already and returned immediately.
- *            Then, in the background, an `I/O thread' will continue reading
- *            the rest of the chunk that the page was from.
- */
-/****************************************************************************/
-#define BDMPI_SB_ASIO      16
+#define BDMPI_SB_LAZYREAD     8
 
 
 /*************************************************************************/
@@ -94,7 +83,6 @@
 #define S_IFSET(a,b)      IFSET(job->jdesc->dbglvl, (a), (b))
 #define M_IFSET(a,b)      IFSET(job->dbglvl, (a), (b))
 #define S_SB_IFSET(FLAG)  if ((FLAG) == (job->jdesc->sbopts&(FLAG)))
-#define SB_SB_IFSET(FLAG) if ((FLAG) == (sbinfo->opts&(FLAG)))
 
 #define BDWARN(expr)\
   do {\
@@ -138,7 +126,7 @@
     clock_gettime(CLOCK_REALTIME, &ts);\
     ts.tv_sec += 10;\
     if (ETIMEDOUT == (retval=pthread_mutex_timedlock(lock, &ts))) {\
-      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for mutex (%p)\n",\
+      fprintf(stderr, "[%6ld:%s,%4d]: timed out waiting for lock (%p)\n",\
         syscall(SYS_gettid), basename(__FILE__), __LINE__, (void*)(lock));\
       pthread_mutex_lock(lock);\
       fprintf(stderr, "[%6ld:%s,%4d]: locked mutex\n", syscall(SYS_gettid),\
@@ -150,9 +138,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    fprintf(stderr, "[%6ld:%s,%4d]: get lock (%p)\n",\
-      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));\
+    fprintf(stderr, "[%6ld/%6d:%s,%4d]: get lock (%p,%s)\n",\
+      syscall(SYS_gettid), (int)getpid(), basename(__FILE__), __LINE__,\
+      (void*)(lock), #lock);\
   }
 #endif
 
@@ -166,9 +154,9 @@
          hostname, (int)getpid(), __LINE__, __FILE__, retval, strerror(retval));\
       abort();\
     }\
-    /*fprintf(stderr, "[%6ld:%s,%4d]: let lock (%p)\n",\
-      syscall(SYS_gettid), basename(__FILE__), __LINE__,\
-      (void*)(lock));*/\
+    /*fprintf(stderr, "[%6ld/%6d:%s,%4d]: let lock (%p,%s)\n",\
+      syscall(SYS_gettid), (int)getpid(), basename(__FILE__), __LINE__,\
+      (void*)(lock), #lock);*/\
   }
 
 #define BD_TRY_LOCK(lock, haslock)\
@@ -355,10 +343,13 @@ typedef struct {
   int nr;                   /*!< The maximum number of slaves allowed to run */
   mdbglvl_et dbglvl;        /*!< The dbglvl of the execution */
   int sbopts;               /*!< The sb library options */
+  int sbnt;                 /*!< The sb library thread count */
   size_t smsize;            /*!< The size of the shared memory comm buffer */
   size_t imsize;            /*!< The maximum size for in-memory buffering */
   size_t sbsize;            /*!< The minimum size for storage-backed allocation */
   size_t pgsize;            /*!< Number of system pages making up a single sb page */
+  size_t rmsize;            /*!< Number of system pages which can be resident
+simultaneously */
   pid_t mpid;               /*!< The pid of the master */
   char wdir[BDMPI_WDIR_LEN]; /*!< The working directory */
 } bdjdesc_t;
@@ -404,11 +395,7 @@ typedef enum {
 
   BDMPI_MSGTYPE_CID          =100, /*!< a to master-node request for next mpi_commid */
 
-  BDMPI_MSGTYPE_MEMLOAD      =200, /*!< a memory load operation */
-  BDMPI_MSGTYPE_MEMSAVE      =201, /*!< a memory save operation */
-
-  BDMPI_MSGTYPE_PROCEED      =210,  /*!< slave should proceed with execution */
-  BDMPI_MSGTYPE_MEMFREE      =211,  /*!< slave should free its memory */
+  BDMPI_MSGTYPE_PROCEED      =200,  /*!< slave should proceed with execution */
 
   BDMPI_MSGTYPE_NOOP         =999  /*!< a dummy message type */
 } bdmsgtype_et;
@@ -451,6 +438,11 @@ typedef struct {int val; int loc;} bdvlp_ii_t;
 size_t bdmp_sizeof(BDMPI_Datatype datatype);
 size_t bdmp_msize(size_t count, BDMPI_Datatype datatype);
 int datatype_isvalid(BDMPI_Datatype datatype);
+
+/* memory.c */
+void *bd_malloc(size_t nbytes, char *msg);
+void bd_free(void **ptr1,...);
+char *bd_strdup(char *orgstr);
 
 /* reduce.c */
 void reduce_op(void *a, void *b, size_t count, BDMPI_Datatype datatype,

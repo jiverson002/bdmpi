@@ -151,42 +151,55 @@ support fast I/O.
 <!-- ----------------------------------------------------------------------------- -->
 \subsection memoptions Options related to memory resources
 
-The \c -sm, \c -im, \c -mm, and \c -sb options are used to control various aspects of
-the execution of a \bdmpi program as it relates to how it uses the memory. Among
-them, \c -im and \c -sb are the most important, whereas \c -sm and \c -mm are
-provided for fine tuning and most users will not need to modify them. Note that for
-all memory-related options, the size is specified in terms of memory pages and not
-bytes. On Linux, a memory page is typically 4096 bytes.
+The \c -sm, \c -mm, \c -im, \c -pg, \c -rm, and \c -sbma options are used to
+control various aspects of the execution of a \bdmpi program as it relates to
+how it uses the memory. Among them, \c -im, \c -rm, and \c -sbma are the most
+important, whereas \c -sm, \c -mm, and \c -pg are provided for fine tuning and
+most users will not need to modify them. Note that for all memory-related
+options, the size is specified in terms of memory pages and not bytes. On
+Linux, a memory page is typically 4096 bytes.
 
-Since processes in \bdmpi can be suspended and as such are not available to receive
-data sent to them, the master processes buffer data at the message's destination
-node. The \c -im parameter controls if the message will be buffered in DRAM or if it
-will buffered on disk. Messages whose size is smaller than the value specified by \c
--im are buffered in memory, otherwise they are buffered on disk. The only exception
-to the above rule are the broadcast and the reduction operations, in which the
-buffering is always done in memory. Also note that in the case of collective
-communication operations, the size of the message is defined to be the amount of data
-that any processor will need to send/receive to/from any other processor.
+The \c -sm option specifies the amount of shared memory to allocate for each
+slave process. This memory is used to facilitate fast communication between
+the master and the slave processes via \c memcpy(). The \c -mm option
+specifies the size of the buffer that a master process will allocate for
+inter-node communication. Note that if the data that needs to be communicated
+between the master and the slaves or other masters exceeds is greater than
+what is specified by these options, the transfer is done in multiple steps.
+Thus, the values of these options do not impact the correctness of the
+execution, but if they are relatively small, may lead to (somewhat) higher
+communication cost.
 
-As discussed in \ref sbmalloc, \bdmpi uses its own dynamic memory allocation library
-that bypasses the system's swap file and preserves the data and virtual memory
-mappings throughout the execution of the program. The \c -sb parameter controls the
-size of the allocations that will be handled by the sbmalloc subsystem. Any
-allocation that is smaller than the value specified by \c -sb, is handled by the
-standard \c malloc() library, whereas the rest of the allocations are handled by
-sbmalloc. If you want to entirely disable sbmalloc, you can specify 0 as the value
-for this option.
+Since processes in \bdmpi can be suspended and as such are not available to
+receive data sent to them, the master processes buffer data at the message's
+destination node. The \c -im parameter controls if the message will be
+buffered in DRAM or if it will buffered on disk. Messages whose size is
+smaller than the value specified by \c -im are buffered in memory, otherwise
+they are buffered on disk. The only exception to the above rule are the
+broadcast and the reduction operations, in which the buffering is always done
+in memory. Also note that in the case of collective communication operations,
+the size of the message is defined to be the amount of data that any processor
+will need to send/receive to/from any other processor.
 
-The \c -sm option specifies the amount of shared memory to allocate for each slave
-process. This memory is used to facilitate fast communication between the master and
-the slave processes via \c memcpy(). The \c -mm option specifies the size of the
-buffer that a master process will allocate for inter-node communication. Note that if
-the data that needs to be communicated between the master and the slaves or other
-masters exceeds is greater than what is specified by these options, the transfer is
-done in multiple steps. Thus, the values of these options do not impact the
-correctness of the execution, but if they are relatively small, may lead to
-(somewhat) higher communication cost.
+As discussed in \ref sbmalloc, \bdmpi uses its own dynamic memory allocation
+library that bypasses the system's swap file and preserves the data and
+virtual memory mappings throughout the execution of the program. The \c -sbma
+option controls the desired memory exchange strategy to be used during program
+execution. If this option is omitted, then no memory exchange strategy will be
+employed and the application will rely on the OS swapping mechanism exactly as
+if the standard C dynamic memory library were in use. If a valid memory
+exchange strategy is chosen, then the \c -pg parameter controls the resolution
+at which the sbmalloc library tracks memory operations and transfers data
+between disk and RAM. The \c -rm parameter is relevant only for lazy writing
+memory exchange strategies and controls the maximum amount of resident memory,
+aggregated across all processes of the \bdmpi execution, which is allowed
+before a process is chosen to evict its resident memory.
 
+<!-- The \c -sb parameter controls the size of the allocations that will be
+handled by the sbmalloc subsystem. Any allocation that is smaller than the
+value specified by \c -sb, is handled by the standard \c malloc() library,
+whereas the rest of the allocations are handled by sbmalloc. If you want to
+entirely disable sbmalloc, you can specify 0 as the value for this option. -->
 
 
 <!-- ----------------------------------------------------------------------------- -->

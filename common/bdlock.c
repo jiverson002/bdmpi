@@ -25,10 +25,10 @@ bdlock_t *bdlock_create(char *tag, int num, int value)
   char name[256];
   bdlock_t *lock;
 
-  lock = (bdlock_t *)gk_malloc(sizeof(bdlock_t), "bdlock_create: lock");
+  lock = (bdlock_t *)bd_malloc(sizeof(bdlock_t), "bdlock_create: lock");
 
   sprintf(name, "/lk%s%d", tag, num);
-  lock->name = gk_strdup(name);
+  lock->name = bd_strdup(name);
   sem_unlink(name);
 
   lock->sem = sem_open(name, O_CREAT, S_IRUSR|S_IWUSR, value);
@@ -53,10 +53,10 @@ bdlock_t *bdlock_open(char *tag, int num)
   char name[256];
   bdlock_t *lock;
 
-  lock = (bdlock_t *)gk_malloc(sizeof(bdlock_t), "bdlock_create: lock");
+  lock = (bdlock_t *)bd_malloc(sizeof(bdlock_t), "bdlock_create: lock");
 
   sprintf(name, "/lk%s%d", tag, num);
-  lock->name = gk_strdup(name);
+  lock->name = bd_strdup(name);
 
   lock->sem = sem_open(name, 0);
   if (lock->sem == SEM_FAILED)
@@ -76,7 +76,7 @@ void bdlock_close(bdlock_t *lock)
   if (sem_close(lock->sem) == -1)
     errexit("Failed on sem_close(lock->sem): %s\n", strerror(errno));
 
-  gk_free((void **)&lock->name, &lock, LTERM);
+  bd_free((void **)&lock->name, &lock, LTERM);
 }
 
 
@@ -92,7 +92,7 @@ void bdlock_destroy(bdlock_t *lock)
   if (sem_unlink(lock->name) == -1)
     errexit("Failed on sem_unlink(lock->name): %s\n", strerror(errno));
 
-  gk_free((void **)&lock->name, &lock, LTERM);
+  bd_free((void **)&lock->name, &lock, LTERM);
 }
 
 

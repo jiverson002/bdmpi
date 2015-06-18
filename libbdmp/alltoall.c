@@ -98,12 +98,12 @@ int bdmp_Alltoallv_node(sjob_t *job,
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
   /* go to sleep until everybody has called the collective */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 1);
 
 
   /*=====================================================================*/
@@ -116,8 +116,6 @@ int bdmp_Alltoallv_node(sjob_t *job,
 
   /* get the data */
   for (i=0; i<npes-1; i++) {
-    //printf("%d slv-recv1 %2d.%2d\n", (int)time(0), mype, (int)i);
-
     /* get msg info from master */
     xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
     p = rmsg.myrank;
@@ -126,12 +124,10 @@ int bdmp_Alltoallv_node(sjob_t *job,
       errexit("[%d]BDMPI_Alltoallv: Amount of data to be received from %d is more than specified: %zu %zu\n",
           mype, p, bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(recvcounts[p], recvtype));
 
-    //printf("%d slv-recv2 %2d.%2d\n", (int)time(0), mype, (int)i);
     if (rmsg.fnum == -1)
       xfer_in_scb(job->scb, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype);
     else
       xfer_in_disk(rmsg.fnum, (char *)recvbuf+rdispls[p]*rdtsize, rmsg.count, rmsg.datatype, 1);
-    //printf("%d slv-recv3 %2d.%2d\n", (int)time(0), mype, (int)i);
   }
 
   /* copy the local data */
@@ -260,7 +256,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
 
   tag = (++comm->copid)*BDMPL_COPID_MULT + BDMPL_ALLTOALL_TAG;
 
-  rmsgs = (bdmsg_t *)gk_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Alltoallv_p2p: rmsgs");
+  rmsgs = (bdmsg_t *)bd_malloc(sizeof(bdmsg_t)*npes, "BDMPI_Alltoallv_p2p: rmsgs");
   memset(rmsgs, 0, sizeof(bdmsg_t)*npes);
 
   sdtsize = bdmp_sizeof(sendtype);
@@ -281,22 +277,24 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   rmsgs[mype].datatype = sendtype;
   if (sendcounts[mype]*sdtsize > job->smallmsg) {
     rmsgs[mype].fnum = xfer_getfnum();
+    printf("[%5d] xfer beg\n", (int)getpid());
     xfer_out_disk(rmsgs[mype].fnum, (char *)sendbuf+sdispls[mype]*sdtsize,
         sendcounts[mype], sendtype);
+    printf("[%5d] xfer end\n", (int)getpid());
   }
 
 
   /* sbdiscard the incoming buffers */
   S_SB_IFSET(BDMPI_SB_DISCARD) {
     for (p=0; p<npes; p++)
-      sb_discard((char *)recvbuf+rdispls[p]*rdtsize,
+      SBMA_mclear((char *)recvbuf+rdispls[p]*rdtsize,
         bdmp_msize(recvcounts[p], recvtype));
   }
 
   /* save your address space before blocking */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     if (job->jdesc->nr < job->jdesc->ns)
-      sb_saveall();
+      SBMA_mevictall();
   }
 
   /* receive data from everybody else */
@@ -326,9 +324,9 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
       /* go to sleep... */
       S_SB_IFSET(BDMPI_SB_SAVEALL) {
         if (job->jdesc->nr < job->jdesc->ns)
-          sb_saveall();
+          SBMA_mevictall();
       }
-      BDMPL_SLEEP(job, gomsg);
+      BDMPL_SLEEP(job, gomsg, 1);
     }
 
     /* get the missing message info from the master */
@@ -360,7 +358,7 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
     memcpy((char *)recvbuf+rdispls[mype]*rdtsize, (char *)sendbuf+sdispls[mype]*sdtsize, size);
   }
 
-  gk_free((void **)&rmsgs, LTERM);
+  bd_free((void **)&rmsgs, LTERM);
 
   return BDMPI_SUCCESS;
 }

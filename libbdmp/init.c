@@ -19,7 +19,7 @@
 /*************************************************************************/
 int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
 {
-  int i;
+  int i, opts;
   pid_t mpid;
   sjob_t *job;
   bdmsg_t donemsg, gomsg;
@@ -27,7 +27,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   mallopt(M_TRIM_THRESHOLD, 64*4096);
   mallopt(M_MMAP_THRESHOLD, 64*4096);
 
-  job = *r_job = (sjob_t *)gk_malloc(sizeof(sjob_t), "bdmp_Init: job");
+  job = *r_job = (sjob_t *)bd_malloc(sizeof(sjob_t), "bdmp_Init: job");
   memset(job, 0, sizeof(sjob_t));
 
   mpid       = getppid();
@@ -48,6 +48,10 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Hooking into global spids\n"));
 
   job->spids = (pid_t *)bdsm_malloc(job->globalSM, sizeof(pid_t)*job->jdesc->ns, "job->spids");
+
+  /* hook job->mallinfo into the global shared memory */
+  job->mallinfo = (struct mallinfo*)bdsm_malloc(job->globalSM,
+    sizeof(struct mallinfo)*job->jdesc->ns, "job->mallinfo");
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: ns: %d, mpids: %d:%d\n",
         job->jdesc->ns, (int)job->jdesc->mpid, (int)mpid));
@@ -100,7 +104,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Setting up communicators\n"));
 
   /* BDMPI_COMM_WORLD */
-  BDMPI_COMM_WORLD = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "BDMPI_COMM_WORLD");
+  BDMPI_COMM_WORLD = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "BDMPI_COMM_WORLD");
   BDMPI_COMM_WORLD->mcomm = 0;  /* This is hard-coded and is OK */
   BDMPI_COMM_WORLD->size  = job->jdesc->np;
   BDMPI_COMM_WORLD->rank  = job->rank;
@@ -112,7 +116,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   BDMPI_COMM_WORLD->copid = 1;
 
   /* BDMPI_COMM_NODE */
-  BDMPI_COMM_NODE = (bdscomm_t *)gk_malloc(sizeof(bdscomm_t), "BDMPI_COMM_NODE");
+  BDMPI_COMM_NODE = (bdscomm_t *)bd_malloc(sizeof(bdscomm_t), "BDMPI_COMM_NODE");
   BDMPI_COMM_NODE->mcomm = 1;  /* This is hard-coded and is OK */
   BDMPI_COMM_NODE->size  = job->jdesc->ns;
   BDMPI_COMM_NODE->rank  = job->lrank;
@@ -145,22 +149,36 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
       bdprintf("BDMPI_Init: Waiting for a go message [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
   /* sleep... */
-  BDMPL_SLEEP(job, gomsg);
+  BDMPL_SLEEP(job, gomsg, 0);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: I got the following gomsg: "
     "%d\n", gomsg.msgtype));
 
-  /* create additional standard communicators */
-  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1, &BDMPI_COMM_SELF)
-      == BDMPI_SUCCESS);
-  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank, &BDMPI_COMM_CWORLD)
-      == BDMPI_SUCCESS);
+  /* ====================================================================== */
+  /* everything above here must have been allocated via the libc interface. */
+  /* ====================================================================== */
 
-  /* init the sbmalloc subsystem */
-  char sbdir[2*BDMPI_WDIR_LEN];
-  snprintf(sbdir, 2*BDMPI_WDIR_LEN, "%s/%d-", job->jdesc->wdir, job->mypid);
-  if (0 == sb_init(sbdir, job))
-    bdprintf("Failed on sb_init()\n");
+  /* setup vmm opts */
+  opts = 0;
+  if (BDMPI_SB_LAZYWRITE == (job->jdesc->sbopts&BDMPI_SB_LAZYWRITE))
+    opts |= VMM_LZYWR;
+  if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD))
+    opts |= VMM_LZYRD;
+
+  /* init the sbma subsystem */
+  if (-1 == SBMA_init(job->jdesc->wdir,\
+    job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns,\
+    job->jdesc->rmsize, opts))
+  {
+    bdprintf("Failed to init sbma\n");
+  }
+
+  /* create additional standard communicators -- must come after memory
+   * management environments are created */
+  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1,\
+    &BDMPI_COMM_SELF) == BDMPI_SUCCESS);
+  BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, 1, BDMPI_COMM_NODE->rank,\
+    &BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
   return BDMPI_SUCCESS;
 }
