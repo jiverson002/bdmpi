@@ -117,16 +117,17 @@ at a critical section concurrently is controlled by the \c -nc option of \c bdmp
 
 
 <!-- ********************************************************************** -->
-\subsection bdmpisbmalloc Storage-backed memory allocations 
+<!-- \subsection bdmpisbmalloc Storage-backed memory allocations -->
 <!-- ********************************************************************** -->
 
+<!--
 \bdmpi exposes various functions that relate to its sbmalloc subsystem (\ref
 sbmalloc). An application can use these functions to explicitly allocate
 sbmalloc-handled memory and to also force loading/saving of memory regions that were
 previously allocated by sbmalloc (see the discussion in \ref tb_sbmalloc).
 
 - \ref bdmpisbmalloclist
-
+-->
 
 
 

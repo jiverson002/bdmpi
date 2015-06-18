@@ -17,22 +17,36 @@ Usage: bdmprun [options] exefile [options for the exe-file]
   -sm=int [Default: 20]
      Specifies the number of shared memory pages allocated for each slave.
  
+  -mm=int [Default: 32]
+     Specifies the maximum size of the buffer to be used by MPI for 
+     inter-node communication. The size is in terms of memory pages.
+ 
   -im=int [Default: 4]
      Specifies the maximum size of a message that will be buffered
      in the memory of the master. Messages longer than that are buffered
      on disk. The size is in terms of memory pages.
  
-  -mm=int [Default: 32]
-     Specifies the maximum size of the buffer to be used by MPI for 
-     inter-node communication. The size is in terms of memory pages.
- 
-  -sb=int [Default: 32]
-     Specifies the size of allocations for which the explicit storage backed
-     subsystem should be used. The size is in terms of number of pages and a
-     value of 0 turns it off.
- 
-  -wd=string [Default: /tmp/bdmpi]
+  -wd=string [Default: "/tmp/bdmpi"]
      Specifies where working files will be stored.
+ 
+  -pg=int [Default: 4]
+     Specifies the number of system pages which make a single sbpage.
+ 
+  -rm=int [Default: 917504]
+     Specifies the maximum resident set size for the slave processes on
+     each node. The size is in terms of number of system pages.
+ 
+  -sbma=string [Default: "none"]
+     Speicifies the operating mode of the SBMA library.  Valid options are:
+       araw  Aggressive read / aggressive write
+       arlw  Aggressive read / lazy write
+       lraw  Lazy read       / aggressive write
+       lrlw  Lazy read       / lazy write
+ 
+     The `laziness' of the lr* methods is controlled by the system page 
+     multiplier command line parameter `-pg='.
+     The `laziness' of the *lw methods is controlled by the resident memory
+     command line parameter `-rm='.
  
   -dl=int [Default: 0]
      Selects the dbglvl.

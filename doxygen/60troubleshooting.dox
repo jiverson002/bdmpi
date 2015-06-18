@@ -19,28 +19,43 @@ and potentially optimized using any of the additional API's provided by \bdmpi.
 ---
 \section tb_sbmalloc Issues related to sbmalloc
 
-We are aware of two cases in which sbmalloc's memory subsystem will lead to incorrect
-program execution. 
+We are aware of one case in which sbmalloc's memory subsystem will lead to
+incorrect program execution.
 
-The first has to do with \mpi/\bdmpi programs that are multi-threaded (e.g., they
-rely on OpenMP or Pthreads to parallelize the single node computations). In such
-programs, the memory that was allocated by sbmalloc and is accessed concurrently by
-multiple threads (e.g., within an OpenMP parallel region) needs to be pre-loaded
-prior to entering the parallel region. This is something that needs to be done by the
-application. See the API in \ref bdmpisbmalloc on how to do that and specifically the
-\c BDMPI_load() and \c BDMPI_loadall() functions.
+<!-- The first has to do with \mpi/\bdmpi programs that are multi-threaded
+(e.g., they rely on OpenMP or Pthreads to parallelize the single node
+computations). In such programs, the memory that was allocated by sbmalloc and
+is accessed concurrently by multiple threads (e.g., within an OpenMP parallel
+region) needs to be pre-loaded prior to entering the parallel region. This is
+something that needs to be done by the application. See the API in \ref
+bdmpisbmalloc on how to do that and specifically the \c BDMPI_load() and \c
+BDMPI_loadall() functions. -->
 
-The second has to do with the functions from the standard library that block signals.
-Examples of such functions are the file I/O functions, such as \c read()/write() and
-\c fread()/fwrite(). If these functions are used to read/write data to/from memory
-that has been allocated by sbmalloc, the memory needs to have the appropriate access
-permissions (read or write). \bdmpi provides wrappers for the above four functions
-that perform such permission changes automatically. However, there may be other
-functions in the standard library that block signals for which \bdmpi does not
-provide wrappers. If you encounter such functions do the following:
+This has to do with the functions from the standard library that block
+signals. Examples of such functions are the file I/O functions, such as \c
+read()/write() and \c fread()/fwrite(). If these functions are used to
+read/write data to/from memory that has been allocated by sbmalloc, the memory
+needs to have the appropriate access permissions (read or write).
+
+\bdmpi provides wrappers for the following functions that perform such
+permission changes automatically:
+  - \c stat
+  - \c open
+  - \c read
+  - \c write
+  - \c fread
+  - \c fwrite
+  - \c mlock
+  - \c mlockall
+  - \c msync
+
+However, there may be other functions in the standard library that block
+signals for which \bdmpi does not provide wrappers. If you encounter such
+functions do the following:
  - Send us a note so that we can provide wrappers for them.
  - Use \c BDMPI_load() and \c BDMPI_loadall() to obtain read permissions.
- - Use \c memset() to zero-fill the associated memory to obtain write permissions.
+ - Use \c memset() to zero-fill the associated memory to obtain write
+   permissions.
 
 
 <!-- ----------------------------------------------------------------------------- -->
