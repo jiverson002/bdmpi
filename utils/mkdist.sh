@@ -2,7 +2,9 @@ rm -rf $1
 svn up
 
 # Get sources 
-svn export http://dminers.dtc.umn.edu/svn/programs/karypis/bdmpi/pola/trunk $1
+# svn export http://dminers.dtc.umn.edu/svn/programs/karypis/bdmpi/pola/trunk $1
+# svn export http://dminers.dtc.umn.edu/svn/libs/GKlib/trunk $1/GKlib
+svn export http://dminers.dtc.umn.edu/svn/programs/karypis/bdmpi/pola/branches/jeremy $1
 svn export http://dminers.dtc.umn.edu/svn/libs/GKlib/trunk $1/GKlib
 
 # Build documentation
