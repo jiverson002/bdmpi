@@ -30,6 +30,7 @@ rm -rf $1/misc
 rm -rf $1/results
 rm -rf $1/TODO
 rm -rf $1/utils
+rm -rf $1/bench
 
 # Create tar file 
 tar -czf $1.tar.gz $1
