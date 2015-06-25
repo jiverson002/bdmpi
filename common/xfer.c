@@ -169,8 +169,8 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
     ssize_t retval;
     len = (size > BDMPI_DISK_CHUNK ? BDMPI_DISK_CHUNK : size);
     if ((retval=gk_read(fd, buf, len)) != len)
-      errexit("xfer_in_disk: Read size does not match: %s (%zd, %zu) (%d %d)\n",
-        strerror(errno), retval, len, EFAULT, errno);
+      errexit("[%5d] xfer_in_disk: Read size does not match: %s (%zd, %zu) " \
+        "(%d) %p\n", (int)getpid(), strerror(errno), retval, len, errno, buf);
     buf  += len;
     size -= len;
   } while (size > 0);

@@ -173,6 +173,9 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     bdprintf("Failed to init sbma\n");
   }
 
+  /* Need a barrier here to ensure that SBMA is properly initialized */
+  BDMPI_Barrier(BDMPI_COMM_WORLD);
+
   /* create additional standard communicators -- must come after memory
    * management environments are created */
   BDASSERT(BDMPI_Comm_split(BDMPI_COMM_WORLD, BDMPI_COMM_WORLD->rank, 1,\

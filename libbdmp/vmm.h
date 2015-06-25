@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  disabled, the number of kernel calls will be reduced during
  *  __vmm_swap_i__() */
 /****************************************************************************/
-#define USE_GHOST 0
+#define USE_GHOST 1
 
 
 /****************************************************************************/
@@ -524,20 +524,27 @@ __vmm_sigsegv__(int const sig, siginfo_t * const si, void * const ctx)
      * times that a process is asked to evict all of its memory. On the other
      * hand, it requires the acquisition of a mutex for every read fault. */
 
+    /* FIXME: if lazy read is not enabled and the process receives SIGIPC
+     * during call to __ipc_madmit__, then the l_pages may not be correct,
+     * since the SIGIPC will cause the process to evict any resident pages of
+     * the allocation. This may not be an issue, since aggressive read will
+     * guarantee that the allocation is never partially loaded? */
+
     /* check memory file to see if there is enough free memory to complete
      * this allocation. */
     if (VMM_LZYWR == (vmm.opts&VMM_LZYWR)) {
+      assert(IPC_ELIGIBLE != (vmm.ipc.flags[vmm.ipc.id]&IPC_ELIGIBLE));
       ret = __ipc_madmit__(&(vmm.ipc), __vmm_to_sys__(l_pages));
       assert(-1 != ret);
     }
 
     /* swap in the required memory */
     if (VMM_LZYRD == (vmm.opts&VMM_LZYRD)) {
-      numrd   = __vmm_swap_i__(ate, ip, 1);
+      numrd = __vmm_swap_i__(ate, ip, 1);
       assert(-1 != numrd);
     }
     else {
-      numrd   = __vmm_swap_i__(ate, 0, ate->n_pages);
+      numrd = __vmm_swap_i__(ate, 0, ate->n_pages);
       assert(-1 != numrd);
     }
 
@@ -590,6 +597,10 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
   assert(SIGIPC <= SIGRTMAX);
   assert(SIGIPC == sig);
 
+  /* change my eligibility to ineligible - must be before any potential
+   * waiting, since SIGIPC could be raised again then. */
+  vmm.ipc.flags[vmm.ipc.id] &= ~IPC_ELIGIBLE;
+
   /* evict all memory */
   ret = __ooc_mevictall_int__(&l_pages, &numwr);
   assert(-1 != ret);
@@ -597,9 +608,6 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
   /* update ipc memory statistics */
   *(vmm.ipc.smem)          += l_pages;
   vmm.ipc.pmem[vmm.ipc.id] -= l_pages;
-
-  /* change my eligibility to ineligible */
-  vmm.ipc.flags[vmm.ipc.id] &= ~IPC_ELIGIBLE;
 
   /* signal to the waiting process that the memory has been released */
   ret = sem_post(vmm.ipc.trn1);
@@ -666,6 +674,8 @@ __vmm_init__(struct vmm * const __vmm, size_t const __page_size,
   /* initialize vmm lock */
   if (-1 == LOCK_INIT(&(__vmm->lock)))
     return -1;
+
+  assert(IPC_ELIGIBLE != (vmm.ipc.flags[vmm.ipc.id]&IPC_ELIGIBLE));
 
   return 0;
 }
