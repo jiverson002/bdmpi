@@ -151,13 +151,13 @@ support fast I/O.
 <!-- ----------------------------------------------------------------------------- -->
 \subsection memoptions Options related to memory resources
 
-The \c -sm, \c -mm, \c -im, \c -pg, \c -rm, and \c -sbma options are used to
-control various aspects of the execution of a \bdmpi program as it relates to
-how it uses the memory. Among them, \c -im, \c -rm, and \c -sbma are the most
-important, whereas \c -sm, \c -mm, and \c -pg are provided for fine tuning and
-most users will not need to modify them. Note that for all memory-related
-options, the size is specified in terms of memory pages and not bytes. On
-Linux, a memory page is typically 4096 bytes.
+The \c -sm, \c -mm, \c -im, \c -pg, \c -rm, \c -mt, and \c -sbma options are
+used to control various aspects of the execution of a \bdmpi program as it
+relates to how it uses the memory. Among them, \c -im, \c -rm, and \c -sbma
+are the most important, whereas \c -sm, \c -mm, and \c -pg are provided for
+fine tuning and most users will not need to modify them. Note that for all
+memory-related options, the size is specified in terms of memory pages and not
+bytes. On Linux, a memory page is typically 4096 bytes.
 
 The \c -sm option specifies the amount of shared memory to allocate for each
 slave process. This memory is used to facilitate fast communication between
@@ -194,6 +194,17 @@ between disk and RAM. The \c -rm parameter is relevant only for lazy writing
 memory exchange strategies and controls the maximum amount of resident memory,
 aggregated across all processes of the \bdmpi execution, which is allowed
 before a process is chosen to evict its resident memory.
+
+To facilitate the exchange of data between RAM and secondary storage, it is
+necessary for the sbmalloc subsystem to grant write permissions to an
+allocation prior to being loaded. In case the application involves multiple
+threads accessing shared allocations, this can cause incorrect execution due
+the following race condition. If one thread tries to write to an allocation,
+while another thread is loading the allocation, then data may be lost. For
+such applications it is necessary to specify the \c -mt option. This will
+enable a runtime feature of the sbmalloc subsystem which peforms the load
+atomically by leveraging the OS memory mapping API, but comes at the cost of a
+small performance penalty.
 
 <!-- The \c -sb parameter controls the size of the allocations that will be
 handled by the sbmalloc subsystem. Any allocation that is smaller than the

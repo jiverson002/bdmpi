@@ -25,6 +25,7 @@ static struct gk_option long_options[] = {
 
   {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
+  {"mt",    0,      0,      BDMPRUN_CMD_MULTI},
   {"sbma",  1,      0,      BDMPRUN_CMD_SBMA},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
@@ -86,6 +87,10 @@ static char helpstr[][100] =
 "  -rm=int [Default: 917504]",
 "     Specifies the maximum resident set size for the slave processes on",
 "     each node. The size is in terms of number of system pages.",
+" ",
+"  -mt [Default: no]",
+"     Specifies that the runtime should account for multiple threads ",
+"     accessing shared allocations.",
 " ",
 "  -sbma=string [Default: "BDMPRUN_DEFAULT_SBMA"]",
 "     Speicifies the operating mode of the SBMA library.  Valid options are:",
@@ -167,6 +172,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_RMSIZE:
         if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
+        break;
+
+      case BDMPRUN_CMD_MULTI:
+        bdmp->sbopts |= BDMPI_SB_MULTI;
         break;
 
       case BDMPRUN_CMD_SBMA:

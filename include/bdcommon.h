@@ -36,14 +36,14 @@
  *  \details  Enable the use of sb_discard() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_DISCARD      1
+#define BDMPI_SB_DISCARD   (1<<0)
 
 /****************************************************************************/
 /*!
  *  \details  Enable the use of sb_saveall() throughout the BDMPI library.
  */
 /****************************************************************************/
-#define BDMPI_SB_SAVEALL      2
+#define BDMPI_SB_SAVEALL   (1<<1)
 
 /****************************************************************************/
 /*!
@@ -59,7 +59,7 @@
  *            negate the advantages of this strategy.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYWRITE    4
+#define BDMPI_SB_LAZYWRITE (1<<2)
 
 /****************************************************************************/
 /*!
@@ -74,7 +74,16 @@
  *            page.
  */
 /****************************************************************************/
-#define BDMPI_SB_LAZYREAD     8
+#define BDMPI_SB_LAZYREAD  (1<<3)
+
+/****************************************************************************/
+/*!
+ *  \details  Enable the use of `ghost' pages in the swap in functionality in
+ *            the sbma library. This means that the memory exchange functions
+ *            are thread safe.
+ */
+/****************************************************************************/
+#define BDMPI_SB_MULTI     (1<<4)
 
 
 /*************************************************************************/
