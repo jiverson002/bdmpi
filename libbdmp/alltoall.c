@@ -41,7 +41,6 @@ int bdmp_Alltoallv_node(sjob_t *job,
     return BDMPI_ERR_TYPE;
   }
 
-
   npes = comm->size;
   mype = comm->rank;
 
@@ -136,7 +135,6 @@ int bdmp_Alltoallv_node(sjob_t *job,
         sendcounts[mype]*sdtsize);
   else
     xfer_in_disk(myfnum, (char *)recvbuf+rdispls[mype]*rdtsize, sendcounts[mype], sendtype, 1);
-
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Alltoallv: exiting: comm: %p\n", comm));
 
@@ -277,10 +275,8 @@ int bdmp_Alltoallv_p2p(sjob_t *job,
   rmsgs[mype].datatype = sendtype;
   if (sendcounts[mype]*sdtsize > job->smallmsg) {
     rmsgs[mype].fnum = xfer_getfnum();
-    printf("[%5d] xfer beg\n", (int)getpid());
     xfer_out_disk(rmsgs[mype].fnum, (char *)sendbuf+sdispls[mype]*sdtsize,
         sendcounts[mype], sendtype);
-    printf("[%5d] xfer end\n", (int)getpid());
   }
 
 

@@ -164,6 +164,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     opts |= VMM_LZYWR;
   if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD))
     opts |= VMM_LZYRD;
+  if (BDMPI_SB_MULTI == (job->jdesc->sbopts&BDMPI_SB_MULTI))
+    opts |= VMM_GHOST;
 
   /* init the sbma subsystem */
   if (-1 == SBMA_init(job->jdesc->wdir,\

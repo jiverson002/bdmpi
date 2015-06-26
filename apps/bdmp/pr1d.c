@@ -6,15 +6,17 @@
 */
 
 
+#define _GNU_SOURCE
 #define _LARGEFILE64_SOURCE
 #include <GKlib.h>
 #include <bdmpi.h>
+#include <fcntl.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 /**************************************************************************/
@@ -699,6 +701,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
 
   rprob = 1.0/dmat->gnrows;
   pr    = gk_dsmalloc(nrows, rprob, "pr");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* get into the PR iteration */
   for (iter=0; iter<params->niters; iter++) {
@@ -734,6 +737,8 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
       GKWARN(BDMPI_munlock(prnew, (nrows+nsend)*sizeof(double)) == 0);
     }
 
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
+
     /* free pr if it will not be needed */
     if (!(iter%10 == 0 || iter == params->niters-1))
       gk_free((void **)&pr, LTERM);
@@ -742,6 +747,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     /* get the overall gsinks across all processors */
     if (gsinks > 0)
       BDMPI_Allreduce(&lsinks, &gsinks, 1, BDMPI_DOUBLE, BDMPI_SUM, params->comm);
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     /* get the partial PR scores computed by the other PEs for my rows and
        update local PR scores */
@@ -750,23 +756,27 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
                   prrecv, dmat->rcounts, dmat->rdispls, BDMPI_DOUBLE,
                   params->comm);
     gk_stopwctimer(params->commTmr);
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_mlock(prrecv, nrecv*sizeof(double)) == 0);
 
     /* shrink the size of prnew, as you do not need the last nsend entries */
     prnew = gk_drealloc(prnew, nrows, "drealloc: prnew");
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_mlock(prnew, nrows*sizeof(double)) == 0);
 
     for (i=0; i<nrecv; i++)
       prnew[rinds[i]] += prrecv[i];
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_munlock(prrecv, nrecv*sizeof(double)) == 0);
 
     gk_free((void **)&prrecv, LTERM);
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     /* apply the restart condition */
     for (i=0; i<nrows; i++)
@@ -774,7 +784,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
 
     if (params->mlock)
       GKWARN(BDMPI_munlock(prnew, nrows*sizeof(double)) == 0);
-
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (iter%10 == 0 || iter == params->niters-1) {
       if (params->mlock) {
@@ -802,10 +812,12 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
         printf("Iter: %5zu, grmsd: %.6le [gsinks: %.6le, rprob: %.6le]\n",
             iter, grmsd, gsinks, rprob);
     }
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     pr = prnew;
 
     BDMPI_Barrier(MPI_COMM_WORLD);
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   }
 
   return pr;

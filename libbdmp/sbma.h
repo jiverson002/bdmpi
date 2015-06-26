@@ -61,12 +61,14 @@ enum SBMA_mallopt_params
  *
  *   bit 0 ==    0: aggressive read  1: lazy read
  *   bit 1 ==    0: aggressive write 1: lazy write
+ *   bit 2 ==    0:                  1: ghost pages
  */
 /****************************************************************************/
 enum SBMA_vmm_opt_code
 {
   VMM_LZYRD = 1 << 0,
-  VMM_LZYWR = 1 << 1
+  VMM_LZYWR = 1 << 1,
+  VMM_GHOST = 1 << 2
 };
 
 
@@ -75,11 +77,13 @@ enum SBMA_vmm_opt_code
  * Virtual memory manager process eligibility bits:
  *
  *   bit 0 ==    0: ineligible           1: eligible for ipc memory eviction
+ *   bit 1 ==    0:                      1: blocked in __ooc_madmit__
  */
 /****************************************************************************/
 enum SBMA_ipc_code
 {
-  IPC_ELIGIBLE = 1 << 0
+  IPC_ELIGIBLE = 1 << 0,
+  IPC_MADMIT   = 1 << 1
 };
 
 

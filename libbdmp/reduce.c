@@ -267,7 +267,6 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     return BDMPI_ERR_OP;
   }
 
-
   mype = comm->rank;
 
   /* notify the master that you entering a reduce */
