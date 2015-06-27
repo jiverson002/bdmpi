@@ -122,12 +122,10 @@ int main(int argc, char **argv)
   gk_startwctimer(params->totalTmr);
 
   dmat = LoadData(params);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   gk_startwctimer(params->setupTmr);
   SetupData(params, dmat);
   gk_stopwctimer(params->setupTmr);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   if (params->type == 1)
     prvec = ComputePR_a2a(params, dmat);
@@ -175,12 +173,9 @@ int main(int argc, char **argv)
   if (params->mype == 0 && max>0)
     printf(" totalTmr:  %10.4lf\n", max);
 
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   gk_free((void**)&params->filename, &params, LTERM);
 
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Finalize();
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   return EXIT_SUCCESS;
 }
@@ -545,7 +540,6 @@ void SetupData(params_t *params, dcsr_t *dmat)
     }
   }
 #endif
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================ */
@@ -559,27 +553,22 @@ void SetupData(params_t *params, dcsr_t *dmat)
       gk_isorti(rowptr[i+1]-rowptr[i], rowind+rowptr[i]);
   }
   gk_stopwctimer(params->sort1Tmr);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* allocate memory for the sendinfo */
   dmat->scounts = gk_zumalloc(npes, "scounts");
   dmat->sdispls = gk_zumalloc(npes+1, "sdispls");
   dmat->sinds   = gk_imalloc(rowdist[npes], "sinds");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* setup the nrowptr */
   nrowptr = gk_zmalloc(nrows+1, "nrowptr");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   gk_zcopy(nrows+1, rowptr, nrowptr);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   for (nunique=0, p=0; p<npes; p++) {
     pfirstrow = rowdist[p];
     plastrow  = rowdist[p+1];
 
     if (p == mype) {
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
       for (i=0; i<nrows; i++) {
         for (j=nrowptr[i]; j<rowptr[i+1]; j++) {
           if (rowind[j] < plastrow)
@@ -591,12 +580,9 @@ void SetupData(params_t *params, dcsr_t *dmat)
       }
       dmat->scounts[p] = 0;
       dmat->sdispls[p] = nunique;
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     }
     else {
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
       marker = gk_ismalloc(plastrow-pfirstrow, -1, "marker");
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
       for (pnunique=0, i=0; i<nrows; i++) {
         for (j=nrowptr[i]; j<rowptr[i+1]; j++) {
@@ -613,26 +599,20 @@ void SetupData(params_t *params, dcsr_t *dmat)
         }
         nrowptr[i] = j;
       }
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
       dmat->scounts[p] = pnunique;
       dmat->sdispls[p] = nunique;
       nunique += pnunique;
 
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
       gk_free((void **)&marker, LTERM);
-      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     }
   }
   dmat->nsend = nunique;
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   gk_free((void **)&nrowptr, LTERM);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* adjust the memory for sinds */
   dmat->sinds = gk_irealloc(dmat->sinds, nunique, "sinds");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================= */
@@ -644,12 +624,9 @@ void SetupData(params_t *params, dcsr_t *dmat)
   /* SETUP RINFO */
   /* ============================================================ */
 
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   /* allocate memory for rcounts and perform an all-to-all to get the data */
   dmat->rcounts = gk_zumalloc(npes, "rcounts");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Alltoall(dmat->scounts, 1, BDMPI_SIZE_T, dmat->rcounts, 1, BDMPI_SIZE_T, params->comm);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* allocate memory for rdispls and fill it */
   dmat->rdispls = gk_zumalloc(npes+1, "rdispls");
@@ -657,20 +634,16 @@ void SetupData(params_t *params, dcsr_t *dmat)
   for (i=0; i<npes; i++)
     dmat->rdispls[i+1] = dmat->rdispls[i] + dmat->rcounts[i];
   dmat->nrecv = dmat->rdispls[npes];
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* allocate memory for rinds and populate it via an all-to-all */
   dmat->rinds = gk_imalloc(dmat->nrecv, "rinds");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT,
                 dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT,
                 params->comm);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* free sinds, as they will not be used again */
   gk_free((void **)&dmat->sinds, LTERM);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* localize the indices in dmat->rinds */
   for (i=0; i<dmat->nrecv; i++) {
@@ -728,7 +701,6 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
 
   rprob = 1.0/dmat->gnrows;
   pr    = gk_dsmalloc(nrows, rprob, "pr");
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* get into the PR iteration */
   for (iter=0; iter<params->niters; iter++) {
@@ -764,48 +736,39 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
       GKWARN(BDMPI_munlock(prnew, (nrows+nsend)*sizeof(double)) == 0);
     }
 
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
-
     /* free pr if it will not be needed */
     if (!(iter%10 == 0 || iter == params->niters-1))
       gk_free((void **)&pr, LTERM);
 
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     gk_startwctimer(params->commTmr);
     /* get the overall gsinks across all processors */
     if (gsinks > 0)
       BDMPI_Allreduce(&lsinks, &gsinks, 1, BDMPI_DOUBLE, BDMPI_SUM, params->comm);
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     /* get the partial PR scores computed by the other PEs for my rows and
        update local PR scores */
     prrecv = gk_dmalloc(nrecv, "prrecv");
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     BDMPI_Alltoallv(prnew+nrows, dmat->scounts, dmat->sdispls, BDMPI_DOUBLE,
                   prrecv, dmat->rcounts, dmat->rdispls, BDMPI_DOUBLE,
                   params->comm);
     gk_stopwctimer(params->commTmr);
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_mlock(prrecv, nrecv*sizeof(double)) == 0);
 
     /* shrink the size of prnew, as you do not need the last nsend entries */
     prnew = gk_drealloc(prnew, nrows, "drealloc: prnew");
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_mlock(prnew, nrows*sizeof(double)) == 0);
 
     for (i=0; i<nrecv; i++)
       prnew[rinds[i]] += prrecv[i];
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (params->mlock)
       GKWARN(BDMPI_munlock(prrecv, nrecv*sizeof(double)) == 0);
 
     gk_free((void **)&prrecv, LTERM);
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     /* apply the restart condition */
     for (i=0; i<nrows; i++)
@@ -813,7 +776,6 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
 
     if (params->mlock)
       GKWARN(BDMPI_munlock(prnew, nrows*sizeof(double)) == 0);
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     if (iter%10 == 0 || iter == params->niters-1) {
       if (params->mlock) {
@@ -841,12 +803,10 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
         printf("Iter: %5zu, grmsd: %.6le [gsinks: %.6le, rprob: %.6le]\n",
             iter, grmsd, gsinks, rprob);
     }
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
     pr = prnew;
 
     BDMPI_Barrier(MPI_COMM_WORLD);
-    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   }
 
   return pr;
