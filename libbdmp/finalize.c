@@ -25,12 +25,16 @@ int bdmp_Finalize(sjob_t *job)
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_SELF) == BDMPI_SUCCESS);
   BDASSERT(BDMPI_Comm_free(&BDMPI_COMM_CWORLD) == BDMPI_SUCCESS);
 
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
+
   /* turn off sbma subsystem */
   if (-1 == SBMA_destroy())
     bdprintf("Failed to destroy sbma\n");
 
   mi = SBMA_mallinfo();
   memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
+
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* ====================================================================== */
   /* everything below here must have been allocated via the libc interface. */
@@ -44,30 +48,38 @@ int bdmp_Finalize(sjob_t *job)
   if (bdmq_send(job->reqMQ, &donemsg, sizeof(bdmsg_t)) == -1)
     bdprintf("Failed on sending a donemsg: %s.\n", strerror(errno));
 
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
+
   /* wait for a go response from the master */
   BDMPL_SLEEP(job, gomsg, 0);
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: I got the following msg:"
     "%d\n", gomsg.msgtype));
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* close the global SMR */
   bdsm_close(job->globalSM);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* close the message queues */
   bdmq_close(job->reqMQ);
   bdmq_close(job->c2sMQ);
   bdmq_close(job->c2mMQ);
   bdmq_close(job->goMQ);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* close the mutexes */
   bdlock_close(job->mlockMX);
   bdlock_close(job->criticalMX);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* close the SCM for master-slave communication */
   bdscb_close(job->scb);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* free communicators */
   bd_free((void **)&BDMPI_COMM_WORLD, &BDMPI_COMM_NODE, &job, LTERM);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   return BDMPI_SUCCESS;
 }

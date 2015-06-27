@@ -122,10 +122,12 @@ int main(int argc, char **argv)
   gk_startwctimer(params->totalTmr);
 
   dmat = LoadData(params);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   gk_startwctimer(params->setupTmr);
   SetupData(params, dmat);
   gk_stopwctimer(params->setupTmr);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   if (params->type == 1)
     prvec = ComputePR_a2a(params, dmat);
@@ -173,9 +175,12 @@ int main(int argc, char **argv)
   if (params->mype == 0 && max>0)
     printf(" totalTmr:  %10.4lf\n", max);
 
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   gk_free((void**)&params->filename, &params, LTERM);
 
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Finalize();
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   return EXIT_SUCCESS;
 }
@@ -540,6 +545,7 @@ void SetupData(params_t *params, dcsr_t *dmat)
     }
   }
 #endif
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================ */
@@ -553,22 +559,27 @@ void SetupData(params_t *params, dcsr_t *dmat)
       gk_isorti(rowptr[i+1]-rowptr[i], rowind+rowptr[i]);
   }
   gk_stopwctimer(params->sort1Tmr);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* allocate memory for the sendinfo */
   dmat->scounts = gk_zumalloc(npes, "scounts");
   dmat->sdispls = gk_zumalloc(npes+1, "sdispls");
   dmat->sinds   = gk_imalloc(rowdist[npes], "sinds");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* setup the nrowptr */
   nrowptr = gk_zmalloc(nrows+1, "nrowptr");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   gk_zcopy(nrows+1, rowptr, nrowptr);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   for (nunique=0, p=0; p<npes; p++) {
     pfirstrow = rowdist[p];
     plastrow  = rowdist[p+1];
 
     if (p == mype) {
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
       for (i=0; i<nrows; i++) {
         for (j=nrowptr[i]; j<rowptr[i+1]; j++) {
           if (rowind[j] < plastrow)
@@ -580,9 +591,12 @@ void SetupData(params_t *params, dcsr_t *dmat)
       }
       dmat->scounts[p] = 0;
       dmat->sdispls[p] = nunique;
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     }
     else {
-      marker  = gk_ismalloc(plastrow-pfirstrow, -1, "marker");
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
+      marker = gk_ismalloc(plastrow-pfirstrow, -1, "marker");
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
       for (pnunique=0, i=0; i<nrows; i++) {
         for (j=nrowptr[i]; j<rowptr[i+1]; j++) {
@@ -599,32 +613,38 @@ void SetupData(params_t *params, dcsr_t *dmat)
         }
         nrowptr[i] = j;
       }
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
       dmat->scounts[p] = pnunique;
       dmat->sdispls[p] = nunique;
       nunique += pnunique;
 
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
       gk_free((void **)&marker, LTERM);
+      //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     }
   }
   dmat->nsend = nunique;
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   gk_free((void **)&nrowptr, LTERM);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* adjust the memory for sinds */
   dmat->sinds = gk_irealloc(dmat->sinds, nunique, "sinds");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================= */
   /* dmat->mat will not be needed anymore, it can be saved to disk */
   /* ============================================================= */
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================ */
   /* SETUP RINFO */
   /* ============================================================ */
 
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   /* allocate memory for rcounts and perform an all-to-all to get the data */
   dmat->rcounts = gk_zumalloc(npes, "rcounts");
   //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
