@@ -618,6 +618,7 @@ void SetupData(params_t *params, dcsr_t *dmat)
   /* ============================================================= */
   /* dmat->mat will not be needed anymore, it can be saved to disk */
   /* ============================================================= */
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* ============================================================ */
@@ -626,7 +627,9 @@ void SetupData(params_t *params, dcsr_t *dmat)
 
   /* allocate memory for rcounts and perform an all-to-all to get the data */
   dmat->rcounts = gk_zumalloc(npes, "rcounts");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Alltoall(dmat->scounts, 1, BDMPI_SIZE_T, dmat->rcounts, 1, BDMPI_SIZE_T, params->comm);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* allocate memory for rdispls and fill it */
   dmat->rdispls = gk_zumalloc(npes+1, "rdispls");
@@ -634,16 +637,20 @@ void SetupData(params_t *params, dcsr_t *dmat)
   for (i=0; i<npes; i++)
     dmat->rdispls[i+1] = dmat->rdispls[i] + dmat->rcounts[i];
   dmat->nrecv = dmat->rdispls[npes];
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /* allocate memory for rinds and populate it via an all-to-all */
   dmat->rinds = gk_imalloc(dmat->nrecv, "rinds");
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   BDMPI_Alltoallv(dmat->sinds, dmat->scounts, dmat->sdispls, BDMPI_INT,
                 dmat->rinds, dmat->rcounts, dmat->rdispls, BDMPI_INT,
                 params->comm);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* free sinds, as they will not be used again */
   gk_free((void **)&dmat->sinds, LTERM);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* localize the indices in dmat->rinds */
   for (i=0; i<dmat->nrecv; i++) {
@@ -743,6 +750,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     if (!(iter%10 == 0 || iter == params->niters-1))
       gk_free((void **)&pr, LTERM);
 
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     gk_startwctimer(params->commTmr);
     /* get the overall gsinks across all processors */
     if (gsinks > 0)
@@ -752,6 +760,7 @@ double *ComputePR_a2a(params_t *params, dcsr_t *dmat)
     /* get the partial PR scores computed by the other PEs for my rows and
        update local PR scores */
     prrecv = gk_dmalloc(nrecv, "prrecv");
+    //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
     BDMPI_Alltoallv(prnew+nrows, dmat->scounts, dmat->sdispls, BDMPI_DOUBLE,
                   prrecv, dmat->rcounts, dmat->rdispls, BDMPI_DOUBLE,
                   params->comm);

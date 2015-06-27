@@ -55,9 +55,12 @@ int bdmp_Alltoallv_node(sjob_t *job,
   msg.datatype = sendtype;
 
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
+  /*===== HERE =====*/
   /* get the copid from the master */
   bdmq_recv(job->c2sMQ, &msg.copid, sizeof(int));
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* start sending data to the master or writing them to the disk */
   for (p=0; p<npes; p++) {
@@ -84,9 +87,12 @@ int bdmp_Alltoallv_node(sjob_t *job,
       }
       else { /* to disk */
         msg.fnum = xfer_getfnum();
+        //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
+        /*===== HERE =====*/
         /* store the data */
         xfer_out_disk(msg.fnum, (char *)sendbuf+sdispls[p]*sdtsize, sendcounts[p], sendtype);
+        //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
         /* tell the master about it */
         xfer_out_scb(job->scb, &msg, sizeof(bdmsg_t), BDMPI_BYTE);
@@ -100,16 +106,19 @@ int bdmp_Alltoallv_node(sjob_t *job,
       SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
+  /*===== HERE =====*/
   /* go to sleep until everybody has called the collective */
   BDMPL_SLEEP(job, gomsg, 1);
+  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
 
   /*=====================================================================*/
   /* after waking up... */
   /*=====================================================================*/
 
-  /* all will send a ALLGATHERF request and get the data */
+  /* all will send a ALLTOALLF request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLTOALLF;
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 

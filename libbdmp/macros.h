@@ -31,8 +31,8 @@
 
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
+  /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
   memset(&(MSG), 0, sizeof(bdmsg_t));                                       \
-  bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);\
   if (1 == IPC && -1 == SBMA_eligible(IPC_ELIGIBLE))                        \
     bdprintf("Failed trying to change eligibility [%s]\n", strerror(errno));\
   for (;;) {                                                                \
@@ -54,5 +54,5 @@ do {                                                                        \
   }                                                                         \
   if (1 == IPC && -1 == SBMA_eligible(0))                                   \
     bdprintf("Failed trying to change eligibility [%s]\n", strerror(errno));\
-  bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);\
+  /*bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);*/\
 } while (0)

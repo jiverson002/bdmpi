@@ -29,13 +29,16 @@ void *mstr_alltoall_send(void *arg)
   bdmcomm_t *comm;
 
 
+  //printf("[%5d] %s:%d\n", (int)syscall(SYS_gettid), basename(__FILE__), __LINE__);
+  /*===== HERE =====*/
   BD_GET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
+  //printf("[%5d] %s:%d\n", (int)syscall(SYS_gettid), basename(__FILE__), __LINE__);
 
   /* hook to the key info */
   comm  = job->comms[msg->mcomm];
   srank = babel_get_srank(comm, msg->myrank);
 
-  //bdprintf("%d alltoall-send1: srank: %d\n", (int)time(0), srank);
+  /*bdprintf("%d alltoall-send1: srank: %d\n", (int)time(0), srank);*/
 
   BDASSERT(comm->nnodes == 1);
 
@@ -48,8 +51,12 @@ void *mstr_alltoall_send(void *arg)
 
   /* get all the messages */
   for (i=0; i<comm->lsize-1; i++) {
+    //printf("[%5d] %s:%d (%d)\n", (int)syscall(SYS_gettid), basename(__FILE__),
+    //  __LINE__, job->spids[srank]);
+    /*===== HERE =====*/
     /* receive the specific info about this message */
     xfer_in_scb(job->scbs[srank], msg, sizeof(bdmsg_t), BDMPI_BYTE);
+    //printf("[%5d] %s:%d\n", (int)syscall(SYS_gettid), basename(__FILE__), __LINE__);
 
     if (msg->fnum == -1) {
       /* allocate memory and receive the actual data */
@@ -60,14 +67,14 @@ void *mstr_alltoall_send(void *arg)
       buf = NULL;
     }
 
-    pending_addalltoall(job, msg, buf, (buf == NULL ? 0 : bdmp_msize(msg->count, msg->datatype)));
+    pending_addalltoall(job, msg, buf,
+      (buf == NULL ? 0 : bdmp_msize(msg->count, msg->datatype)));
   }
 
 
   /* block the slave, once you get the ok from it */
   xfer_in_scb(job->scbs[srank], &sleeping, sizeof(int), BDMPI_BYTE);
   slvpool_cblock(job, srank);
-
 
   /* see if all slaves have call the collective */
   if (--comm->counter == 0) {
@@ -78,7 +85,7 @@ void *mstr_alltoall_send(void *arg)
 
   BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
 
-  //bdprintf("%d alltoall-send2: srank: %d\n", (int)time(0), srank);
+  /*bdprintf("%d alltoall-send2: srank: %d\n", (int)time(0), srank);*/
 
   gk_free((void **)&arg, LTERM);
 
