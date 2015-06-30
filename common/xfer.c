@@ -153,7 +153,8 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
     errexit("xfer_in_disk: Failed to create filename.\n");
 
   if ((rsize = gk_getfsize(fname)) == -1)
-    errexit("xfer_in_disk: Error with file: %s [%s]\n", fname, strerror(errno));
+    errexit("[%5d] xfer_in_disk: Error with file: %s [%s]\n", (int)getpid(),
+      fname, strerror(errno));
 
   if (rsize > size)
     errexit("xfer_in_disk: Size of file %s is larger than supplied buffer space: [%zu %zu]\n",

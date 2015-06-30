@@ -46,7 +46,6 @@ void *mstr_recv(void *arg)
   }
   pending_unlocksend(job, msg);
 
-
   if (hdr == NULL) {
     /* it has not been posted yet */
     response = 0;

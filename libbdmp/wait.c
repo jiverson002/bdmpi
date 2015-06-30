@@ -39,6 +39,3 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
 
   return BDMPI_SUCCESS;
 }
-
-
-
