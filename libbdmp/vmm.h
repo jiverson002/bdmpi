@@ -58,6 +58,7 @@ extern int __ooc_mevictall_int__(size_t * const, size_t * const);
 /****************************************************************************/
 struct vmm
 {
+  int init;                     /*!< initialized indicator */
   int opts;                     /*!< runtime options */
 
   size_t page_size;             /*!< bytes per page */
@@ -500,8 +501,6 @@ __vmm_sigsegv__(int const sig, siginfo_t * const si, void * const ctx)
   ate = __mmu_lookup_ate__(&(vmm.mmu), (void*)addr);
   ASSERT(NULL != ate);
 
-  //printf("[%5d] SIGSEGV %p\n", (int)getpid(), si->si_addr);
-
   ip    = (addr-ate->base)/page_size;
   flags = ate->flags;
 
@@ -602,11 +601,9 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
   ASSERT(SIGIPC <= SIGRTMAX);
   ASSERT(SIGIPC == sig);
 
-  //printf("[%5d] SIGIPC\n", (int)getpid());
-
   /* change my eligibility to ineligible - must be before any potential
    * waiting, since SIGIPC could be raised again then. */
-  vmm.ipc.flags[vmm.ipc.id] &= ~(IPC_ELIGIBLE|IPC_MADMIT);
+  vmm.ipc.flags[vmm.ipc.id] &= ~IPC_ELIGIBLE;
 
   /* evict all memory */
   ret = __ooc_mevictall_int__(&l_pages, &numwr);
@@ -622,12 +619,8 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
 
   /* track number of syspages currently loaded, number of syspages written to
    * disk, and high water mark for syspages loaded */
-  if (l_pages > vmm.curpages)
-    printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
   __vmm_track__(curpages, -l_pages);
   __vmm_track__(numwr, numwr);
-  //printf("[%5d] %s:%d <%zu,%zu>\n", (int)getpid(), basename(__FILE__),
-  //  __LINE__, vmm.curpages, vmm.ipc.pmem[vmm.ipc.id]);
 }
 
 
@@ -639,6 +632,9 @@ __vmm_init__(struct vmm * const __vmm, size_t const __page_size,
              char const * const __fstem, int const __n_procs,
              size_t const __max_mem, int const __opts)
 {
+  if (1 == __vmm->init)
+    return 0;
+
   /* set page size */
   __vmm->page_size = __page_size;
 
@@ -686,6 +682,8 @@ __vmm_init__(struct vmm * const __vmm, size_t const __page_size,
   if (-1 == LOCK_INIT(&(__vmm->lock)))
     return -1;
 
+  vmm.init = 1;
+
   ASSERT(IPC_ELIGIBLE != (vmm.ipc.flags[vmm.ipc.id]&IPC_ELIGIBLE));
 
   return 0;
@@ -698,6 +696,11 @@ __vmm_init__(struct vmm * const __vmm, size_t const __page_size,
 static inline int
 __vmm_destroy__(struct vmm * const __vmm)
 {
+  if (0 == vmm.init)
+    return 0;
+
+  vmm.init = 0;
+
   /* reset signal handler for SIGSEGV */
   if (-1 == sigaction(SIGSEGV, &(__vmm->oldact_segv), NULL))
     return -1;

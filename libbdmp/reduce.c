@@ -295,24 +295,18 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
       SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
-  /*===== HERE =====*/
   /* go to sleep until everybody has called the reduce */
   BDMPL_SLEEP(job, gomsg, 1);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* everybody sends a ALLREDUCE_RECV request and get the data */
   msg.msgtype = BDMPI_MSGTYPE_ALLREDUCEF;
 
   /* notify the master that you want to receive the reduced data */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
-  /*===== HERE =====*/
   /* copy the data from the master */
   xfer_in_scb(job->scb, recvbuf, count, datatype);
-  //printf("[%5d] %s:%d\n", (int)getpid(), basename(__FILE__), __LINE__);
 
   /* tell the master that we got the data */
   bdmq_send(job->c2mMQ, &response, sizeof(int));

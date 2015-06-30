@@ -32,10 +32,8 @@
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
-  memset(&(MSG), 0, sizeof(bdmsg_t));                                       \
-  if (1 == IPC && -1 == SBMA_eligible(IPC_ELIGIBLE))                        \
-    bdprintf("Failed trying to change eligibility [%s]\n", strerror(errno));\
   for (;;) {                                                                \
+    memset(&(MSG), 0, sizeof(bdmsg_t));                                     \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t))) {            \
       if (EINTR == errno) {                                                 \
         errno = 0;                                                          \
@@ -52,7 +50,5 @@ do {                                                                        \
         EINTR);*/\
     /*slv_route(JOB, &(MSG));                                               */\
   }                                                                         \
-  if (1 == IPC && -1 == SBMA_eligible(0))                                   \
-    bdprintf("Failed trying to change eligibility [%s]\n", strerror(errno));\
   /*bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);*/\
 } while (0)
