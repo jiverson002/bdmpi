@@ -187,6 +187,8 @@ mjob_t *parse_cmdline(int argc, char *argv[])
           bdmp->sbopts |= (BDMPI_SB_SAVEALL|BDMPI_SB_LAZYREAD);
         else if (0 == strncmp(gk_optarg, "lrlw", 5))
           bdmp->sbopts |= (BDMPI_SB_LAZYREAD|BDMPI_SB_LAZYWRITE);
+        else if (0 == strncmp(gk_optarg, "none", 5))
+          (void)0;
         else
           printf("invalid sbma option `%s'\n", gk_optarg);
         break;
