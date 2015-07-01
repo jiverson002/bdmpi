@@ -455,6 +455,8 @@ __ooc_remap__(void * const __nbase, void * const __obase, size_t const __size,
   if (-1 == ret)
     return -1;
 
+  NOSIG_ON(&(vmm.ipc));
+
   /* grant read-write permission to new memory */
   ret = mprotect((void*)((uintptr_t)nptr-__off), __size+__off,\
     PROT_READ|PROT_WRITE);
@@ -500,6 +502,8 @@ __ooc_remap__(void * const __nbase, void * const __obase, size_t const __size,
   /*ret = truncate(nfname, nn_pages*page_size);
   if (-1 == ret)
     return -1;*/
+
+  NOSIG_OFF(&(vmm.ipc));
 
   return 0;
 }

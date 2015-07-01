@@ -601,6 +601,7 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
   /* make sure we received a SIGIPC */
   ASSERT(SIGIPC <= SIGRTMAX);
   ASSERT(SIGIPC == sig);
+  ASSERT(IPC_NOSIG != (vmm.ipc.flags[vmm.ipc.id]&IPC_NOSIG));
 
   /* TODO: is it possible / what happens if the process receives a SIGIPC
    * while in this function? */
