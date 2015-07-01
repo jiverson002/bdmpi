@@ -205,6 +205,7 @@ __ooc_mtouch__(void * const __addr, size_t const __len)
       break;
     }
   }
+  ASSERT(IPC_ELIGIBLE != (vmm.ipc.flags[vmm.ipc.id]&IPC_ELIGIBLE));
 
   numrd = __ooc_mtouch_int__(ate, __addr, __len);
   if (-1 == numrd) {
