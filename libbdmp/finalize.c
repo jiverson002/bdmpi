@@ -29,7 +29,7 @@ int bdmp_Finalize(sjob_t *job)
   if (-1 == SBMA_destroy())
     bdprintf("Failed to destroy sbma\n");
 
-  mi = SBMA_mallinfo();
+  mi = mallinfo();
   memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
 
   /* ====================================================================== */
