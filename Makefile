@@ -7,6 +7,7 @@ gprof      = not-set
 openmp     = yes
 prefix     = not-set
 gklib_path = not-set
+sbma_path  = not-set
 shared     = not-set
 cc         = not-set
 
@@ -24,6 +25,10 @@ ifeq ($(gklib_path), not-set)
     gklib_path = GKlib
 endif
 CONFIG_FLAGS += -DGKLIB_PATH=$(abspath $(gklib_path))
+ifeq ($(sbma_path), not-set)
+    sbma_path = sbma
+endif
+CONFIG_FLAGS += -DSBMA_PATH=$(abspath $(sbma_path))
 ifneq ($(gdb), not-set)
     CONFIG_FLAGS += -DGDB=$(gdb)
 endif

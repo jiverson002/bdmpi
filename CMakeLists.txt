@@ -37,7 +37,6 @@ include_directories(include)
 
 # Recursively look for CMakeLists.txt in subdirs.
 add_subdirectory(${GKLIB_PATH})
-add_subdirectory(${SBMA_PATH})
 add_subdirectory("include")
 add_subdirectory("libbdmp")
 add_subdirectory("bdmprun")
@@ -49,3 +48,13 @@ add_subdirectory("apps/bdmp")           # DISTRM  this is for my grep -v script
 #add_subdirectory("apps/oc")             # DISTRM
 #add_subdirectory("apps/mpi")            # DISTRM
 #add_subdirectory("apps/misc")           # DISTRM
+
+# SBMA stuff
+file(GLOB sbma_sources ${SBMA_PATH}/*.c)
+add_library(sbma STATIC ${sbma_sources})
+target_link_libraries(sbma m dl rt pthread)
+install(TARGETS sbma
+  ARCHIVE DESTINATION lib/${LINSTALL_PATH}
+  LIBRARY DESTINATION lib/${LINSTALL_PATH})
+install(FILES ${SBMA_PATH}/sbma.h
+  DESTINATION include/${HINSTALL_PATH})
