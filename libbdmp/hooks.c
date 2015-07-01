@@ -916,7 +916,7 @@ sem_wait(sem_t * const sem)
         }
       }
       else {
-        return ret;
+        return 0;
       }
     }
 
@@ -981,7 +981,7 @@ sem_timedwait(sem_t * const sem, struct timespec const * const ts)
         }
       }
       else {
-        return ret;
+        return 0;
       }
     }
 

@@ -81,28 +81,16 @@ do {\
     sizeof(int))
 
 
-#define NOSIG_ON(__IPC)\
-do {\
-  (__IPC)->flags[(__IPC)->id] |= IPC_NOSIG;\
-} while(0)
-#define NOSIG_OFF(__IPC)\
-do {\
-  (__IPC)->flags[(__IPC)->id] &= ~IPC_NOSIG;\
-} while(0)
-
-
 /****************************************************************************/
 /*!
  * Inter-process communication process status bits:
  *
  *   bit 0 ==    0: ineligible           1: eligible for ipc memory eviction
- *   bit 1 ==    0:                      1: MUST not receive SIGIPC
  */
 /****************************************************************************/
 enum ipc_code
 {
-  IPC_ELIGIBLE = 1 << 0,
-  IPC_NOSIG    = 1 << 1
+  IPC_ELIGIBLE = 1 << 0
 };
 
 

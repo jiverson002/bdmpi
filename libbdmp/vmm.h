@@ -607,8 +607,6 @@ __vmm_sigipc__(int const sig, siginfo_t * const si, void * const ctx)
 
   /* Only honor the SIGIPC if my status is still eligible */
   if (IPC_ELIGIBLE == (vmm.ipc.flags[vmm.ipc.id]&IPC_ELIGIBLE)) {
-    ASSERT(IPC_NOSIG != (vmm.ipc.flags[vmm.ipc.id]&IPC_NOSIG));
-
     /* change my eligibility to ineligible - must be before any potential
      * waiting, since SIGIPC could be raised again then. */
     vmm.ipc.flags[vmm.ipc.id] &= ~IPC_ELIGIBLE;
