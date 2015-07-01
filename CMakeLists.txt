@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(BDMP)
 
 set(GKLIB_PATH "GKlib" CACHE PATH "path to GKlib")
+set(SBMA_PATH "sbma" CACHE PATH "path to SBMA")
 set(SHARED FALSE CACHE BOOL "build a shared library")
 
 set(HINSTALL_PATH "bdmpi" CACHE PATH "header installation subdirectory")
@@ -31,10 +32,12 @@ file(GLOB common_sources ${COMMON_PATH}/*.c)
 
 # Add include directories.
 include_directories(${GKLIB_PATH})
+include_directories(${SBMA_PATH})
 include_directories(include)
 
 # Recursively look for CMakeLists.txt in subdirs.
-add_subdirectory("GKlib")
+add_subdirectory(${GKLIB_PATH})
+add_subdirectory(${SBMA_PATH})
 add_subdirectory("include")
 add_subdirectory("libbdmp")
 add_subdirectory("bdmprun")

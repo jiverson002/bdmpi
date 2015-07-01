@@ -26,7 +26,7 @@ foreach(prog bdmp_samplesort
              sb_sphkmeans 
              sb_pr1d 
        )
-  target_link_libraries(${prog} bdmpi GKlib rt m dl)
+  target_link_libraries(${prog} bdmpi GKlib sbma rt m dl)
   add_dependencies(${prog} ${GKlib_includes})
 endforeach(prog)
 

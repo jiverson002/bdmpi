@@ -6,6 +6,7 @@ svn up
 # svn export http://dminers.dtc.umn.edu/svn/libs/GKlib/trunk $1/GKlib
 svn export http://dminers.dtc.umn.edu/svn/programs/karypis/bdmpi/pola/branches/jeremy $1
 svn export http://dminers.dtc.umn.edu/svn/libs/GKlib/trunk $1/GKlib
+svn export http://dminers.dtc.umn.edu/svn/programs/jiverson/sbma/trunk $1/sbma
 
 # Build documentation
 cd $1/doxygen

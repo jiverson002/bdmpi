@@ -6,7 +6,7 @@ $PREFIX = "@CMAKE_INSTALL_PREFIX@";
 $CXX    = "@CMAKE_CXX_COMPILER@";
 
 $args = join(' ', @ARGV);
-$cmd = "$CXX -pthread $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lrt -lm -ldl";
+$cmd = "$CXX -pthread $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lsbma -lrt -lm -ldl";
 print "bdmpic++: $cmd\n";
 `$cmd`;
 

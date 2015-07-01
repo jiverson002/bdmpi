@@ -6,7 +6,7 @@ $PREFIX = "@CMAKE_INSTALL_PREFIX@";
 $CC     = "@CMAKE_C_COMPILER@";
 
 $args = join(' ', @ARGV);
-$cmd = "$CC -pthread -fopenmp $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lrt -lm -ldl";
+$cmd = "$CC -pthread -fopenmp $args -I$PREFIX/include/bdmpi -L$PREFIX/lib/bdmpi -lbdmpi -lGKlib -lsbma -lrt -lm -ldl";
 #print "bdmpicc: $cmd\n";
 `$cmd`;
 
