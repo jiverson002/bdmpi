@@ -170,7 +170,7 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     opts |= VMM_GHOST;
 
   /* init the sbma subsystem */
-  if (-1 == SBMA_init(job->jdesc->wdir,\
+  if (-1 == SBMA_init(job->jdesc->wdir, job->jdesc->mpid,\
     job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns,\
     job->jdesc->rmsize, opts))
   {
