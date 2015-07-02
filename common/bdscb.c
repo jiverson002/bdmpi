@@ -187,7 +187,20 @@ void bdscb_destroy(bdscb_t *scb)
 /*************************************************************************/
 int bdscb_wait_empty(bdscb_t *scb)
 {
-  return sem_wait(scb->esem);
+  int ret;
+  for (;;) {
+    ret = sem_wait(scb->esem);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+  //return sem_wait(scb->esem);
 }
 
 
@@ -196,7 +209,20 @@ int bdscb_wait_empty(bdscb_t *scb)
 /*************************************************************************/
 int bdscb_wait_full(bdscb_t *scb)
 {
-  return sem_wait(scb->fsem);
+  int ret;
+  for (;;) {
+    ret = sem_wait(scb->fsem);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+  //return sem_wait(scb->fsem);
 }
 
 
@@ -216,4 +242,3 @@ int bdscb_post_full(bdscb_t *scb)
 {
   return sem_post(scb->fsem);
 }
-

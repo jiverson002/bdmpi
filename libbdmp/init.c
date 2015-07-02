@@ -13,8 +13,6 @@
 
 #include "bdmplib.h"
 
-/* libc hook prototype */
-extern int libc_sem_wait(sem_t * const sem);
 
 /*************************************************************************/
 /* Initializes the BDMP library. */
@@ -42,10 +40,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
      ensure that the master has finished setting it up. */
   /* need to use the libc variations of these, since sbma is not initialized
    * yet. */
-  libc_sem_wait(job->globalSM->sem);
-  sem_post(job->globalSM->sem);
-  /*bdsm_lock(job->globalSM);
-  bdsm_unlock(job->globalSM);*/
+  bdsm_lock(job->globalSM);
+  bdsm_unlock(job->globalSM);
 
   /* hook job->jdesc into the global shared memory */
   job->jdesc = (bdjdesc_t *)bdsm_malloc(job->globalSM, sizeof(bdjdesc_t), "job->jdesc");

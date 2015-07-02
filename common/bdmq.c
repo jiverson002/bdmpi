@@ -128,9 +128,9 @@ void bdmq_destroy(bdmq_t *mq)
 /*************************************************************************/
 /*! Sends a message to a message queue. */
 /*************************************************************************/
-int bdmq_send(bdmq_t *mq, void *buf, size_t size)
+ssize_t bdmq_send(bdmq_t *mq, void *buf, size_t size)
 {
-  int ret;
+  ssize_t ret;
   struct mq_attr attr;
   mq_getattr(mq->mqdes, &attr);
 
@@ -138,7 +138,18 @@ int bdmq_send(bdmq_t *mq, void *buf, size_t size)
     errexit("[%5d] bdmq_send: Message size %zu exceeds max limit of %zu (%s).\n",
       (int)getpid(), size, mq->msgsize, mq->name);
   }
-  ret = mq_send(mq->mqdes, buf, size, 0);
+  for (;;) {
+    ret = mq_send(mq->mqdes, buf, size, 0);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      break;
+    }
+  }
 
   return ret;
 }
@@ -151,16 +162,30 @@ int bdmq_send(bdmq_t *mq, void *buf, size_t size)
 ssize_t bdmq_recv(bdmq_t *mq, void *buf, size_t size)
 {
   unsigned int priority;
-  ssize_t rsize;
+  ssize_t ret;
 
-  if ((rsize = mq_receive(mq->mqdes, mq->buf, mq->msgsize, &priority)) != -1) {
-    if (size != rsize)
-      errexit("bdmq_recv: Received message size %zu is not the same as requested size %zu.\n", rsize, size);
+  for (;;) {
+    ret = mq_receive(mq->mqdes, mq->buf, mq->msgsize, &priority);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      break;
+    }
+  }
 
-    if (size < rsize)
+  if (-1 != ret) {
+    if (size != ret)
+      errexit("bdmq_recv: Received message size %zu is not the same as "
+        "requested size %zu.\n", ret, size);
+
+    if (size < ret)
       return -1;
-    memcpy(buf, mq->buf, rsize);
-    return rsize;
+    memcpy(buf, mq->buf, ret);
+    return ret;
   }
   return -1;
 }
@@ -175,7 +200,7 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
 {
   unsigned int priority;
   struct timespec abs_timeout;
-  ssize_t rsize;
+  ssize_t ret;
 
   /*printf("[%d] timedrecv-in\n", (int)time(0));*/
   if (clock_gettime(CLOCK_REALTIME, &abs_timeout) == -1)
@@ -187,18 +212,31 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
     abs_timeout.tv_sec++;
     abs_timeout.tv_nsec = (abs_timeout.tv_nsec + dt)%1000000000;
   }
-
   //abs_timeout.tv_nsec = gk_min(1000000000-1, abs_timeout.tv_nsec+dt);
 
-  if ((rsize = mq_timedreceive(mq->mqdes, mq->buf, mq->msgsize, &priority, &abs_timeout)) != -1) {
-    if (size < rsize)
-      rsize = -1;
+  for (;;) {
+    ret = mq_timedreceive(mq->mqdes, mq->buf, mq->msgsize, &priority,
+      &abs_timeout);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      break;
+    }
+  }
+
+  if (-1 != ret) {
+    if (size < ret)
+      ret = -1;
     else
-      memcpy(buf, mq->buf, rsize);
+      memcpy(buf, mq->buf, ret);
   }
   /*printf("[%d] timedrecv-out\n", (int)time(0));*/
 
-  return rsize;
+  return ret;
 }
 
 

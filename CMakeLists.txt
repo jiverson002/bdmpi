@@ -53,6 +53,7 @@ add_subdirectory("apps/bdmp")           # DISTRM  this is for my grep -v script
 file(GLOB sbma_sources ${SBMA_PATH}/*.c)
 add_library(sbma STATIC ${sbma_sources})
 target_link_libraries(sbma m dl rt pthread)
+set_target_properties(sbma PROPERTIES COMPILE_DEFINITIONS USE_THREAD)
 install(TARGETS sbma
   ARCHIVE DESTINATION lib/${LINSTALL_PATH}
   LIBRARY DESTINATION lib/${LINSTALL_PATH})

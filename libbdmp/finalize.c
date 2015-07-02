@@ -9,6 +9,13 @@
 #include "bdmplib.h"
 
 
+extern size_t lctr;
+extern size_t scbectr;
+extern size_t scbfctr;
+extern size_t smctr;
+extern size_t sctr;
+extern size_t rctr;
+extern size_t trctr;
 /*************************************************************************/
 /* Finalizes the BDMP library. */
 /*************************************************************************/

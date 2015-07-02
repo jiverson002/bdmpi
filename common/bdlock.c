@@ -101,7 +101,20 @@ void bdlock_destroy(bdlock_t *lock)
 /*************************************************************************/
 int bdlock_lock(bdlock_t *lock)
 {
-  return sem_wait(lock->sem);
+  int ret;
+  for (;;) {
+    ret = sem_wait(lock->sem);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+  //return sem_wait(lock->sem);
 }
 
 
@@ -112,4 +125,3 @@ int bdlock_unlock(bdlock_t *lock)
 {
   return sem_post(lock->sem);
 }
-

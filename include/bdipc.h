@@ -99,7 +99,7 @@ bdmq_t *bdmq_create(char *tag, int num);
 bdmq_t *bdmq_open(char *tag, int num);
 void bdmq_close(bdmq_t *mq);
 void bdmq_destroy(bdmq_t *mq);
-int bdmq_send(bdmq_t *mq, void *buf, size_t size);
+ssize_t bdmq_send(bdmq_t *mq, void *buf, size_t size);
 ssize_t bdmq_recv(bdmq_t *mq, void *buf, size_t size);
 ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt);
 void bdmq_register_function(bdmq_t *mq, void (*function)(union sigval));

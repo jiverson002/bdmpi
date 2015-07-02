@@ -159,7 +159,20 @@ void bdsm_destroy(bdsm_t *sm)
 /*************************************************************************/
 int bdsm_lock(bdsm_t *sm)
 {
-  return sem_wait(sm->sem);
+  int ret;
+  for (;;) {
+    ret = sem_wait(sm->sem);
+    if (-1 == ret) {
+      if (EINTR == errno)
+        errno = 0;
+      else
+        return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+  //return sem_wait(sm->sem);
 }
 
 
