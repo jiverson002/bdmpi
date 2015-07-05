@@ -168,6 +168,9 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     opts |= VMM_LZYRD;
   if (BDMPI_SB_MULTI == (job->jdesc->sbopts&BDMPI_SB_MULTI))
     opts |= VMM_GHOST;
+  /* If OSVMM is desired, then clear all other options */
+  if (BDMPI_SB_OSVMM == (job->jdesc->sbopts&BDMPI_SB_OSVMM))
+    opts = VMM_OSVMM;
 
   /* init the sbma subsystem */
   if (-1 == SBMA_init(job->jdesc->wdir, job->jdesc->mpid,\
