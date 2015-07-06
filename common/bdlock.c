@@ -108,12 +108,18 @@ int bdlock_lock(bdlock_t *lock)
       if (EINTR == errno)
         errno = 0;
       else
-        return -1;
+        break;
+    }
+    else if (EAGAIN == errno) {
+      /* reception of SIGIPC does not change anything here */
+      errno = 0;
+      break;
     }
     else {
-      return 0;
+      break;
     }
   }
+  return ret;
   //return sem_wait(lock->sem);
 }
 
