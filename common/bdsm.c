@@ -162,20 +162,10 @@ int bdsm_lock(bdsm_t *sm)
   int ret;
   for (;;) {
     ret = sem_wait(sm->sem);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else
-        break;
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
   return ret;
   //return sem_wait(sm->sem);

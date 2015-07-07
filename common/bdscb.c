@@ -190,20 +190,10 @@ int bdscb_wait_empty(bdscb_t *scb)
   int ret;
   for (;;) {
     ret = sem_wait(scb->esem);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else
-        break;
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
   return ret;
   //return sem_wait(scb->esem);
@@ -218,20 +208,10 @@ int bdscb_wait_full(bdscb_t *scb)
   int ret;
   for (;;) {
     ret = sem_wait(scb->fsem);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else
-        break;
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
   return ret;
   //return sem_wait(scb->fsem);

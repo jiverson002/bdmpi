@@ -8,8 +8,8 @@
  *
  */
 
-
 #include "common.h"
+
 
 /*************************************************************************/
 /*! Creates the neccessary components of a message queue.
@@ -140,20 +140,10 @@ ssize_t bdmq_send(bdmq_t *mq, void *buf, size_t size)
   }
   for (;;) {
     ret = mq_send(mq->mqdes, buf, size, 0);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else
-        break;
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
   return ret;
 }
@@ -170,22 +160,10 @@ ssize_t bdmq_recv(bdmq_t *mq, void *buf, size_t size)
 
   for (;;) {
     ret = mq_receive(mq->mqdes, mq->buf, mq->msgsize, &priority);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else {
-        printf("[%5d] %s:%d\n", (int)getpid(), __func__, __LINE__);
-        break;
-      }
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
 
   if (-1 != ret) {
@@ -229,20 +207,10 @@ ssize_t bdmq_timedrecv(bdmq_t *mq, void *buf, size_t size, long dt)
   for (;;) {
     ret = mq_timedreceive(mq->mqdes, mq->buf, mq->msgsize, &priority,
       &abs_timeout);
-    if (-1 == ret) {
-      if (EINTR == errno)
-        errno = 0;
-      else
-        break;
-    }
-    else if (EAGAIN == errno) {
-      /* reception of SIGIPC does not change anything here */
-      errno = 0;
+    if (-1 == ret && EINTR != errno)
       break;
-    }
-    else {
+    else if (-1 != ret)
       break;
-    }
   }
 
   if (-1 != ret) {
