@@ -30,7 +30,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
   /* save the state in case you go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
     bdmp_Iprobe(job, source, tag, comm, &flag, BDMPI_STATUS_IGNORE);
-    if (flag == 0 && job->jdesc->nr < job->jdesc->ns)
+    if (flag == 0)
       SBMA_mevictall();
   }
 
@@ -53,8 +53,7 @@ int bdmp_Probe(sjob_t *job, int source, int tag, BDMPI_Comm comm,
 
     /* prepare to go to sleep */
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
-      if (job->jdesc->nr < job->jdesc->ns)
-        SBMA_mevictall();
+      SBMA_mevictall();
     }
 
     /* go to sleep... */

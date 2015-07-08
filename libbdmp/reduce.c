@@ -70,8 +70,7 @@ int bdmp_Reduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
       SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
@@ -206,8 +205,7 @@ int bdmp_Reduce_fine(sjob_t *job, void *recvbuf, size_t count,
 
   /* go to sleep until everybody has called the reduce */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
   BDMPL_SLEEP(job, gomsg, 1);
 
@@ -291,8 +289,7 @@ int bdmp_Allreduce(sjob_t *job, void *sendbuf, void *recvbuf, size_t count,
     SBMA_mclear(recvbuf, bdmp_msize(count, datatype));
   }
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 

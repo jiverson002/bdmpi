@@ -139,8 +139,7 @@ int bdmp_Comm_dup(sjob_t *job, BDMPI_Comm comm, BDMPI_Comm *newcomm)
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
 
   /* notify the master that you entering a barrier */
@@ -177,8 +176,7 @@ int bdmp_Comm_free(sjob_t *job, BDMPI_Comm *comm)
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
 
   memset(&msg, 0, sizeof(bdmsg_t));
@@ -217,8 +215,7 @@ int bdmp_Comm_split(sjob_t *job, BDMPI_Comm comm, int color, int key,
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
 
   *newcomm = BDMPI_COMM_NULL;

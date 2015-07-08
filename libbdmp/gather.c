@@ -92,8 +92,7 @@ int bdmp_Gatherv_node(sjob_t *job,
 
   /* prepare to go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
@@ -239,8 +238,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
   /* save the data in case you go to sleep */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
 
   /* sync to ensure collective semantics */
@@ -294,8 +292,7 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
         /* go to sleep... */
         S_SB_IFSET(BDMPI_SB_SAVEALL) {
-          if (job->jdesc->nr < job->jdesc->ns)
-            SBMA_mevictall();
+          SBMA_mevictall();
         }
         BDMPL_SLEEP(job, gomsg, 1);
       }

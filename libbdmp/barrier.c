@@ -33,8 +33,7 @@ int bdmp_Barrier(sjob_t *job, BDMPI_Comm comm)
 
   /* save the address space before blocking */
   S_SB_IFSET(BDMPI_SB_SAVEALL) {
-    if (job->jdesc->nr < job->jdesc->ns)
-      SBMA_mevictall();
+    SBMA_mevictall();
   }
 
   /* notify the master that you entering a barrier */

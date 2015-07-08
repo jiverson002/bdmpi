@@ -46,8 +46,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
       SBMA_mclear(buf, bdmp_msize(count, datatype));
     }
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
-      if (job->jdesc->nr < job->jdesc->ns)
-        SBMA_mevictall();
+      SBMA_mevictall();
     }
   }
 
@@ -75,8 +74,7 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
     /* prepare to go to sleep */
     S_SB_IFSET(BDMPI_SB_SAVEALL) {
-      if (job->jdesc->nr < job->jdesc->ns)
-        SBMA_mevictall();
+      SBMA_mevictall();
     }
 
     /* go to sleep... */
