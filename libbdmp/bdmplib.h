@@ -50,7 +50,6 @@
 #include "macros.h"
 #include "struct.h"
 #include "proto.h"
-#include "klmalloc.h"
 #include "sbma.h"
 
 
