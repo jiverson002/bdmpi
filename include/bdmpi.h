@@ -55,7 +55,8 @@ typedef __int64 int64_t;
 /* BDMPI's version number */
 #define BDMPI_VER_MAJOR    0
 #define BDMPI_VER_MINOR    2
-#define BDMPI_VER_SUBMINOR 3
+#define BDMPI_VER_SUBMINOR 4
+#define BDMPI_VER_RCAND    -pre
 
 
 /* Wild-cards */

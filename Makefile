@@ -57,7 +57,7 @@ ifneq ($(cc), not-set)
     CONFIG_FLAGS += -DCMAKE_C_COMPILER=$(cc)
 endif
 
-VERNUM=0.2.3
+VERNUM=0.2.4-pre
 PKGNAME=bdmpi-$(VERNUM)
 
 define run-config
