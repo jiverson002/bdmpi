@@ -32,6 +32,8 @@
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
+  if (-1 == SBMA_block())                                                   \
+    bdprintf("SBMA block failed (%s)\n", strerror(errno));                  \
   for (;;) {                                                                \
     memset(&(MSG), 0, sizeof(bdmsg_t));                                     \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t))) {            \

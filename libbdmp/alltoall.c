@@ -54,6 +54,11 @@ int bdmp_Alltoallv_node(sjob_t *job,
   msg.myrank   = mype;
   msg.datatype = sendtype;
 
+  /*========================================================================*/
+  /* Should have an SBMA interface to prevent a process from becoming eligible
+   * once it reaches this point. */
+  /*========================================================================*/
+
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
 
   /* get the copid from the master */
@@ -100,8 +105,18 @@ int bdmp_Alltoallv_node(sjob_t *job,
   }
   xfer_out_scb(job->scb, &sleeping, sizeof(int), BDMPI_BYTE);
 
+  /*========================================================================*/
+  /* Should have an SBMA interface to let a process become eligible once it
+   * reaches this point. */
+  /*========================================================================*/
+
   /* go to sleep until everybody has called the collective */
   BDMPL_SLEEP(job, gomsg, 1);
+
+  /*========================================================================*/
+  /* Should have an SBMA interface to prevent a process from becoming eligible
+   * once it reaches this point. */
+  /*========================================================================*/
 
   /*=====================================================================*/
   /* after waking up... */
@@ -133,6 +148,11 @@ int bdmp_Alltoallv_node(sjob_t *job,
         sendcounts[mype]*sdtsize);
   else
     xfer_in_disk(myfnum, (char *)recvbuf+rdispls[mype]*rdtsize, sendcounts[mype], sendtype, 1);
+
+  /*========================================================================*/
+  /* Should have an SBMA interface to let a process become eligible once it
+   * reaches this point. */
+  /*========================================================================*/
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Alltoallv: exiting: comm: %p\n", comm));
 
