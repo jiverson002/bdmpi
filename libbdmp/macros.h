@@ -8,20 +8,6 @@
  *
  */
 
-#if 0
-  if (BDMPI_SB_SAVEALL == ((JOB)->jdesc->sbopts&(BDMPI_SB_SAVEALL))) {      \
-    if ((JOB)->jdesc->nr < (JOB)->jdesc->ns) {                              \
-      /* These are the same conditions under which sb_saveall() is called.
-       * goMQ->buf must be loaded with write status (SBPAGE_DIRTY) before
-       * calling bdmq_recv, else the system call used by bdmq_recv will
-       * generate a SEGFAULT causing the reception of the message to fail.
-       */                                                                   \
-      SB_load((JOB)->goMQ->buf, (JOB)->goMQ->msgsize, SBPAGE_DIRTY);        \
-    }                                                                       \
-  }                                                                         \
-
-#endif
-
 #define P(...)\
 (\
   fprintf(stderr, "[%6ld/%6d:%s,%4d]: ", syscall(SYS_gettid),\
@@ -32,8 +18,8 @@
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
-  if (-1 == SBMA_block())                                                   \
-    bdprintf("SBMA block failed (%s)\n", strerror(errno));                  \
+  if (-1 == SBMA_release())                                                 \
+    bdprintf("Failed on SBMA release: %s.\n", strerror(errno));             \
   for (;;) {                                                                \
     memset(&(MSG), 0, sizeof(bdmsg_t));                                     \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t))) {            \
