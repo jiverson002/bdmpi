@@ -58,7 +58,7 @@ void *mstr_bcast_init(void *arg)
     /* allocate memory and get the data */
     buf = gk_cmalloc(msize, "bcast: buf");
     xfer_in_scb(job->scbs[srank], buf, msg->count, msg->datatype);
-    pending_addbcast(job, msg, buf, msize, comm->lsize);
+    pending_addbcast(job, msg, buf, msize, comm->lsize-1);
   }
 
   /* block the slave, once you get the ok from it */
@@ -67,13 +67,12 @@ void *mstr_bcast_init(void *arg)
 
   /* take action if all slaves have called */
   if (--comm->counter == 0) {
-    if (babel_is_local(comm, msg->source))
-      hdr = pending_getbcast(job, msg, 1, NULL);
-
     if (comm->nnodes > 1) {  /* do something if more than one node is involved */
       BD_LET_WRLOCK(job->comms[msg->mcomm]->rwlock); /* unlock communicator */
 
       if (babel_is_local(comm, msg->source)) {
+        hdr = pending_getbcast(job, msg, 0, NULL);
+
         BDASSERT(MPI_Bcast(hdr->buf, msg->count, mpi_dt(msg->datatype),
                      comm->mynode, comm->mpi_comm)
             == MPI_SUCCESS);

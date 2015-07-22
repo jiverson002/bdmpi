@@ -40,7 +40,6 @@ int bdmp_Send(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
     return BDMPI_ERR_RANK;
   }
 
-
   mype = comm->rank;
 
   memset(&msg, 0, sizeof(bdmsg_t));

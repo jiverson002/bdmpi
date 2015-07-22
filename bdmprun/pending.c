@@ -204,8 +204,9 @@ void pending_addbcast(mjob_t *job, bdmsg_t *msg, void *buf, size_t len, int icnt
   int qnum = job->comms[msg->mcomm]->sranks[0];
   BD_GET_LOCK(job->plocks[qnum]);
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] AddBcast: from: %3d, to: %3d, mcomm: %3d\n",
-        job->mynode, msg->source, msg->dest, msg->mcomm));
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] AddBcast: from: %3d, to: %3d, "
+    "mcomm: %3d, copid: %3d\n", job->mynode, msg->source, msg->dest,
+    msg->mcomm, msg->copid));
 
   /* find the end of the queue for the root */
   curr = job->psends[qnum];
@@ -272,8 +273,9 @@ header_t *pending_getbcast(mjob_t *job, bdmsg_t *msg, int countdown,
     curr = curr->next;
   }
 
-  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] GetBcast: from: %3d, to: %3d, comm: %3d, status: %d\n",
-        job->mynode, msg->source, msg->dest, msg->mcomm, (curr==NULL?0:1)));
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d] GetBcast: from: %3d, to: %3d, "
+    "mcomm: %3d, copid: %3d, status: %d\n", job->mynode, msg->source,
+    msg->dest, msg->mcomm, msg->copid, (curr==NULL?0:1)));
 
   if (r_counter != NULL)
     *r_counter = curr->counter;
