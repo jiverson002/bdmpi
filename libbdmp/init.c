@@ -168,6 +168,8 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
     opts |= VMM_LZYRD;
   if (BDMPI_SB_MULTI == (job->jdesc->sbopts&BDMPI_SB_MULTI))
     opts |= VMM_GHOST;
+  if (BDMPI_SB_AGGCH == (job->jdesc->sbopts&BDMPI_SB_AGGCH))
+    opts |= VMM_AGGCH;
   /* If OSVMM is desired, then clear all other options */
   if (BDMPI_SB_OSVMM == (job->jdesc->sbopts&BDMPI_SB_OSVMM))
     opts = VMM_OSVMM;

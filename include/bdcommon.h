@@ -93,6 +93,16 @@
 /****************************************************************************/
 #define BDMPI_SB_OSVMM     (1<<5)
 
+/****************************************************************************/
+/*!
+ *  \details Enables the use of aggressive charging. This is an extra sbma
+ *           parameter and is only valid with BDMPI_SB_LAZYREAD. If this is
+ *           enabled, allocations are charged in their entirety on first
+ *           access, instead of each page being charged individually.
+ */
+/****************************************************************************/
+#define BDMPI_SB_AGGCH     (1<<6)
+
 
 /*************************************************************************/
 /* Common macros */

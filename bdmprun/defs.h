@@ -19,8 +19,9 @@
 #define BDMPRUN_CMD_DBGLVL        100
 #define BDMPRUN_CMD_SBMA          200
 #define BDMPRUN_CMD_MULTI         201
-#define BDMPRUN_CMD_PGSIZE        202
-#define BDMPRUN_CMD_RMSIZE        203
+#define BDMPRUN_CMD_AGGCH         202
+#define BDMPRUN_CMD_PGSIZE        203
+#define BDMPRUN_CMD_RMSIZE        204
 #define BDMPRUN_CMD_HELP          1000
 
 

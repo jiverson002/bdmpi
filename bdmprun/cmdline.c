@@ -27,6 +27,7 @@ static struct gk_option long_options[] = {
   {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
   {"mt",    0,      0,      BDMPRUN_CMD_MULTI},
   {"sbma",  1,      0,      BDMPRUN_CMD_SBMA},
+  {"ac",    0,      0,      BDMPRUN_CMD_AGGCH},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -101,8 +102,14 @@ static char helpstr[][100] =
 " ",
 "     The `laziness' of the lr* methods is controlled by the system page ",
 "     multiplier command line parameter `-pg='.",
-"     The `laziness' of the *lw methods is controlled by the resident memory ",
-"     command line parameter `-rm='.",
+"     The `laziness' of the *lw methods is controlled by the resident ",
+"     memory command line parameter `-rm='.",
+" ",
+"  -ac [Default: no]",
+"     Enables the use of aggressive charging. This is an extra sbma ",
+"     parameter and is only valid with -sbma=lraw and -sbma=lrlw. If this ",
+"     is enabled, allocations are charged in their entirety on first ",
+"     access, instead of each page being charged individually.",
 " ",
 "  -dl=int [Default: 0]",
 "     Selects the dbglvl.",
@@ -176,6 +183,10 @@ mjob_t *parse_cmdline(int argc, char *argv[])
 
       case BDMPRUN_CMD_MULTI:
         bdmp->sbopts |= BDMPI_SB_MULTI;
+        break;
+
+      case BDMPRUN_CMD_AGGCH:
+        bdmp->sbopts |= BDMPI_SB_AGGCH;
         break;
 
       case BDMPRUN_CMD_SBMA:
