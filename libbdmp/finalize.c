@@ -9,13 +9,6 @@
 #include "bdmplib.h"
 
 
-extern size_t lctr;
-extern size_t scbectr;
-extern size_t scbfctr;
-extern size_t smctr;
-extern size_t sctr;
-extern size_t rctr;
-extern size_t trctr;
 /*************************************************************************/
 /* Finalizes the BDMP library. */
 /*************************************************************************/
@@ -24,6 +17,7 @@ int bdmp_Finalize(sjob_t *job)
   int i;
   bdmsg_t donemsg, gomsg;
   struct mallinfo mi;
+  struct sbma_timeinfo ti;
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("iBDMPI_Finalize: entering [goMQlen: %d]\n", bdmq_length(job->goMQ)));
 
@@ -37,7 +31,9 @@ int bdmp_Finalize(sjob_t *job)
     bdprintf("Failed to destroy sbma\n");
 
   mi = mallinfo();
+  ti = SBMA_timeinfo();
   memcpy(&job->mallinfo[job->lrank], &mi, sizeof(struct mallinfo));
+  memcpy(&job->timeinfo[job->lrank], &ti, sizeof(struct sbma_timeinfo));
 
   /* ====================================================================== */
   /* everything below here must have been allocated via the libc interface. */

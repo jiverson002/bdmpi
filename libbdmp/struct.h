@@ -49,6 +49,9 @@ typedef struct {
   struct mallinfo * mallinfo; /*!< malloc information for slaves on node. This
                                    will be allocated in the global shared
                                    memory. */
+  struct sbma_timeinfo * timeinfo; /*!< timing information for slaves on node.
+                                        This will be allocated in the global
+                                        shared memory. */
 
   /* other */
   size_t smallmsg;      /*!< The size of a message in datatype to be considered

@@ -95,7 +95,8 @@ typedef struct {
   size_t rmsize;        /*!< The maximum number of resident system pages */
   int sbopts;           /*!< The sbma library options */
 
-  struct mallinfo * mallinfo; /*!< malloc information for slaves on node */
+  struct mallinfo * mallinfo;      /*!< malloc information for slaves on node */
+  struct sbma_timeinfo * timeinfo; /*!< timing information for slaves on node */
 
   /* process IDs */
   pid_t mpid;           /*!< The pid of the master */

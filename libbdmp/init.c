@@ -54,6 +54,9 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* hook job->mallinfo into the global shared memory */
   job->mallinfo = (struct mallinfo*)bdsm_malloc(job->globalSM,
     sizeof(struct mallinfo)*job->jdesc->ns, "job->mallinfo");
+  /* hook job->timeinfo into the global shared memory */
+  job->timeinfo = (struct sbma_timeinfo*)bdsm_malloc(job->globalSM,
+    sizeof(struct sbma_timeinfo)*job->jdesc->ns, "job->timeinfo");
 
   S_IFSET(BDMPI_DBG_IPCS, bdprintf("BDMPI_Init: Info: ns: %d, mpids: %d:%d\n",
         job->jdesc->ns, (int)job->jdesc->mpid, (int)mpid));

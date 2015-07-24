@@ -47,6 +47,7 @@
 #include "macros.h"
 #include "struct.h"
 #include "proto.h"
+#include "sbma.h"
 
 
 #if defined(COMPILER_MSC)

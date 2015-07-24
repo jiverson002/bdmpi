@@ -210,6 +210,12 @@ void setup_master_prefork(mjob_t *job)
     sizeof(struct mallinfo)*job->jdesc->ns, "job->mallinfo");
   memset(job->mallinfo, 0, sizeof(struct mallinfo)*job->jdesc->ns);
 
+  /* allocate memory for timeinfo in the global SM */
+  M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR] Allocating job->timeinfo\n"));
+  job->timeinfo = (struct sbma_timeinfo*)bdsm_malloc(job->globalSM,
+    sizeof(struct sbma_timeinfo)*job->jdesc->ns, "job->timeinfo");
+  memset(job->timeinfo, 0, sizeof(struct sbma_timeinfo)*job->jdesc->ns);
+
   /* setup the working directory */
   snprintf(job->jdesc->wdir, BDMPI_WDIR_LEN, "%s/%d", job->iwdir, (int)job->mpid);
   gk_free((void **)&job->iwdir, LTERM);
@@ -347,16 +353,18 @@ void cleanup_master(mjob_t *job)
   gk_stopwctimer(job->totalTmr);
 
   bdprintf("          +------------+------------+------------+------------+------------+------------+------------+\n");
-  bdprintf("          | ld maximum |  rd pages  |  wr pages  |  rd fault  |  wr fault  |  ipc recv  |  ipc exec  |\n");
+  bdprintf("          | ld maximum |  rd pages  |  wr pages  |  rd fault  |  wr fault  |  ipc recv  |  ipc exec  |  rd timer  |  wr timer  |\n");
   bdprintf("          +------------+------------+------------+------------+------------+------------+------------+\n");
   for (i=0; i<job->ns; i++) {
-    bdprintf(" [%3d]%c%c  | %10d | %10d | %10d | %10d | %10d | %10d | %10d |\n", i,
+    bdprintf(" [%3d]%c%c  | %10d | %10d | %10d | %10d | %10d | %10d | %10d |"
+      " %10.2f | %10.2f |\n", i,
       job->mallinfo[i].keepcost!=0 ? '*' : ' ',
       job->mallinfo[i].hblks!=0 ? '*' : ' ',
       job->mallinfo[i].hblkhd, job->mallinfo[i].usmblks,
       job->mallinfo[i].fsmblks, job->mallinfo[i].uordblks,
       job->mallinfo[i].fordblks, job->mallinfo[i].smblks,
-      job->mallinfo[i].ordblks);
+      job->mallinfo[i].ordblks, job->timeinfo[i].tv_rd,
+      job->timeinfo[i].tv_wr);
   }
   bdprintf("          +------------+------------+------------+------------+------------+------------+------------+\n");
 
