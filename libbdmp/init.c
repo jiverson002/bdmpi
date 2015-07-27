@@ -163,24 +163,9 @@ int bdmp_Init(sjob_t **r_job, int *argc, char **argv[])
   /* everything above here must have been allocated via the libc interface. */
   /* ====================================================================== */
 
-  /* setup vmm opts */
-  opts = 0;
-  if (BDMPI_SB_LAZYWRITE == (job->jdesc->sbopts&BDMPI_SB_LAZYWRITE))
-    opts |= VMM_LZYWR;
-  if (BDMPI_SB_LAZYREAD == (job->jdesc->sbopts&BDMPI_SB_LAZYREAD))
-    opts |= VMM_LZYRD;
-  if (BDMPI_SB_MULTI == (job->jdesc->sbopts&BDMPI_SB_MULTI))
-    opts |= VMM_GHOST;
-  if (BDMPI_SB_AGGCH == (job->jdesc->sbopts&BDMPI_SB_AGGCH))
-    opts |= VMM_AGGCH;
-  /* If OSVMM is desired, then clear all other options */
-  if (BDMPI_SB_OSVMM == (job->jdesc->sbopts&BDMPI_SB_OSVMM))
-    opts = VMM_OSVMM;
-
-  /* init the sbma subsystem */
   if (-1 == SBMA_init(job->jdesc->wdir, job->jdesc->mpid,\
     job->jdesc->pgsize*sysconf(_SC_PAGESIZE), job->jdesc->ns,\
-    job->jdesc->rmsize, opts))
+    job->jdesc->rmsize, SBMA_parse_optstr(job->jdesc->sboptstr)))
   {
     bdprintf("Failed to init sbma\n");
   }

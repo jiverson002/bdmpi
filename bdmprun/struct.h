@@ -93,7 +93,8 @@ typedef struct {
   /* SBMA related fields */
   size_t pgsize;        /*!< The number of system pages per SBMA page */
   size_t rmsize;        /*!< The maximum number of resident system pages */
-  int sbopts;           /*!< The sbma library options */
+  char * sboptstr;      /*!< The sbma library options */
+  int sbopts;           /*!< The sbma library related bdmpi options */
 
   struct mallinfo * mallinfo;      /*!< malloc information for slaves on node */
   struct sbma_timeinfo * timeinfo; /*!< timing information for slaves on node */

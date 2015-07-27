@@ -25,9 +25,8 @@ static struct gk_option long_options[] = {
 
   {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
-  {"mt",    0,      0,      BDMPRUN_CMD_MULTI},
+  {"sa",    1,      0,      BDMPRUN_CMD_SAVALL},
   {"sbma",  1,      0,      BDMPRUN_CMD_SBMA},
-  {"ac",    0,      0,      BDMPRUN_CMD_AGGCH},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
   {"h",     0,      0,      BDMPRUN_CMD_HELP},
@@ -132,12 +131,12 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp = (mjob_t *)gk_malloc(sizeof(mjob_t), "parse_cmdline");
   memset((void *)bdmp, 0, sizeof(mjob_t));
 
-
   /* initialize with default values */
   bdmp->ns       = BDMPRUN_DEFAULT_NS;
   bdmp->nr_input = BDMPRUN_DEFAULT_NR;
   bdmp->nc       = BDMPRUN_DEFAULT_NC;
   bdmp->sbopts   = BDMPRUN_DEFAULT_SBOPTS;
+  bdmp->sboptstr = NULL;
   bdmp->smsize   = BDMPRUN_DEFAULT_SMSIZE;
   bdmp->imsize   = BDMPRUN_DEFAULT_IMSIZE;
   bdmp->mmsize   = BDMPRUN_DEFAULT_MMSIZE;
@@ -147,8 +146,6 @@ mjob_t *parse_cmdline(int argc, char *argv[])
   bdmp->dbglvl   = BDMPRUN_DEFAULT_DBGLVL;
   bdmp->iwdir    = NULL;
   bdmp->exeargv  = NULL;
-
-
 
   /* Parse the command line arguments  */
   while ((c = gk_getopt_long_only(argc, argv, "+", long_options, &option_index)) != -1) {
@@ -173,6 +170,7 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         if (gk_optarg) bdmp->mmsize = (size_t)atoi(gk_optarg);
         break;
 
+      /*====================================================================*/
       case BDMPRUN_CMD_PGSIZE:
         if (gk_optarg) bdmp->pgsize = atoi(gk_optarg);
         break;
@@ -181,28 +179,14 @@ mjob_t *parse_cmdline(int argc, char *argv[])
         if (gk_optarg) bdmp->rmsize = atoi(gk_optarg);
         break;
 
-      case BDMPRUN_CMD_MULTI:
-        bdmp->sbopts |= BDMPI_SB_MULTI;
-        break;
-
-      case BDMPRUN_CMD_AGGCH:
-        bdmp->sbopts |= BDMPI_SB_AGGCH;
-        break;
-
       case BDMPRUN_CMD_SBMA:
-        if (0 == strncmp(gk_optarg, "araw", 5))
-          bdmp->sbopts |= BDMPI_SB_SAVEALL;
-        else if (0 == strncmp(gk_optarg, "arlw", 5))
-          bdmp->sbopts |= BDMPI_SB_LAZYWRITE;
-        else if (0 == strncmp(gk_optarg, "lraw", 5))
-          bdmp->sbopts |= (BDMPI_SB_SAVEALL|BDMPI_SB_LAZYREAD);
-        else if (0 == strncmp(gk_optarg, "lrlw", 5))
-          bdmp->sbopts |= (BDMPI_SB_LAZYREAD|BDMPI_SB_LAZYWRITE);
-        else if (0 == strncmp(gk_optarg, "none", 5))
-          bdmp->sbopts = BDMPI_SB_OSVMM;
-        else
-          printf("invalid sbma option `%s'\n", gk_optarg);
+        bdmp->sboptstr = gk_strdup(gk_optarg);
         break;
+
+      case BDMPRUN_CMD_SAVALL:
+        bdmp->sbopts |= BDMPI_SB_SAVEALL;
+        break;
+      /*====================================================================*/
 
       case BDMPRUN_CMD_DBGLVL:
         if (gk_optarg) bdmp->dbglvl = atoi(gk_optarg);

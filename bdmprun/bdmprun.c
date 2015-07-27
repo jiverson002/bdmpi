@@ -216,6 +216,11 @@ void setup_master_prefork(mjob_t *job)
     sizeof(struct sbma_timeinfo)*job->jdesc->ns, "job->timeinfo");
   memset(job->timeinfo, 0, sizeof(struct sbma_timeinfo)*job->jdesc->ns);
 
+  /* copy the sbma option string */
+  snprintf(job->jdesc->sboptstr, sizeof(job->jdesc->sboptstr), "%s",\
+    job->sboptstr);
+  gk_free((void **)&job->sboptstr, LTERM);
+
   /* setup the working directory */
   snprintf(job->jdesc->wdir, BDMPI_WDIR_LEN, "%s/%d", job->iwdir, (int)job->mpid);
   gk_free((void **)&job->iwdir, LTERM);

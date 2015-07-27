@@ -31,6 +31,7 @@
 /* The maximum length of the complete working directory path */
 #define BDMPI_WDIR_LEN           1024
 
+
 /****************************************************************************/
 /*!
  *  \details  Enable the use of sb_discard() throughout the BDMPI library.
@@ -44,64 +45,6 @@
  */
 /****************************************************************************/
 #define BDMPI_SB_SAVEALL   (1<<1)
-
-/****************************************************************************/
-/*!
- *  \details  Enable the `lazy-write' strategy in the sbmalloc library.  This
- *            means that memory allocations controlled by the sbmalloc library
- *            will not be written to disk until there is `sufficient' pressure
- *            on the total DRAM to warrant such an action.  In this case,
- *            `sufficient' is determined by the resident memory command line
- *            parameter `-rm='.
- *
- *  \note     While compatible, it is not recommended to use this option with
- *            the #BDMPI_SB_SAVEALL option, since the latter will essentially
- *            negate the advantages of this strategy.
- */
-/****************************************************************************/
-#define BDMPI_SB_LAZYWRITE (1<<2)
-
-/****************************************************************************/
-/*!
- *  \details  Enable the `lazy-read' strategy in the sbmalloc library.  This
- *            means that memory allocations controlled by the sbmalloc library
- *            will not be read from disk and read protected until the
- *            application makes a read / write attempt to the memory location
- *            corresponding to the allocation.  Furthermore, rather than read
- *            the entire allocation chunk, the first time that any system page
- *            within it is accessed, memory is read and protected at a
- *            resolution of an sbpage, which can be any multiple of a system
- *            page.
- */
-/****************************************************************************/
-#define BDMPI_SB_LAZYREAD  (1<<3)
-
-/****************************************************************************/
-/*!
- *  \details  Enable the use of `ghost' pages in the swap in functionality in
- *            the sbma library. This means that the memory exchange functions
- *            are thread safe.
- */
-/****************************************************************************/
-#define BDMPI_SB_MULTI     (1<<4)
-
-/****************************************************************************/
-/*!
- *  \details  Disable the SBMA library and allows the OS VMM to control memory
- *            exchange.
- */
-/****************************************************************************/
-#define BDMPI_SB_OSVMM     (1<<5)
-
-/****************************************************************************/
-/*!
- *  \details Enables the use of aggressive charging. This is an extra sbma
- *           parameter and is only valid with BDMPI_SB_LAZYREAD. If this is
- *           enabled, allocations are charged in their entirety on first
- *           access, instead of each page being charged individually.
- */
-/****************************************************************************/
-#define BDMPI_SB_AGGCH     (1<<6)
 
 
 /*************************************************************************/
@@ -369,8 +312,8 @@ typedef struct {
   int ns;                   /*!< The number of slave processes for this node/master */
   int nr;                   /*!< The maximum number of slaves allowed to run */
   mdbglvl_et dbglvl;        /*!< The dbglvl of the execution */
-  int sbopts;               /*!< The sb library options */
-  int sbnt;                 /*!< The sb library thread count */
+  char sboptstr[512];       /*!< The sb library option string */
+  int sbopts;               /*!< The sb library related bdmpi options */
   size_t smsize;            /*!< The size of the shared memory comm buffer */
   size_t imsize;            /*!< The maximum size for in-memory buffering */
   size_t sbsize;            /*!< The minimum size for storage-backed allocation */
