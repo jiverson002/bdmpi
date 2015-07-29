@@ -25,7 +25,7 @@ static struct gk_option long_options[] = {
 
   {"pg",    1,      0,      BDMPRUN_CMD_PGSIZE},
   {"rm",    1,      0,      BDMPRUN_CMD_RMSIZE},
-  {"sa",    1,      0,      BDMPRUN_CMD_SAVALL},
+  {"sa",    0,      0,      BDMPRUN_CMD_SAVALL},
   {"sbma",  1,      0,      BDMPRUN_CMD_SBMA},
 
   {"dl",    1,      0,      BDMPRUN_CMD_DBGLVL},
