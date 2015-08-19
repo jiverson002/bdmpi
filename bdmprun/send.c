@@ -195,6 +195,20 @@ void *mstr_send_remote(void *arg)
     gk_free((void **)&buf, LTERM);
   }
 
+#if 0
+  /* Notify remote master that a receive request has been completed. */
+
+  mmsg.mcomm = commid;
+  mmsg.dest  = msg->source;
+  mmsg.type  = BDMPI_MSGTYPE_RECVD;
+
+  /* send the message header using the global node number of wcomm */
+  BDASSERT(MPI_Send(mmsg, sizeof(bdmsg_t), MPI_BYTE,
+                    comm->wnranks[source_node], BDMPI_HDR_TAG,
+                    job->mpi_wcomm)
+           == MPI_SUCCESS);
+#endif
+
   pending_addsend(job, msg, buf, (buf == NULL ? 0 : msize));
   slvpool_munblock(job, babel_get_srank(comm, msg->dest));
 

@@ -51,6 +51,31 @@ void *mstr_recv(void *arg)
     response = 0;
     if (bdmq_send(job->c2sMQs[srank], &response, sizeof(int)) == -1)
       bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
+
+#if 0
+    /* Notify remote master that a receive request has been issued. */
+
+    /* TODO what happens if remote master sends message before receiving this
+     * receive request -- could send another message after we have received
+     * the data to notify remote master that this receive request is
+     * complete? */
+
+    /* Only send the receive notification the first time that BDMPI_TYPE_RECV
+     * is received. */
+    if (XXX) {
+      source_node = babel_get_node(comm, msg->source);
+
+      mmsg.mcomm = commid;
+      mmsg.dest  = msg->source;
+      mmsg.type  = BDMPI_MSGTYPE_RECV;
+
+      /* send the message header using the global node number of wcomm */
+      BDASSERT(MPI_Send(mmsg, sizeof(bdmsg_t), MPI_BYTE,
+                        comm->wnranks[source_node], BDMPI_HDR_TAG,
+                        job->mpi_wcomm)
+               == MPI_SUCCESS);
+    }
+#endif
   }
   else {
     /* a matching send has been posted */
@@ -133,3 +158,51 @@ void *mstr_irecv(void *arg)
 
   return NULL;
 }
+
+
+#if 0
+/*************************************************************************/
+/*! Response to a BDMPI_MSGTYPE_RECV.
+    Increments the count of pending recvs for the appropriate slave.
+*/
+/*************************************************************************/
+void *mstr_recv_remote(void *arg)
+{
+  mjob_t *job = ((ptarg_t *)arg)->job;
+  bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
+
+  mcomm = babel_get_my_mcomm(job, msg->mcomm);
+  slv   = babel_get_srank(mcomm, msg->dest);
+
+  BD_GET_LOCK(job->schedule_lock);
+  job->npending[slv]++;
+  BD_LET_LOCK(job->schedule_lock);
+
+  gk_free((void **)&arg, LTERM);
+
+  return NULL;
+}
+
+
+/*************************************************************************/
+/*! Response to a BDMPI_MSGTYPE_RECVD.
+    Decrements the count of pending recvs for the appropriate slave.
+*/
+/*************************************************************************/
+void *mstr_recvd_remote(void *arg)
+{
+  mjob_t *job = ((ptarg_t *)arg)->job;
+  bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
+
+  mcomm = babel_get_my_mcomm(job, msg->mcomm);
+  slv   = babel_get_srank(mcomm, msg->dest);
+
+  BD_GET_LOCK(job->schedule_lock);
+  job->npending[slv]--;
+  BD_LET_LOCK(job->schedule_lock);
+
+  gk_free((void **)&arg, LTERM);
+
+  return NULL;
+}
+#endif
