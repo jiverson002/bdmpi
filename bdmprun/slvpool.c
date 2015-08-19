@@ -337,7 +337,6 @@ void slvpool_service_xcomms(mjob_t *job)
         BDASSERT(pthread_create(&thread, NULL, mstr_send_remote, arg) == 0);
         break;
 
-#if 0
       case BDMPI_MSGTYPE_RECV:
         BDASSERT(pthread_create(&thread, NULL, mstr_recv_remote, arg) == 0);
         break;
@@ -345,7 +344,6 @@ void slvpool_service_xcomms(mjob_t *job)
       case BDMPI_MSGTYPE_RECVD:
         BDASSERT(pthread_create(&thread, NULL, mstr_recvd_remote, arg) == 0);
         break;
-#endif
 
       default:
         slvpool_abort(1, "Got message: %d\n", arg->msg.msgtype);

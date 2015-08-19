@@ -20,7 +20,8 @@ void *mstr_recv(void *arg)
 {
   mjob_t *job = ((ptarg_t *)arg)->job;
   bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
-  int response, srank;
+  int response, srank, commid, source_node;
+  bdmsg_t mmsg;
   header_t *hdr;
   bdmcomm_t *comm;
 
@@ -30,8 +31,9 @@ void *mstr_recv(void *arg)
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
-  comm  = job->comms[msg->mcomm];
-  srank = babel_get_srank(comm, msg->myrank);
+  comm   = job->comms[msg->mcomm];
+  commid = comm->mpi_commid;
+  srank  = babel_get_srank(comm, msg->myrank);
 
   /* see if the send has been posted */
   pending_locksend(job, msg);
@@ -52,25 +54,20 @@ void *mstr_recv(void *arg)
     if (bdmq_send(job->c2sMQs[srank], &response, sizeof(int)) == -1)
       bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
 
-#if 0
+#if 1
     /* Notify remote master that a receive request has been issued. */
-
-    /* TODO what happens if remote master sends message before receiving this
-     * receive request -- could send another message after we have received
-     * the data to notify remote master that this receive request is
-     * complete? */
 
     /* Only send the receive notification the first time that BDMPI_TYPE_RECV
      * is received. */
-    if (XXX) {
+    if (1 == msg->new_request) {
       source_node = babel_get_node(comm, msg->source);
 
-      mmsg.mcomm = commid;
-      mmsg.dest  = msg->source;
-      mmsg.type  = BDMPI_MSGTYPE_RECV;
+      mmsg.mcomm   = commid;
+      mmsg.dest    = msg->source;
+      mmsg.msgtype = BDMPI_MSGTYPE_RECV;
 
       /* send the message header using the global node number of wcomm */
-      BDASSERT(MPI_Send(mmsg, sizeof(bdmsg_t), MPI_BYTE,
+      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
                         comm->wnranks[source_node], BDMPI_HDR_TAG,
                         job->mpi_wcomm)
                == MPI_SUCCESS);
@@ -113,7 +110,8 @@ void *mstr_irecv(void *arg)
 {
   mjob_t *job = ((ptarg_t *)arg)->job;
   bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
-  int response, srank;
+  int response, srank, commid, source_node;
+  bdmsg_t mmsg;
   header_t *hdr;
   bdmcomm_t *comm;
 
@@ -123,8 +121,9 @@ void *mstr_irecv(void *arg)
         job->mynode, msg->myrank, msg->source, msg->dest));
 
   /* hook to the key info */
-  comm  = job->comms[msg->mcomm];
-  srank = babel_get_srank(comm, msg->myrank);
+  comm   = job->comms[msg->mcomm];
+  commid = comm->mpi_commid;
+  srank  = babel_get_srank(comm, msg->myrank);
 
   /* see if the send has been posted */
   if ((hdr = pending_getsend(job, msg, 1)) == NULL) { /* it has not been posted yet */
@@ -134,6 +133,26 @@ void *mstr_irecv(void *arg)
     response = 0;
     if (bdmq_send(job->c2sMQs[srank], &response, sizeof(int)) == -1)
       bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
+
+#if 1
+    /* Notify remote master that a receive request has been issued. */
+
+    /* Only send the receive notification the first time that BDMPI_TYPE_RECV
+     * is received. */
+    if (1 == msg->new_request) {
+      source_node = babel_get_node(comm, msg->source);
+
+      mmsg.mcomm   = commid;
+      mmsg.dest    = msg->source;
+      mmsg.msgtype = BDMPI_MSGTYPE_RECV;
+
+      /* send the message header using the global node number of wcomm */
+      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
+                        comm->wnranks[source_node], BDMPI_HDR_TAG,
+                        job->mpi_wcomm)
+               == MPI_SUCCESS);
+    }
+#endif
   }
   else { /* a matching send has been posted */
     response = 1;
@@ -160,7 +179,6 @@ void *mstr_irecv(void *arg)
 }
 
 
-#if 0
 /*************************************************************************/
 /*! Response to a BDMPI_MSGTYPE_RECV.
     Increments the count of pending recvs for the appropriate slave.
@@ -170,9 +188,12 @@ void *mstr_recv_remote(void *arg)
 {
   mjob_t *job = ((ptarg_t *)arg)->job;
   bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
+  int slv, mcomm;
+  bdmcomm_t *comm;
 
   mcomm = babel_get_my_mcomm(job, msg->mcomm);
-  slv   = babel_get_srank(mcomm, msg->dest);
+  comm  = job->comms[mcomm];
+  slv   = babel_get_srank(comm, msg->dest);
 
   BD_GET_LOCK(job->schedule_lock);
   job->npending[slv]++;
@@ -193,9 +214,12 @@ void *mstr_recvd_remote(void *arg)
 {
   mjob_t *job = ((ptarg_t *)arg)->job;
   bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
+  int slv, mcomm;
+  bdmcomm_t *comm;
 
   mcomm = babel_get_my_mcomm(job, msg->mcomm);
-  slv   = babel_get_srank(mcomm, msg->dest);
+  comm  = job->comms[mcomm];
+  slv   = babel_get_srank(comm, msg->dest);
 
   BD_GET_LOCK(job->schedule_lock);
   job->npending[slv]--;
@@ -205,4 +229,3 @@ void *mstr_recvd_remote(void *arg)
 
   return NULL;
 }
-#endif

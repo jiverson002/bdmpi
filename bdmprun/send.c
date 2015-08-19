@@ -130,16 +130,18 @@ void *mstr_send_remote(void *arg)
 {
   mjob_t *job = ((ptarg_t *)arg)->job;
   bdmsg_t *msg = &(((ptarg_t *)arg)->msg);
-  bdmcomm_t *comm;
-  int fd, source_node, count, done=1;
-  char *buf=NULL;
+  int fd, source_node, count, commid, done=1;
   size_t rsize, msize;
+  bdmsg_t mmsg;
+  bdmcomm_t *comm;
   char *fname;
+  char *buf=NULL;
   MPI_Status status;
 
   /* incoming msg->mcomm actually stores mpi_commid, so we need to map it
      to this node's corresponding mcomm */
-  msg->mcomm = babel_get_my_mcomm(job, msg->mcomm);
+  commid     = msg->mcomm;
+  msg->mcomm = babel_get_my_mcomm(job, commid);
 
   BD_GET_RDLOCK(job->comms[msg->mcomm]->rwlock); /* lock communicator */
 
@@ -195,15 +197,15 @@ void *mstr_send_remote(void *arg)
     gk_free((void **)&buf, LTERM);
   }
 
-#if 0
+#if 1
   /* Notify remote master that a receive request has been completed. */
 
-  mmsg.mcomm = commid;
-  mmsg.dest  = msg->source;
-  mmsg.type  = BDMPI_MSGTYPE_RECVD;
+  mmsg.mcomm   = commid;
+  mmsg.dest    = msg->source;
+  mmsg.msgtype = BDMPI_MSGTYPE_RECVD;
 
   /* send the message header using the global node number of wcomm */
-  BDASSERT(MPI_Send(mmsg, sizeof(bdmsg_t), MPI_BYTE,
+  BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
                     comm->wnranks[source_node], BDMPI_HDR_TAG,
                     job->mpi_wcomm)
            == MPI_SUCCESS);

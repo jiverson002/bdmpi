@@ -51,18 +51,20 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   }
 
   memset(&msg, 0, sizeof(bdmsg_t));
-  msg.msgtype  = BDMPI_MSGTYPE_RECV;
-  msg.mcomm    = comm->mcomm;
-  msg.myrank   = mype;
-  msg.tag      = tag;
-  msg.source   = source;
-  msg.dest     = mype;
-  msg.count    = count;
-  msg.datatype = datatype;
+  msg.msgtype     = BDMPI_MSGTYPE_RECV;
+  msg.mcomm       = comm->mcomm;
+  msg.myrank      = mype;
+  msg.tag         = tag;
+  msg.source      = source;
+  msg.dest        = mype;
+  msg.count       = count;
+  msg.datatype    = datatype;
+  msg.new_request = 1;
 
   for (;;) {
     /* notify the master that you want to receive a message */
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
+    msg.new_request = 0; /* let master know that we are polling from now on */
 
     /* get the master's response  */
     bdmq_recv(job->c2sMQ, &response, sizeof(int));

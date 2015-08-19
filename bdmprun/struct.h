@@ -96,6 +96,8 @@ typedef struct {
   char * sboptstr;      /*!< The sbma library options */
   int sbopts;           /*!< The sbma library related bdmpi options */
 
+  int * npending;                  /*!< number of pending receives for slaves
+                                        on node */
   struct mallinfo * mallinfo;      /*!< malloc information for slaves on node */
   struct sbma_timeinfo * timeinfo; /*!< timing information for slaves on node */
 

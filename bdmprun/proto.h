@@ -64,6 +64,8 @@ void *mstr_send_remote(void *arg);
 /* recv.c */
 void *mstr_recv(void *arg);
 void *mstr_irecv(void *arg);
+void *mstr_recv_remote(void *arg);
+void *mstr_recvd_remote(void *arg);
 
 /* probe.c */
 void *mstr_probe(void *arg);

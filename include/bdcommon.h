@@ -23,7 +23,7 @@
    TODO: This needs to be determined automatically, as it now
    limits the maximum number of running processes to roughly
    BDMPI_GLOBALSIZE/sizeof(int) */
-#define BDMPI_GLOBALSMSIZE       12576
+#define BDMPI_GLOBALSMSIZE       16384
 
 /* The initial size of the # of communicators array */
 #define BDMPI_INIT_MAXNCOMM      2048
@@ -339,6 +339,7 @@ typedef enum {
   BDMPI_MSGTYPE_IRECV        =51,  /*!< a data recv operation */
   BDMPI_MSGTYPE_PROBE        =52,  /*!< a probe operation */
   BDMPI_MSGTYPE_IPROBE       =53,  /*!< an iprobe operation */
+  BDMPI_MSGTYPE_RECVD        =54,  /*!< a data recvd operation */
 
   BDMPI_MSGTYPE_BCASTI       =60,  /*!< a broadcast init operation */
   BDMPI_MSGTYPE_BCASTF       =61,  /*!< a broadcast finish operation */
@@ -359,13 +360,13 @@ typedef enum {
   BDMPI_MSGTYPE_ALLTOALLI    =84,  /*!< an all-to-all init operation */
   BDMPI_MSGTYPE_ALLTOALLF    =85,  /*!< an all-to-all finish operation */
 
-  BDMPI_MSGTYPE_COMMDUP      =90, /*!< a comm_dup operation */
-  BDMPI_MSGTYPE_COMMFREE     =91, /*!< a comm_free operation */
-  BDMPI_MSGTYPE_COMMSPLIT    =92, /*!< a comm_split operation */
+  BDMPI_MSGTYPE_COMMDUP      =90,  /*!< a comm_dup operation */
+  BDMPI_MSGTYPE_COMMFREE     =91,  /*!< a comm_free operation */
+  BDMPI_MSGTYPE_COMMSPLIT    =92,  /*!< a comm_split operation */
 
   BDMPI_MSGTYPE_CID          =100, /*!< a to master-node request for next mpi_commid */
 
-  BDMPI_MSGTYPE_PROCEED      =200,  /*!< slave should proceed with execution */
+  BDMPI_MSGTYPE_PROCEED      =200, /*!< slave should proceed with execution */
 
   BDMPI_MSGTYPE_NOOP         =999  /*!< a dummy message type */
 } bdmsgtype_et;
@@ -386,6 +387,8 @@ typedef struct {
   int dest;                /*!< The rank of the destination */
   size_t count;            /*!< The length of the message in BDMPI_Datatype */
   int mpi_tag;             /*!< The mpi tag to be used for the data transfers */
+  int new_request;         /*!< Indicates that this is a new request, not
+                                polling for a previously issued request. */
   BDMPI_Datatype datatype;  /*!< The datatype of the message */
   BDMPI_Op op;              /*!< The reduction operation */
 } bdmsg_t;

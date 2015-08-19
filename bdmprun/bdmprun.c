@@ -323,6 +323,7 @@ void setup_master_postfork(mjob_t *job)
   job->mblockedmap  = gk_ismalloc(job->ns, -1, "mblockedmap");
   job->cblockedmap  = gk_ismalloc(job->ns, -1, "cblockedmap");
   job->blockedts    = gk_ismalloc(job->ns, -1, "blockedts");
+  job->npending     = gk_ismalloc(job->ns, 0, "npending");
 
   /* everybody is alive and running (i.e., no co-operating scheduling) and
      runnablelist and blockedlist are empty. */
@@ -452,6 +453,7 @@ void cleanup_master(mjob_t *job)
       &job->mblockedmap, &job->cblockedmap,
       &job->blockedts,
       &job->slvdist,
+      &job->npending,
       &job->schedule_lock, &job->comm_lock,
       &job, LTERM);
 
