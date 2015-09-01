@@ -73,7 +73,7 @@ typedef struct {
 void SetupComms(params_t *params);
 dcsr_t *LoadData1D(params_t *params);
 void CreateBlockMatrices(params_t *params, dcsr_t *dmat);
-void CleanupData(params_t *params, dcsr_t *dmat);
+void CleanupData(params_t *params, dcsr_t *dmat, mf_t *model);
 mf_t *ComputeFactors(params_t *params, dcsr_t *dmat);
 void WriteFactors(params_t *params, dcsr_t *dmat, mf_t *model);
 
@@ -100,7 +100,6 @@ int main(int argc, char **argv)
   params->comm = BDMPI_COMM_WORLD;
   BDMPI_Comm_size(params->comm, &(params->npes));
   BDMPI_Comm_rank(params->comm, &(params->mype));
-
 
   if (argc != 4) {
     if (params->mype == 0)
@@ -142,7 +141,7 @@ int main(int argc, char **argv)
 
   //WriteFactors(params, dmat, model);
 
-  CleanupData(params, dmat);
+  CleanupData(params, dmat, model);
 
   BDMPI_Barrier(params->comm);
   BDMPI_Barrier(params->comm);
@@ -173,6 +172,8 @@ int main(int argc, char **argv)
   BDMPI_Reduce(&current, &max, 1, BDMPI_DOUBLE, BDMPI_MAX, 0, params->comm);
   if (params->mype == 0)
     printf(" totalTmr:  %10.4lf\n", max);
+
+  gk_free((void**)&params->filename, &params, LTERM);
 
 //DONE:
   BDMPI_Finalize();
@@ -379,16 +380,20 @@ void CreateBlockMatrices(params_t *params, dcsr_t *dmat)
 /**************************************************************************/
 /*! This function deallocates all the memory that was used */
 /**************************************************************************/
-void CleanupData(params_t *params, dcsr_t *dmat)
+void CleanupData(params_t *params, dcsr_t *dmat, mf_t *model)
 {
   int i;
 
   gk_csr_Free(&(dmat->mat));
 
-  for (i=0; i<params->npes; i++)
+  for (i=0; i<params->npes; i++) {
     gk_csr_Free(&(dmat->mats[i]));
 
-  gk_free((void **)&dmat->rowdist, &dmat->mats, &dmat, LTERM);
+    gk_free((void **)&(model->cbs[i]), &(model->vs[i]), LTERM);
+  }
+
+  gk_free((void **)&(dmat->rowdist), &(dmat->mats), &dmat, &(model->rb),
+    &(model->u), &(model->cbs), &(model->vs), &model, LTERM);
 
   return;
 }
@@ -490,8 +495,8 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       GKWARN(BDMPI_mlock(v, ncols*nfactors*sizeof(double)) == 0);
       #endif
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P1. [nnz: %zd]\n",
-          mype, cblock, iter, block, (int)time(NULL), rowptr[nrows]);
+      /*printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P1. [nnz: %zd]\n",
+          mype, cblock, iter, block, (int)time(NULL), rowptr[nrows]);*/
 
       /* perform SGD with random row sampling with replacement */
       for (i=0; i<nrows; i++) {
@@ -525,8 +530,8 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
         }
       }
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P2.\n",
-          mype, cblock, iter, block, (int)time(NULL));
+      /*printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P2.\n",
+          mype, cblock, iter, block, (int)time(NULL));*/
 
       #ifdef LOCKMEM
       GKWARN(BDMPI_munlockall() == 0);
@@ -538,8 +543,8 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       gk_free((void **)&model->cbs[cblock], &model->vs[cblock], LTERM);
       cb = v = NULL;
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] EP.\n",
-          mype, cblock, iter, block, (int)time(NULL));
+      /*printf("[%3d] Computing %3d during %zu.%zu [ts: %d] EP.\n",
+          mype, cblock, iter, block, (int)time(NULL));*/
 
       /* receive the column block from down */
       cblock = (cblock+1)%npes;
@@ -561,5 +566,3 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
 
   return model;
 }
-
-
