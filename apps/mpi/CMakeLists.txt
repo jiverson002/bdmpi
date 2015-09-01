@@ -14,7 +14,7 @@ foreach(prog mpi_samplesort
              mpi_mf2d 
              mpi_mf1d2)
   target_link_libraries(${prog} GKlib m)
-  add_dependencies(${prog} ${GKlib_includes})
+  #add_dependencies(${prog} ${GKlib_includes})
 endforeach(prog)
 
 set(CMAKE_C_COMPILER mpicc)

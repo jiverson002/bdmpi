@@ -25,7 +25,7 @@ foreach(prog helloworld
              lazyread
              )
   target_link_libraries(${prog} bdmpi GKlib rt dl)
-  add_dependencies(${prog} ${GKlib_includes})
+  #add_dependencies(${prog} ${GKlib_includes})
 endforeach(prog)
 
 # if(BDMP_INSTALL)

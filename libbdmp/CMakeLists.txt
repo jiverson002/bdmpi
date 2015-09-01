@@ -6,7 +6,7 @@ file(GLOB libbdmp_sources *.c)
 
 # Build libbdmp.
 add_library(bdmpi ${BDMP_LIBRARY_TYPE} ${common_sources} ${libbdmp_sources})
-add_dependencies(bdmpi ${GKlib_includes})
+#add_dependencies(bdmpi ${GKlib_includes})
 
 if(BDMP_INSTALL)
   install(TARGETS bdmpi

@@ -12,7 +12,7 @@ foreach(prog
             bdmp-oc_mf1d
        )
   target_link_libraries(${prog} bdmpi GKlib rt m dl)
-  add_dependencies(${prog} ${GKlib_includes})
+  #add_dependencies(${prog} ${GKlib_includes})
 endforeach(prog)
 
 if(BDMP_INSTALL)
