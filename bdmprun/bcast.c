@@ -52,7 +52,6 @@ void *mstr_bcast_init(void *arg)
     bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
   msg->copid = comm->copid;
 
-
   /* see if the root send the broadcast */
   if (msg->myrank == msg->source) {
     /* allocate memory and get the data */

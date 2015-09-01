@@ -1,12 +1,12 @@
 /*!
 \file
-\brief A parallel SGD matrix -factorization program using 2D distribution of 
+\brief A parallel SGD matrix -factorization program using 2D distribution of
        the matrix
 \date Started 6/1/2013
 \author George
 */
 
-#define LOCKMEM 1
+//#define LOCKMEM 1
 
 #define _LARGEFILE64_SOURCE
 #include <GKlib.h>
@@ -55,7 +55,7 @@ typedef struct {
   gk_csr_t *mat;
   gk_csr_t **mats;
 
-  double rowsums; 
+  double rowsums;
 } dcsr_t;
 
 /* mf model */
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 
 
 /**************************************************************************/
-/*! Reads a sparse matrix in binary CSR format, one process at a time. 
+/*! Reads a sparse matrix in binary CSR format, one process at a time.
     \returns the local portion of the matrix.
 */
 /**************************************************************************/
@@ -203,7 +203,7 @@ dcsr_t *LoadData1D(params_t *params)
   BDMPI_Comm_lsize(params->comm, &lsize);
 
   if (mype == 0) {
-    if (!gk_fexists(params->filename)) 
+    if (!gk_fexists(params->filename))
       errexit("File %s does not exist!\n", params->filename);
   }
 
@@ -244,9 +244,8 @@ dcsr_t *LoadData1D(params_t *params)
   /* broadcast rowdist */
   BDMPI_Bcast(dmat->rowdist, npes+1, BDMPI_INT, 0, params->comm);
 
-
   /* wait your turn */
-  if (lrank != 0) 
+  if (lrank != 0)
     BDMPI_Recv(&token, 1, BDMPI_INT, mype-1, 1, params->comm, &status);
 
   if ((fd = open(params->filename, O_RDONLY)) == -1)
@@ -287,7 +286,7 @@ dcsr_t *LoadData1D(params_t *params)
   if (lseek64(fd, fpos, SEEK_SET) == -1)
     gk_errexit(SIGERR, "Failed to lseek for %s. error: %s!\n", params->filename, strerror(errno));
   if ((rsize = gk_read(fd, dmat->mat->rowind, sizeof(int)*lnnz)) != (ssize_t)(sizeof(int)*lnnz))
-    gk_errexit(SIGERR, "Failed to read the rowind from file %s [%zd %zd]!\n", 
+    gk_errexit(SIGERR, "Failed to read the rowind from file %s [%zd %zd]!\n",
         params->filename, rsize, sizeof(float)*lnnz);
 
   /* read the rowval */
@@ -297,7 +296,7 @@ dcsr_t *LoadData1D(params_t *params)
   if (lseek64(fd, fpos, SEEK_SET) == -1)
     gk_errexit(SIGERR, "Failed to lseek for %s. error: %s!\n", params->filename, strerror(errno));
   if ((rsize = gk_read(fd, dmat->mat->rowval, sizeof(float)*lnnz)) != (ssize_t)(sizeof(float)*lnnz))
-    gk_errexit(SIGERR, "Failed to read the rowval from file %s [%zd %zd]!\n", 
+    gk_errexit(SIGERR, "Failed to read the rowval from file %s [%zd %zd]!\n",
         params->filename, rsize, sizeof(float)*lnnz);
 
   /* localize adjust rowptr */
@@ -308,10 +307,10 @@ dcsr_t *LoadData1D(params_t *params)
   close(fd);
 
   printf("[%3d] dmat->gnrows/lnrows: %d/%d, dmat->gncols/lncols: %d/%d, "
-      "dmat->gnnz/lnnz: %zu/%zu [ts: %d]\n", 
-      mype, 
-      dmat->gnrows, dmat->mat->nrows, 
-      dmat->gncols, dmat->mat->ncols, 
+      "dmat->gnnz/lnnz: %zu/%zu [ts: %d]\n",
+      mype,
+      dmat->gnrows, dmat->mat->nrows,
+      dmat->gncols, dmat->mat->ncols,
       dmat->gnnz, dmat->mat->rowptr[dmat->mat->nrows],(int)time(NULL));
 
   dmat->rowsums = gk_fsum(dmat->mat->rowptr[dmat->mat->nrows], dmat->mat->rowval, 1);
@@ -358,7 +357,7 @@ void CreateBlockMatrices(params_t *params, dcsr_t *dmat)
     }
   }
   for (k=0; k<npes; k++) {
-    MAKECSR(i, nrows, mats[k]->rowptr); 
+    MAKECSR(i, nrows, mats[k]->rowptr);
     mats[k]->rowind = gk_i32malloc(mats[k]->rowptr[nrows], "mats[k]->rowind");
     mats[k]->rowval = gk_fmalloc(mats[k]->rowptr[nrows], "mats[k]->rowval");
   }
@@ -370,8 +369,8 @@ void CreateBlockMatrices(params_t *params, dcsr_t *dmat)
       mats[k]->rowptr[i]++;
     }
   }
-  for (k=0; k<npes; k++) 
-    SHIFTCSR(i, nrows, mats[k]->rowptr); 
+  for (k=0; k<npes; k++)
+    SHIFTCSR(i, nrows, mats[k]->rowptr);
 
   gk_free((void **)&dmat->mat->rowptr, &dmat->mat->rowind, &dmat->mat->rowval, LTERM);
 }
@@ -436,9 +435,9 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
 
   gk_isrand(101+params->mype);
 
-    
+
   /* get into the sgd iterations */
-  rb = cb = u = v = NULL; 
+  rb = cb = u = v = NULL;
   for (iter=0; iter<params->niters; iter++) {
     if (mype == 0)
       printf("Working on iteration: %zu\n", iter);
@@ -447,7 +446,7 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
     for (block=0; block<npes; block++) {
       cblock = (mype+block)%npes;
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] SP.\n", 
+      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] SP.\n",
           mype, cblock, iter, block, (int)time(NULL));
 
       ncols  = dmat->mats[cblock]->ncols;
@@ -462,7 +461,7 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       #endif
 
       /* if first time, allocate and initialize */
-      if (iter == 0 && model->rb == NULL) { 
+      if (iter == 0 && model->rb == NULL) {
         rb = model->rb = gk_dmalloc(nrows, "rb");
         u  = model->u  = gk_dmalloc(nrows*nfactors, "u");
         for (ir=0; ir<nrows; ir++) {
@@ -477,7 +476,7 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       #endif
 
       /* if first time, allocate and initialize */
-      if (iter == 0 && model->cbs[cblock] == NULL) { 
+      if (iter == 0 && model->cbs[cblock] == NULL) {
         cb = model->cbs[cblock] = gk_dmalloc(ncols, "cb");
         v  = model->vs[cblock]  = gk_dmalloc(ncols*nfactors, "v");
         for (ic=0; ic<ncols; ic++) {
@@ -491,7 +490,7 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       GKWARN(BDMPI_mlock(v, ncols*nfactors*sizeof(double)) == 0);
       #endif
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P1. [nnz: %zd]\n", 
+      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P1. [nnz: %zd]\n",
           mype, cblock, iter, block, (int)time(NULL), rowptr[nrows]);
 
       /* perform SGD with random row sampling with replacement */
@@ -526,7 +525,7 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
         }
       }
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P2.\n", 
+      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] P2.\n",
           mype, cblock, iter, block, (int)time(NULL));
 
       #ifdef LOCKMEM
@@ -539,9 +538,8 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
       gk_free((void **)&model->cbs[cblock], &model->vs[cblock], LTERM);
       cb = v = NULL;
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] EP.\n", 
+      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] EP.\n",
           mype, cblock, iter, block, (int)time(NULL));
-      
 
       /* receive the column block from down */
       cblock = (cblock+1)%npes;
@@ -552,13 +550,13 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
     }
 
     //BDMPI_Barrier(params->comm);
-    BDMPI_Reduce(&mae, &gmae, 1, BDMPI_DOUBLE, BDMPI_SUM, 0, params->comm);
+    /*BDMPI_Reduce(&mae, &gmae, 1, BDMPI_DOUBLE, BDMPI_SUM, 0, params->comm);
     BDMPI_Reduce(&rmse, &grmse, 1, BDMPI_DOUBLE, BDMPI_SUM, 0, params->comm);
     if (mype == 0) {
       gmae = gmae/dmat->gnnz;
       grmse = sqrt(grmse/dmat->gnnz);
       printf("Iter %4zu: MAE: %3.5lf RMSE: %3.5lf\n", iter, gmae, grmse);
-    }
+    }*/
   }
 
   return model;

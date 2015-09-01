@@ -43,8 +43,10 @@
 /* Wakeup selection schemes */
 #define BDMPRUN_WAKEUP_FIRST    1
 #define BDMPRUN_WAKEUP_LAST     2
-#define BDMPRUN_WAKEUP_LIFO     3
-#define BDMPRUN_WAKEUP_VRSS     4
+#define BDMPRUN_WAKEUP_FIFO     3
+#define BDMPRUN_WAKEUP_LIFO     4
+#define BDMPRUN_WAKEUP_VRSS     5
+#define BDMPRUN_WAKEUP_PEND     6
 
 /* MPI message tags (should be < 100) */
 #define BDMPI_HDR_TAG            10  /* header for remote send */

@@ -375,8 +375,10 @@ void slvpool_wakeup_some(mjob_t *job)
     /* select a runnable slave */
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_LAST);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_FIRST);
+    //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_FIFO);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_LIFO);
-    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
+    //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
+    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_PEND);
 
     togo = job->runnablelist[itogo];
     job->runnablelist[itogo] = job->runnablelist[--job->nrunnable];
@@ -421,6 +423,14 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
       itogo = job->nrunnable-1;
       break;
 
+    case BDMPRUN_WAKEUP_FIFO:
+      itogo = 0;
+      for (i=1; i<job->nrunnable; i++) {
+        if (job->blockedts[job->runnablelist[i]] < job->blockedts[job->runnablelist[itogo]])
+          itogo = i;
+      }
+      break;
+
     case BDMPRUN_WAKEUP_LIFO:
       itogo = 0;
       for (i=1; i<job->nrunnable; i++) {
@@ -448,6 +458,20 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           itogo = i;
           ifres = cfres;
         }
+      }
+      break;
+
+    case BDMPRUN_WAKEUP_PEND:
+      itogo = 0;
+      for (i=1; i<job->nrunnable; i++) {
+        if (job->npending[job->runnablelist[i]] > job->npending[job->runnablelist[itogo]])
+          itogo = i;
+      }
+      if (0 == itogo && 0 != job->nrunnable\
+       && 0 == job->npending[job->runnablelist[itogo]])
+      {
+        BD_LET_LOCK(job->schedule_lock);
+        return slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
       }
       break;
 
