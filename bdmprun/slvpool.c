@@ -406,7 +406,7 @@ void slvpool_wakeup_some(mjob_t *job)
 /*************************************************************************/
 int slvpool_select_task_to_wakeup(mjob_t *job, int type)
 {
-  int i, itogo;
+  int i, itogo, ipend, ctogo, cpend;
   size_t size, resident;
   float ifres, cfres;
   char fname[1024];
@@ -439,6 +439,42 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
       }
       break;
 
+    case BDMPRUN_WAKEUP_PEND:
+      itogo = -1;
+      ipend = 1;
+      ifres = -1.0;
+      for (i=0; i<job->nrunnable; i++) {
+        ctogo = job->runnablelist[i];
+
+        sprintf(fname, "/proc/%d/statm", job->spids[ctogo]);
+
+        if ((fp = fopen(fname, "r")) == NULL)
+          slvpool_abort(1, "Failed to open %s.\n", fname);
+        if (fscanf(fp, "%zu %zu", &size, &resident) != 2)
+          slvpool_abort(1, "Failed to read to values from %s.\n", fname);
+        if (fclose(fp) != 0)
+          slvpool_abort(1, "Failed to close%s.\n", fname);
+
+        cpend = job->npending[ctogo];
+        cfres = 1.0*resident/size;
+        if (cpend > ipend) {
+          itogo = i;
+          ipend = cpend;
+          ifres = cfres;
+        }
+        else if (cpend == ipend && cfres > ifres) {
+          itogo = i;
+          ifres = cfres;
+        }
+      }
+      if (-1 != itogo) {
+        bdprintf("%s %d:%d:%.2f\n", __func__, itogo, ipend, ifres);
+        break;
+      }
+      else {
+        /* fall through */
+      }
+
     case BDMPRUN_WAKEUP_VRSS:
       ifres = -1.0;
       itogo = 0;
@@ -453,25 +489,10 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
           slvpool_abort(1, "Failed to close%s.\n", fname);
 
         cfres = 1.0*resident/size;
-        //bdprintf("%s %10zu %10zu %5.4f\n", fname, size, resident, cfres);
         if (cfres > ifres) {
           itogo = i;
           ifres = cfres;
         }
-      }
-      break;
-
-    case BDMPRUN_WAKEUP_PEND:
-      itogo = 0;
-      for (i=1; i<job->nrunnable; i++) {
-        if (job->npending[job->runnablelist[i]] > job->npending[job->runnablelist[itogo]])
-          itogo = i;
-      }
-      if (0 == itogo && 0 != job->nrunnable\
-       && 0 == job->npending[job->runnablelist[itogo]])
-      {
-        BD_LET_LOCK(job->schedule_lock);
-        return slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
       }
       break;
 

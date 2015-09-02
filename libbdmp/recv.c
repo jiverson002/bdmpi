@@ -87,15 +87,19 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   xfer_in_scb(job->scb, &rmsg, sizeof(bdmsg_t), BDMPI_BYTE);
 
   /* check that we have enough buffer space */
-  if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype))
-    errexit("BDMPI_Recv: Received message is greater than provided buffer: recv: %zu; buffer: %zu\n",
-        bdmp_msize(rmsg.count, rmsg.datatype), bdmp_msize(count, datatype));
+  if (bdmp_msize(rmsg.count, rmsg.datatype) > bdmp_msize(count, datatype)) {
+    errexit("BDMPI_Recv: Received message is greater than provided buffer: "\
+      "recv: %zu; buffer: %zu\n", bdmp_msize(rmsg.count, rmsg.datatype),\
+      bdmp_msize(count, datatype));
+  }
 
   /* copy the data */
-  if (rmsg.fnum == -1)
+  if (rmsg.fnum == -1) {
     xfer_in_scb(job->scb, buf, rmsg.count, rmsg.datatype);
-  else
+  }
+  else {
     xfer_in_disk(rmsg.fnum, buf, rmsg.count, rmsg.datatype, 1);
+  }
 
   if (status != BDMPI_STATUS_IGNORE) {
     status->BDMPI_SOURCE = rmsg.source;
@@ -148,15 +152,15 @@ int bdmp_Irecv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   mype = comm->rank;
 
   memset(&msg, 0, sizeof(bdmsg_t));
-  msg.msgtype  = BDMPI_MSGTYPE_IRECV;
-  msg.mcomm    = comm->mcomm;
-  msg.myrank   = mype;
-  msg.tag      = tag;
-  msg.source   = source;
-  msg.dest     = mype;
-  msg.count    = count;
-  msg.datatype = datatype;
-
+  msg.msgtype     = BDMPI_MSGTYPE_IRECV;
+  msg.mcomm       = comm->mcomm;
+  msg.myrank      = mype;
+  msg.tag         = tag;
+  msg.source      = source;
+  msg.dest        = mype;
+  msg.count       = count;
+  msg.datatype    = datatype;
+  msg.new_request = 0;
 
   /* notify the master that you want to receive a message */
   bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));

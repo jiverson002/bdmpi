@@ -29,8 +29,8 @@ int bdmp_Wait(sjob_t *job, BDMPI_Request *r_request, BDMPI_Status *status)
   }
   else { /* this happens only for BDMPI_REQUEST_IRECV */
     BDASSERT(request->type == BDMPI_REQUEST_IRECV);
-    ierror = bdmp_Recv(job, request->buf, request->status.count, 
-                  request->status.datatype, request->status.BDMPI_SOURCE, 
+    ierror = bdmp_Recv(job, request->buf, request->status.count,
+                  request->status.datatype, request->status.BDMPI_SOURCE,
                   request->status.BDMPI_TAG, request->status.comm, status);
   }
 

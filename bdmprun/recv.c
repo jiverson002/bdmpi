@@ -87,6 +87,27 @@ void *mstr_recv(void *arg)
       xfer_out_scb(job->scbs[srank], hdr->buf, hdr->msg.count, hdr->msg.datatype);
 
     pending_freeheader(job, &hdr);
+
+#if 1
+    /* Notify remote master that a receive request has been completed. */
+
+    /* Only send the receive notification if this is not the first time that
+     * BDMPI_TYPE_RECV is received, meaning that a message of type
+     * BDMPI_MSGTYPE_RECV was sent for this message. */
+    if (0 == msg->new_request) {
+      source_node = babel_get_node(comm, msg->source);
+
+      mmsg.mcomm   = commid;
+      mmsg.dest    = msg->source;
+      mmsg.msgtype = BDMPI_MSGTYPE_RECVD;
+
+      /* send the message header using the global node number of wcomm */
+      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
+                        comm->wnranks[source_node], BDMPI_HDR_TAG,
+                        job->mpi_wcomm)
+               == MPI_SUCCESS);
+    }
+#endif
   }
 
   M_IFSET(BDMPI_DBG_IPCM, bdprintf("[MSTR%04d.%04d] mstr_recv: source: %d, dest: %d [exiting]\n",
@@ -133,26 +154,6 @@ void *mstr_irecv(void *arg)
     response = 0;
     if (bdmq_send(job->c2sMQs[srank], &response, sizeof(int)) == -1)
       bdprintf("Failed to send a message to %d: %s\n", srank, strerror(errno));
-
-#if 1
-    /* Notify remote master that a receive request has been issued. */
-
-    /* Only send the receive notification the first time that BDMPI_TYPE_RECV
-     * is received. */
-    if (1 == msg->new_request) {
-      source_node = babel_get_node(comm, msg->source);
-
-      mmsg.mcomm   = commid;
-      mmsg.dest    = msg->source;
-      mmsg.msgtype = BDMPI_MSGTYPE_RECV;
-
-      /* send the message header using the global node number of wcomm */
-      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
-                        comm->wnranks[source_node], BDMPI_HDR_TAG,
-                        job->mpi_wcomm)
-               == MPI_SUCCESS);
-    }
-#endif
   }
   else { /* a matching send has been posted */
     response = 1;
@@ -222,6 +223,7 @@ void *mstr_recvd_remote(void *arg)
   slv   = babel_get_srank(comm, msg->dest);
 
   BD_GET_LOCK(job->schedule_lock);
+  BDASSERT(job->npending[slv] > 0);
   job->npending[slv]--;
   BD_LET_LOCK(job->schedule_lock);
 
