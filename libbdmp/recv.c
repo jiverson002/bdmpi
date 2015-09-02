@@ -64,7 +64,6 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
   for (;;) {
     /* notify the master that you want to receive a message */
     bdmq_send(job->reqMQ, &msg, sizeof(bdmsg_t));
-    msg.new_request = 0; /* let master know that we are polling from now on */
 
     /* get the master's response  */
     bdmq_recv(job->c2sMQ, &response, sizeof(int));
@@ -73,6 +72,9 @@ int bdmp_Recv(sjob_t *job, void *buf, size_t count, BDMPI_Datatype datatype,
 
     if (response == 1)
       break;  /* we got the go-ahead */
+
+    /* let master know that we are polling from now on */
+    msg.new_request = 0;
 
     /* prepare to go to sleep */
     S_SB_IFSET(BDMPI_SB_SAVEALL) {

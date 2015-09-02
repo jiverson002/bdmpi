@@ -468,7 +468,7 @@ int slvpool_select_task_to_wakeup(mjob_t *job, int type)
         }
       }
       if (-1 != itogo) {
-        bdprintf("%s %d:%d:%.2f\n", __func__, itogo, ipend, ifres);
+        //bdprintf("%s %d:%d:%.2f\n", __func__, itogo, ipend, ifres);
         break;
       }
       else {

@@ -267,13 +267,14 @@ int bdmp_Gatherv_p2p(sjob_t *job,
     }
 
     /* receive data from everybody else */
-    msg.msgtype  = BDMPI_MSGTYPE_RECV;
-    msg.mcomm    = comm->mcomm;
-    msg.myrank   = mype;
-    msg.dest     = mype;
-    msg.tag      = tag;
-    msg.source   = BDMPI_ANY_SOURCE;
-    msg.datatype = recvtype;
+    msg.msgtype     = BDMPI_MSGTYPE_RECV;
+    msg.mcomm       = comm->mcomm;
+    msg.myrank      = mype;
+    msg.dest        = mype;
+    msg.tag         = tag;
+    msg.source      = BDMPI_ANY_SOURCE;
+    msg.datatype    = recvtype;
+    msg.new_request = 1;
 
     msg.count = recvcounts[0];
     for (p=1; p<npes; p++)
@@ -289,6 +290,9 @@ int bdmp_Gatherv_p2p(sjob_t *job,
 
         if (response == 1)
           break;
+
+        /* let master know that we are polling from now on */
+        msg.new_request = 0;
 
         /* go to sleep... */
         S_SB_IFSET(BDMPI_SB_SAVEALL) {

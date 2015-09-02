@@ -56,21 +56,21 @@ void *mstr_recv(void *arg)
 
 #if 1
     /* Notify remote master that a receive request has been issued. */
+    if (!babel_is_local(comm, msg->source)) {
+      /* Only send the receive notification the first time that
+       * BDMPI_TYPE_RECV is received. */
+      if (1 == msg->new_request) {
+        source_node = babel_get_node(comm, msg->source);
 
-    /* Only send the receive notification the first time that BDMPI_TYPE_RECV
-     * is received. */
-    if (1 == msg->new_request) {
-      source_node = babel_get_node(comm, msg->source);
+        mmsg.mcomm   = commid;
+        mmsg.source  = msg->source;
+        mmsg.dest    = msg->myrank;
+        mmsg.msgtype = BDMPI_MSGTYPE_RECV;
 
-      mmsg.mcomm   = commid;
-      mmsg.dest    = msg->source;
-      mmsg.msgtype = BDMPI_MSGTYPE_RECV;
-
-      /* send the message header using the global node number of wcomm */
-      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
-                        comm->wnranks[source_node], BDMPI_HDR_TAG,
-                        job->mpi_wcomm)
-               == MPI_SUCCESS);
+        /* Send the message header using the global node number of wcomm */
+        BDASSERT(MPI_SUCCESS == MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,\
+          comm->wnranks[source_node], BDMPI_HDR_TAG, job->mpi_wcomm));
+      }
     }
 #endif
   }
@@ -90,22 +90,22 @@ void *mstr_recv(void *arg)
 
 #if 1
     /* Notify remote master that a receive request has been completed. */
+    if (!babel_is_local(comm, msg->source)) {
+      /* Only send the receive notification if this is not the first time that
+       * BDMPI_TYPE_RECV is received, meaning that a message of type
+       * BDMPI_MSGTYPE_RECV was sent for this message. */
+      if (0 == msg->new_request) {
+        source_node = babel_get_node(comm, msg->source);
 
-    /* Only send the receive notification if this is not the first time that
-     * BDMPI_TYPE_RECV is received, meaning that a message of type
-     * BDMPI_MSGTYPE_RECV was sent for this message. */
-    if (0 == msg->new_request) {
-      source_node = babel_get_node(comm, msg->source);
+        mmsg.mcomm   = commid;
+        mmsg.source  = msg->source;
+        mmsg.dest    = msg->myrank;
+        mmsg.msgtype = BDMPI_MSGTYPE_RECVD;
 
-      mmsg.mcomm   = commid;
-      mmsg.dest    = msg->source;
-      mmsg.msgtype = BDMPI_MSGTYPE_RECVD;
-
-      /* send the message header using the global node number of wcomm */
-      BDASSERT(MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,
-                        comm->wnranks[source_node], BDMPI_HDR_TAG,
-                        job->mpi_wcomm)
-               == MPI_SUCCESS);
+        /* Send the message header using the global node number of wcomm */
+        BDASSERT(MPI_SUCCESS == MPI_Send(&mmsg, sizeof(bdmsg_t), MPI_BYTE,\
+          comm->wnranks[source_node], BDMPI_HDR_TAG, job->mpi_wcomm));
+      }
     }
 #endif
   }
@@ -194,7 +194,9 @@ void *mstr_recv_remote(void *arg)
 
   mcomm = babel_get_my_mcomm(job, msg->mcomm);
   comm  = job->comms[mcomm];
-  slv   = babel_get_srank(comm, msg->dest);
+  slv   = babel_get_srank(comm, msg->source);
+
+  assert(!babel_is_local(comm, msg->dest));
 
   BD_GET_LOCK(job->schedule_lock);
   job->npending[slv]++;
@@ -220,7 +222,9 @@ void *mstr_recvd_remote(void *arg)
 
   mcomm = babel_get_my_mcomm(job, msg->mcomm);
   comm  = job->comms[mcomm];
-  slv   = babel_get_srank(comm, msg->dest);
+  slv   = babel_get_srank(comm, msg->source);
+
+  assert(!babel_is_local(comm, msg->dest));
 
   BD_GET_LOCK(job->schedule_lock);
   BDASSERT(job->npending[slv] > 0);

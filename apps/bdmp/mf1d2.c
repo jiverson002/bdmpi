@@ -447,12 +447,15 @@ mf_t *ComputeFactors(params_t *params, dcsr_t *dmat)
     if (mype == 0)
       printf("Working on iteration: %zu\n", iter);
 
+    printf("[%3d] Starting iteration %zu [ts: %d]\n", mype, iter,\
+      (int)time(NULL));
+
     mae = rmse = 0.0;
     for (block=0; block<npes; block++) {
       cblock = (mype+block)%npes;
 
-      printf("[%3d] Computing %3d during %zu.%zu [ts: %d] SP.\n",
-          mype, cblock, iter, block, (int)time(NULL));
+      /*printf("[%3d] Computing %3d during %zu.%zu [ts: %d] SP.\n",
+          mype, cblock, iter, block, (int)time(NULL));*/
 
       ncols  = dmat->mats[cblock]->ncols;
       rowptr = dmat->mats[cblock]->rowptr;
