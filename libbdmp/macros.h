@@ -18,8 +18,8 @@
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
-  if (-1 == SBMA_release())                                                 \
-    bdprintf("Failed on SBMA release: %s.\n", strerror(errno));             \
+  if (-1 == SBMA_sigon())                                                   \
+    bdprintf("Failed on SBMA sigon: %s.\n", strerror(errno));               \
   for (;;) {                                                                \
     memset(&(MSG), 0, sizeof(bdmsg_t));                                     \
     if (-1 == bdmq_recv((JOB)->goMQ, &(MSG), sizeof(bdmsg_t))) {            \
@@ -38,5 +38,7 @@ do {                                                                        \
         EINTR);*/\
     /*slv_route(JOB, &(MSG));                                               */\
   }                                                                         \
+  if (-1 == SBMA_sigoff())                                                  \
+    bdprintf("Failed on SBMA sigoff: %s.\n", strerror(errno));              \
   /*bdprintf("sleep end@%s:%d\n", basename(__FILE__), __LINE__);*/\
 } while (0)
