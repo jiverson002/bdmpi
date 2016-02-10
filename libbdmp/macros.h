@@ -17,6 +17,8 @@
 
 #define BDMPL_SLEEP(JOB, MSG, IPC)                                          \
 do {                                                                        \
+  /* Only useful to SystemTap code. */\
+  int uid = getuid();\
   /*bdprintf("sleep beg@%s:%d\n", basename(__FILE__), __LINE__);*/\
   if ((IPC) && -1 == SBMA_sigon())                                          \
     bdprintf("Failed on SBMA sigon: %s.\n", strerror(errno));               \
