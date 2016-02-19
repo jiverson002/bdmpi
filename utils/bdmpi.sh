@@ -273,7 +273,7 @@ for i in 1 2 4 8 16 ; do
       #{{{5
         ID=${LOG##*-}
         ID=$((${ID}+1))
-        LOG="${TEMPLATE}-${ID}"
+        LOG="${TEMPLATE}-${SBMA[${i}]// /}-${ID}"
       #}}}5
       done
 
@@ -283,7 +283,7 @@ for i in 1 2 4 8 16 ; do
       #}}}5
       else
       #{{{5
-        rm -rf ${WRK_DIR} /dev/mqueue/* /dev/shm/*
+        rm -rf ${WRK_DIR}/* /dev/mqueue/* /dev/shm/*
         sudo fstrim -v /scratch-ssd
 
         echo "${LOG}"
