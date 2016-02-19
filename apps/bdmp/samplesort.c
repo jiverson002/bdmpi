@@ -6,6 +6,7 @@
 */
 
 #define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <GKlib.h>
 #include <bdmpi.h>

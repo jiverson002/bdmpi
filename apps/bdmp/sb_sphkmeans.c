@@ -6,6 +6,7 @@
 */
 
 #define _SVID_SOURCE
+#define _DEFAULT_SOURCE
 
 #if 0
 int main() {}
