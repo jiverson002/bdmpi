@@ -20,7 +20,7 @@ OUT_DIR="${HOME}/local/results/bdmpi/hdd"
 ERR_FILE="${OUT_DIR}/ERR"
 
 # Working directory for bdmpi runtime
-WRK_DIR="/scratch-ssd/bdmp"
+WRK_DIR="/scratch/bdmp"
 
 # Bitmask of experiments to run
 BITMASK=127
@@ -182,7 +182,7 @@ BDMPI_HASH="`git -C ${BDMPI_DIR} log -n 1 | head -n 1 | awk '{print substr($2,0,
   # KMEANS
   #============================================================================
   #{{{2
-  PROG_NS[sphkmeans]=4
+  PROG_NS[sphkmeans]=16
   PROG_CMD[sphkmeans]="/scratch/jeremy/bin/bdmp_sphkmeans"
   PROG_ARG[sphkmeans]="/data/kmeans/new1600k.bcsr 150 1 5 1 0"
   #}}}2
