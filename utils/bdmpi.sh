@@ -164,7 +164,7 @@ BDMPI_HASH="`git -C ${BDMPI_DIR} log -n 1 | head -n 1 | awk '{print substr($2,0,
   #============================================================================
   #{{{2
   #BDMP_CMD="mpirun -n 4 -f /home/jeremy/local/host ${BDMP_CMD}"
-  PROG_NS[mf1d2]=4
+  PROG_NS[mf1d2]=16
   PROG_CMD[mf1d2]="/scratch/jeremy/bin/bdmp_mf1d2"
   PROG_ARG[mf1d2]="/data/graphs/nlpkkt200.bcsr 5 150"
   #}}}2
