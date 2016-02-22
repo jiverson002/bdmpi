@@ -43,14 +43,17 @@ ssize_t xfer_getfnum()
 /*************************************************************************/
 void xfer_unlink(ssize_t fnum)
 {
-  char *fname;
+  //char *fname;
+  char fname[BDMPI_WDIR_LEN+20];
 
-  if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  if (sprintf(fname, "%s/%zd", xfer_wdir, fnum) == -1)
     errexit("xfer_unlink: Failed to create filename.\n");
+  //if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  //  errexit("xfer_unlink: Failed to create filename.\n");
 
   unlink(fname);
 
-  free(fname);
+  //free(fname);
 
   return;
 }
@@ -109,13 +112,16 @@ void xfer_in_scb(bdscb_t *scb, void *vbuf, size_t count, BDMPI_Datatype datatype
 /*************************************************************************/
 void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype)
 {
-  char *fname;
+  //char *fname;
   int fd;
   size_t len, size = bdmp_msize(count, datatype);
   ssize_t ret;
+  char fname[BDMPI_WDIR_LEN+20];
 
-  if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  if (sprintf(fname, "%s/%zd", xfer_wdir, fnum) == -1)
     errexit("xfer_out_disk: Failed to create filename.\n");
+  //if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  //  errexit("xfer_out_disk: Failed to create filename.\n");
 
   if ((fd = open(fname, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
     errexit("xfer_out_disk: Failed to open file %s: %s\n", fname, strerror(errno));
@@ -133,7 +139,7 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
 
   close(fd);
 
-  free(fname);
+  //free(fname);
 
   return;
 }
@@ -145,12 +151,15 @@ void xfer_out_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatyp
 void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype,
          int rmfile)
 {
-  char *fname;
+  //char *fname;
   int fd;
   size_t len, rsize, size = bdmp_msize(count, datatype);
+  char fname[BDMPI_WDIR_LEN+20];
 
-  if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  if (sprintf(fname, "%s/%zd", xfer_wdir, fnum) == -1)
     errexit("xfer_in_disk: Failed to create filename.\n");
+  //if (asprintf(&fname, "%s/%zd", xfer_wdir, fnum) == -1)
+  //  errexit("xfer_in_disk: Failed to create filename.\n");
 
   if ((rsize = gk_getfsize(fname)) == -1)
     errexit("[%5d] xfer_in_disk: Error with file: %s [%s]\n", (int)getpid(),
@@ -181,7 +190,7 @@ void xfer_in_disk(ssize_t fnum, char *buf, size_t count, BDMPI_Datatype datatype
   if (rmfile)
     unlink(fname);
 
-  free(fname);
+  //free(fname);
 
   return;
 }
