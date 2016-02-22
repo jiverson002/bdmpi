@@ -30,7 +30,7 @@ file(GLOB common_sources ${COMMON_PATH}/*.c)
 
 # Add include directories.
 include_directories(${GKLIB_PATH})
-include_directories(${SBMA_PATH})
+include_directories(${SBMA_PATH}/include)
 include_directories(include)
 
 # Recursively look for CMakeLists.txt in subdirs.
