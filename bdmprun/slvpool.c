@@ -377,8 +377,8 @@ void slvpool_wakeup_some(mjob_t *job)
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_FIRST);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_FIFO);
     //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_LIFO);
-    //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
-    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_PEND);
+    itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_VRSS);
+    //itogo = slvpool_select_task_to_wakeup(job, BDMPRUN_WAKEUP_PEND);
 
     togo = job->runnablelist[itogo];
     job->runnablelist[itogo] = job->runnablelist[--job->nrunnable];
